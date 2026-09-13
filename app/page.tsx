@@ -1,5 +1,5 @@
-import { StaticComposition } from "@/components/experience/StaticComposition";
+import { Experience } from "@/components/experience/Experience";
 
 export default function IndexPage() {
-  return <StaticComposition />;
+  return <Experience />;
 }

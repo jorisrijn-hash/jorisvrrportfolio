@@ -12,18 +12,27 @@ import {
 } from "@/components/environment/TechnicalMarker";
 
 /**
- * CHECKPOINT 1 — the static reproduction of loadingempty.png.
+ * The resting composition — the reproduction of loadingempty.png.
  *
- * No animation, no video, no canvas. Layer order matches the reference:
+ * No video, no canvas. Layer order matches the reference:
  * ground -> block noise -> grid -> radial wash -> markers -> centre.
+ *
+ * Mounted for the whole session and never unmounted: the boot sequence plays
+ * over it and fades away, so handover has nothing to re-layout.
  */
-export function StaticComposition() {
+export function StaticComposition({ resolved = true }: { resolved?: boolean }) {
   return (
-    <div className="experience" data-state="loading">
+    <>
+      {/* Persistent through every phase — the reference shows the grid, its
+          wash and the corner brackets from the first frame. */}
       <BlockNoise />
       <ExperienceGrid />
       <div className="wash-layer" aria-hidden="true" />
       <CornerRegistrationMarks />
+
+      {/* The resting furniture. Absent during the boot in the reference; it
+          resolves only once the sequence completes. */}
+      <div className="resting" data-resolved={resolved}>
       <StateLabel />
 
       <TechnicalMarker left={67} top={74} w={155} h={106} label="Status-Log">
@@ -43,6 +52,7 @@ export function StaticComposition() {
       </TechnicalMarker>
 
       <CenterDiagram />
-    </div>
+      </div>
+    </>
   );
 }

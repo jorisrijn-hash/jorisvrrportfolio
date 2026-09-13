@@ -196,3 +196,303 @@
   color: var(--color-env-label);
   white-space: nowrap;
 }
+
+/* =========================================================================
+   BOOT SEQUENCE — rebuilt natively from loadinganimation.mp4.
+   No video, no canvas. Phase boundaries measured from the source.
+   ========================================================================= */
+
+.boot {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  pointer-events: none;
+}
+
+/* ---- phase 1: telemetry panels ----------------------------------------- */
+
+/* Measured: the panels are opaque white cards that cover the grid.
+   TRACE-A (63,55,592) · TRACE-B (1320,78,525) · TRACE-C (63,578,692) */
+.trace {
+  position: absolute;
+  background: #fdfdfd;
+  padding: 14px 18px 16px;
+}
+
+.trace__title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--color-hud);
+  margin-bottom: 9px;
+}
+
+.trace__body { display: flex; flex-direction: column; }
+
+.trace__line {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  line-height: 17px;
+  letter-spacing: 0.02em;
+  color: #4a4a4a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+}
+
+.boot__inbound {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--color-hud-dim);
+}
+
+/* ---- phase 2: authentication, hexagon, loading module, checkerboard ---- */
+
+/* Measured: title baseline at (393, 315) in the 1920x950 frame. */
+.authblock {
+  position: absolute;
+  left: 393px;
+  top: 305px;
+  width: 420px;
+}
+
+.authblock__title {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--color-hud);
+  margin-bottom: 10px;
+}
+
+.authblock__rows { display: grid; gap: 3px; }
+.authblock__rows > div { display: flex; gap: 8px; }
+
+.authblock__rows dt,
+.authblock__rows dd {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  color: #5a5a5a;
+  margin: 0;
+}
+
+.authblock__rows dt { width: 62px; flex: none; }
+
+.authblock__stages { display: grid; gap: 22px; margin-top: 30px; }
+
+.authblock__stages p {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  color: #5a5a5a;
+}
+
+.authblock__stages p[data-strong="true"] {
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  color: var(--color-hud);
+}
+
+/* Measured from the source at t=6.5s: pointy-top hexagons centred on
+   (906, 474); inner circumradius 189, outer dashed 274. */
+.boot__hex {
+  position: absolute;
+  left: 906px;
+  top: 474px;
+  width: 620px;
+  height: 620px;
+  margin-left: -310px;
+  margin-top: -310px;
+}
+
+.hexpair { width: 100%; height: 100%; display: block; }
+
+/* Measured: circle centred on (1375, 480), radius 100. */
+.loadmod {
+  position: absolute;
+  left: 1375px;
+  top: 480px;
+  width: 240px;
+  height: 240px;
+  margin-left: -120px;
+  margin-top: -120px;
+}
+
+.loadmod__svg { width: 100%; height: 100%; display: block; }
+
+.loadmod__arc {
+  transform-origin: 120px 120px;
+  animation: loadmod-spin 2.4s linear infinite;
+}
+
+@keyframes loadmod-spin { to { transform: rotate(360deg); } }
+
+.loadmod__text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  text-align: center;
+}
+
+.loadmod__title {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--color-hud);
+}
+
+.loadmod__line {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #6a6a6a;
+}
+
+/* three sector brackets around the module */
+.loadmod__sector {
+  position: absolute;
+  width: 40px;
+  height: 22px;
+  display: block;
+}
+
+.loadmod__sector[data-i="0"] { left: 50%; top: -34px; margin-left: -20px; }
+.loadmod__sector[data-i="1"] { left: -58px; top: 50%; margin-top: -11px; }
+.loadmod__sector[data-i="2"] { left: 50%; bottom: -34px; margin-left: -20px; }
+
+.loadmod__sector i {
+  position: absolute;
+  top: 0;
+  width: 12px;
+  height: 12px;
+  border: 0 solid var(--color-env-mark);
+}
+.loadmod__sector i:first-child { left: 0;  border-left-width: 1px;  border-top-width: 1px; }
+.loadmod__sector i:last-child  { right: 0; border-right-width: 1px; border-top-width: 1px; }
+
+.loadmod__sector em {
+  position: absolute;
+  left: 50%;
+  bottom: -2px;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 7px;
+  font-style: normal;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-env-label);
+  white-space: nowrap;
+}
+
+/* Measured: 3x3 field at x 1705..1810, y 388..495. */
+.checker {
+  position: absolute;
+  left: 1705px;
+  top: 388px;
+  display: grid;
+  grid-template-columns: repeat(3, 30px);
+  grid-auto-rows: 30px;
+  gap: 6px;
+}
+
+.checker span {
+  border: 1px solid var(--color-env-line);
+  background: transparent;
+  transition: background-color 220ms var(--ease-out);
+}
+
+/* The reference cells are a faint fill, not solid ink. */
+.checker span[data-on="true"] { background: #e2e2e2; }
+
+/* ---- phase 3: complete -------------------------------------------------- */
+
+.complete {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 260px;
+  height: 260px;
+  margin: -130px 0 0 -130px;
+}
+
+.complete svg { width: 100%; height: 100%; display: block; }
+
+.complete__label {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--color-hud);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loadmod__arc { animation: none; }
+}
+
+/* ---- the one control on screen this pass ------------------------------- */
+.hud-corner {
+  position: absolute;
+  right: 24px;
+  top: 15px;
+  z-index: 60;
+}
+
+.sound-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-env-label);
+  padding: 4px 7px;
+  border: 1px solid transparent;
+  transition: color 180ms var(--ease-out), border-color 180ms var(--ease-out);
+}
+
+.sound-toggle:hover { color: var(--color-hud-dim); border-color: var(--color-env-mark); }
+
+/* The resting furniture resolves once the boot completes. Opacity only —
+   nothing re-lays-out, so handover cannot cause a jump. */
+.resting {
+  opacity: 0;
+  transition: opacity 900ms var(--ease-out);
+}
+
+.resting[data-resolved="true"] { opacity: 1; }
+
+/* Measured: signal block at x 1651..1792, y 794..845. */
+.sigbars {
+  position: absolute;
+  left: 1655px;
+  top: 795px;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  height: 70px;
+}
+
+.sigbars span {
+  width: 6px;
+  background: var(--color-env-mark);
+  transform-origin: bottom center;
+}

@@ -30,22 +30,12 @@ import {
  * change is a tone. Nothing is the same click twice.
  */
 export type Cue =
-  // micro
-  | "hover"        // nav/pill pointerenter — quietest thing on the site
-  | "press"
-  | "release"
-  | "toggle"
-  // navigation / scene
-  | "navigate"     // state change committed
-  | "arrive"       // scene finished resolving
-  // boot
-  | "scan"         // each boot phase ticks over
-  | "boot"         // boot complete
-  // work
-  | "index"        // project index changed
-  | "select"       // project selected
-  | "open"         // project opened
-  | "close";
+  | "hover"    // pointer enters an interactive element — the quietest cue
+  | "select"   // a control is chosen
+  | "state"    // the experience changes state
+  | "toggle"   // sound on/off
+  | "scan"     // a boot phase ticks over
+  | "arrive";  // the boot sequence resolves
 
 type CueDef = {
   /** cuelume recipe name */
@@ -56,19 +46,17 @@ type CueDef = {
   limit: number;
 };
 
+/**
+ * A deliberately small set for this pass — performance and interaction first.
+ * The hierarchy still holds: a hover is a whisper, a state change is a tone.
+ */
 const CUES: Record<Cue, CueDef> = {
-  hover:    { recipe: "tick",    gain: 0.34, limit: 90 },
-  press:    { recipe: "press",   gain: 0.70, limit: 40 },
-  release:  { recipe: "release", gain: 0.55, limit: 40 },
-  toggle:   { recipe: "toggle",  gain: 0.80, limit: 80 },
-  navigate: { recipe: "page",    gain: 0.95, limit: 200 },
-  arrive:   { recipe: "arrival", gain: 0.85, limit: 300 },
-  scan:     { recipe: "scan",    gain: 0.45, limit: 110 },
-  boot:     { recipe: "bloom",   gain: 0.90, limit: 500 },
-  index:    { recipe: "tick",    gain: 0.62, limit: 70 },
-  select:   { recipe: "press",   gain: 0.85, limit: 90 },
-  open:     { recipe: "bloom",   gain: 0.85, limit: 260 },
-  close:    { recipe: "toggle",  gain: 0.62, limit: 200 },
+  hover:  { recipe: "tick",    gain: 0.32, limit: 90 },
+  select: { recipe: "press",   gain: 0.75, limit: 60 },
+  state:  { recipe: "page",    gain: 0.90, limit: 200 },
+  toggle: { recipe: "toggle",  gain: 0.80, limit: 90 },
+  scan:   { recipe: "scan",    gain: 0.42, limit: 150 },
+  arrive: { recipe: "arrival", gain: 0.85, limit: 400 },
 };
 
 /** Master. Interface feedback sits well under the content (§25). */
@@ -140,6 +128,7 @@ const SoundContext = createContext<SoundApi | null>(null);
 export function SoundProvider({ children }: { children: React.ReactNode }) {
   const enabled = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const engine = useRef<typeof import("cuelume") | null>(null);
+  const lastPlayed = useRef<Partial<Record<Cue, number>>>({});
   const loading = useRef(false);
 
   const load = useCallback(async () => {
@@ -171,34 +160,34 @@ export function SoundProvider({ children }: { children: React.ReactNode }) {
     [load],
   );
 
-  const lastPlayed = useRef<Partial<Record<Cue, number>>>({});
+  const cue = useCallback((name: Cue) => {
+    // Read the CURRENT preference from the store, not from a captured value.
+    // Reading `enabled` here would close over a stale snapshot, so a cue fired
+    // moments after the user switches sound on would be silently dropped —
+    // which is exactly the confirmation beep you most want to hear.
+    if (getSnapshot() !== true) return;
 
-  const cue = useCallback(
-    (name: Cue) => {
-      if (enabled !== true) return;
-      const mod = engine.current;
-      if (!mod) return;
+    const mod = engine.current;
+    if (!mod) return;
 
-      const def = CUES[name];
-      if (!def) return;
+    const def = CUES[name];
+    if (!def) return;
 
-      // Rate limit per cue. Without this, a pointer crossing a row of pills
-      // machine-guns the hover tick (§25).
-      const now = performance.now();
-      const prev = lastPlayed.current[name] ?? -Infinity;
-      if (now - prev < def.limit) return;
-      lastPlayed.current[name] = now;
+    // Rate limit per cue. Without this, a pointer crossing a row of controls
+    // machine-guns the hover tick.
+    const now = performance.now();
+    const prev = lastPlayed.current[name] ?? -Infinity;
+    if (now - prev < def.limit) return;
+    lastPlayed.current[name] = now;
 
-      try {
-        mod.play(def.recipe as Parameters<typeof mod.play>[0], {
-          volume: VOLUME * def.gain,
-        });
-      } catch {
-        /* a failed cue must never break an interaction */
-      }
-    },
-    [enabled],
-  );
+    try {
+      mod.play(def.recipe as Parameters<typeof mod.play>[0], {
+        volume: VOLUME * def.gain,
+      });
+    } catch {
+      /* a failed cue must never break an interaction */
+    }
+  }, []);
 
   const value = useMemo<SoundApi>(
     () => ({ enabled, setEnabled, cue }),
