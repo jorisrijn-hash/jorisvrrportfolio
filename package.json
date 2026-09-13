@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "verify": "node scripts/verify-a11y.mjs",
     "verify:cursor": "node scripts/cursor-test.mjs",
-    "perf": "node scripts/perf.mjs"
+    "perf": "node scripts/perf.mjs",
+    "verify:gate": "node scripts/gate-test.mjs"
   },
   "dependencies": {
     "cuelume": "^0.2.2",

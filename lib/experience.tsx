@@ -9,23 +9,27 @@ import { createContext, useCallback, useContext, useMemo, useReducer } from "rea
  * transition owns the screen. A transition is a STATE here, not a flag, which
  * is what makes that guarantee structural rather than a convention.
  */
-export type State = "loading" | "home" | "to-work" | "work" | "to-about" | "about";
+export type State = "gate" | "loading" | "home" | "to-work" | "work" | "to-about" | "about";
 
 type Action =
+  | { type: "BEGIN" }          // the audio choice has been made
+  | { type: "SKIP_TO_HOME" }   // already seen this session
   | { type: "READY" }
   | { type: "GO"; to: "home" | "work" | "about" }
   | { type: "REPLAY" };
 
-const TRANSITIONS: State[] = ["loading", "to-work", "to-about"];
+const TRANSITIONS: State[] = ["gate", "loading", "to-work", "to-about"];
 
 type Model = { state: State; runId: number };
 
 function reducer(m: Model, a: Action): Model {
+  if (a.type === "BEGIN") return m.state === "gate" ? { ...m, state: "loading" } : m;
+  if (a.type === "SKIP_TO_HOME") return m.state === "gate" ? { ...m, state: "home" } : m;
   if (a.type === "READY") return m.state === "loading" ? { ...m, state: "home" } : m;
 
   // Replaying restarts the boot. runId bumps so the sequence remounts cleanly
   // rather than trying to resume half-finished timers.
-  if (a.type === "REPLAY") return { state: "loading", runId: m.runId + 1 };
+  if (a.type === "REPLAY") return { state: "gate", runId: m.runId + 1 };
 
   const state = m.state;
 
@@ -45,6 +49,8 @@ type Ctx = {
   busy: boolean;
   /** Increments on each replay, so the boot can remount cleanly. */
   runId: number;
+  begin: () => void;
+  skipToHome: () => void;
   ready: () => void;
   go: (to: "home" | "work" | "about") => void;
   replay: () => void;
@@ -53,13 +59,15 @@ type Ctx = {
 const ExperienceContext = createContext<Ctx | null>(null);
 
 export function ExperienceProvider({ children }: { children: React.ReactNode }) {
-  const [m, dispatch] = useReducer(reducer, { state: "loading", runId: 0 });
+  const [m, dispatch] = useReducer(reducer, { state: "gate", runId: 0 });
 
   const value = useMemo<Ctx>(
     () => ({
       state: m.state,
       busy: TRANSITIONS.includes(m.state),
       runId: m.runId,
+      begin: () => dispatch({ type: "BEGIN" }),
+      skipToHome: () => dispatch({ type: "SKIP_TO_HOME" }),
       ready: () => dispatch({ type: "READY" }),
       go: (to) => dispatch({ type: "GO", to }),
       replay: () => dispatch({ type: "REPLAY" }),

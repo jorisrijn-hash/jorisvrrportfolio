@@ -11,7 +11,7 @@ import { CompleteBadge } from "./CompleteBadge";
 import { SignalBars } from "./SignalBars";
 import { BOOT_TOTAL, PHASES, TRACE_A, TRACE_B, TRACE_C } from "@/content/boot";
 import { dev } from "@/lib/dev";
-import { useSessionFlag, setSessionFlag } from "@/lib/clock";
+import { setSessionFlag } from "@/lib/clock";
 import { useReducedMotion } from "@/lib/motion";
 import { useSound } from "@/lib/sound";
 import { startBootTrack, stopBootTrack } from "@/lib/bootAudio";
@@ -37,25 +37,22 @@ type Phase = "trace" | "auth" | "complete" | "settle" | "done";
  * Returning within the same session skips straight to the resting state.
  * FORCE_INTRO replays it.
  */
-export function BootSequence({ onDone, replay = false }: { onDone: () => void; replay?: boolean }) {
+export function BootSequence({ onDone }: { onDone: () => void }) {
   const [phase, setPhase] = useState<Phase>("trace");
   const [tick, setTick] = useState(0);
   /** The centre readout changes partway through phase 1, as in the source. */
   const [locked, setLocked] = useState(false);
   const reduced = useReducedMotion();
   const { cue, enabled } = useSound();
-  const seen = useSessionFlag(SESSION_KEY);
   const settled = useRef(false);
   const startedAt = useRef<number | null>(null);
 
-  // A replay always runs, regardless of the session flag.
-  const skip =
-    seen === null ? null : replay || dev("FORCE_INTRO") ? false : seen || reduced;
+  // The gate decides whether the sequence runs at all, so nothing is left to
+  // decide here except reduced motion, which goes straight to the resting state.
+  const skip = reduced && !dev("FORCE_INTRO");
 
   // Phase timeline. One setTimeout per boundary, cleared together.
   useEffect(() => {
-    if (skip === null) return;
-
     if (skip) {
       if (!settled.current) {
         settled.current = true;
@@ -103,7 +100,7 @@ export function BootSequence({ onDone, replay = false }: { onDone: () => void; r
    * on screen instead of restarting under them.
    */
   useEffect(() => {
-    if (skip !== false || enabled !== true) return;
+    if (skip || enabled !== true) return;
     const elapsed = startedAt.current ? (performance.now() - startedAt.current) / 1000 : 0;
     startBootTrack(0.55, elapsed);
     return () => stopBootTrack();
@@ -116,7 +113,7 @@ export function BootSequence({ onDone, replay = false }: { onDone: () => void; r
     return () => window.clearInterval(id);
   }, [phase]);
 
-  if (skip === null || skip || phase === "done") return null;
+  if (skip || phase === "done") return null;
 
   const isTrace = phase === "trace";
   const isAuth = phase === "auth";

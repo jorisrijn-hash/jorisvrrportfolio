@@ -68,19 +68,23 @@ export function CustomCursor() {
       raf = requestAnimationFrame(frame);
     };
 
+    const reveal = () => {
+      if (visible) return;
+      visible = true;
+      node.dataset.visible = "true";
+    };
+
     const onMove = (e: PointerEvent) => {
       target.x = e.clientX;
       target.y = e.clientY;
-      if (!visible) {
-        visible = true;
-        node.dataset.visible = "true";
-      }
+      reveal();
       kick();
     };
 
     // Hover state is occasional, not per-frame, and is written directly to the
     // DOM so it never causes a render.
     const onOver = (e: PointerEvent) => {
+      reveal();
       const hit = (e.target as Element | null)?.closest?.(HIT);
       const next = hit ? hit.getAttribute("data-cursor") || "link" : "default";
       if (next !== state) {
@@ -89,17 +93,35 @@ export function CustomCursor() {
       }
     };
 
-    const onDown = () => { node.dataset.pressed = "true"; };
+    const onDown = (e: PointerEvent) => {
+      // Any pointer event reveals it, not just movement. A visitor who clicks
+      // before moving would otherwise see nothing until their first drag.
+      target.x = e.clientX;
+      target.y = e.clientY;
+      node.dataset.pressed = "true";
+      reveal();
+      kick();
+    };
     const onUp = () => { node.dataset.pressed = "false"; };
-    const onLeave = () => { visible = false; node.dataset.visible = "false"; };
-    const onEnter = () => { visible = true; node.dataset.visible = "true"; };
+
+    // Hide ONLY when the pointer genuinely leaves the window. The previous
+    // pointerleave/pointerenter pair on `document` was fragile: those events do
+    // not bubble, and in some browsers they fire while crossing between child
+    // elements, which made the cursor flicker out mid-move.
+    const onOut = (e: PointerEvent) => {
+      if (e.relatedTarget === null) {
+        visible = false;
+        node.dataset.visible = "false";
+      }
+    };
+    const onBlur = () => { visible = false; node.dataset.visible = "false"; };
 
     window.addEventListener("pointermove", onMove, { passive: true });
     window.addEventListener("pointerover", onOver, { passive: true });
     window.addEventListener("pointerdown", onDown, { passive: true });
     window.addEventListener("pointerup", onUp, { passive: true });
-    document.addEventListener("pointerleave", onLeave);
-    document.addEventListener("pointerenter", onEnter);
+    window.addEventListener("pointerout", onOut, { passive: true });
+    window.addEventListener("blur", onBlur);
 
     return () => {
       cancelAnimationFrame(raf);
@@ -107,8 +129,8 @@ export function CustomCursor() {
       window.removeEventListener("pointerover", onOver);
       window.removeEventListener("pointerdown", onDown);
       window.removeEventListener("pointerup", onUp);
-      document.removeEventListener("pointerleave", onLeave);
-      document.removeEventListener("pointerenter", onEnter);
+      window.removeEventListener("pointerout", onOut);
+      window.removeEventListener("blur", onBlur);
       root.removeAttribute("data-cursor-hidden");
     };
   }, [active]);

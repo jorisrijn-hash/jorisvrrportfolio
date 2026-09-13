@@ -596,3 +596,93 @@ html[data-cursor-hidden="true"] * { cursor: none; }
 @media (pointer: coarse), (hover: none), (prefers-reduced-motion: reduce) {
   .cursor { display: none; }
 }
+
+/* =========================================================================
+   AUDIO GATE — the choice shown before the sequence begins
+   ========================================================================= */
+
+/* Transparent: the reference shows the grid and the corner registration marks
+   through the gate. It is a layer of the same environment, not a screen over
+   the top of it. */
+.gate {
+  position: absolute;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+}
+
+.gate__inner {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  /* the reference block sits a little above centre */
+  transform: translateY(-3%);
+}
+
+.gate__eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: var(--color-boot-text);
+  margin-bottom: 14px;
+}
+
+.gate__title {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--color-hud-dim);
+  margin-bottom: 16px;
+}
+
+.gate__line {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-boot-text);
+  line-height: 2.1;
+}
+
+.gate__actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 34px;
+}
+
+.gate__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-width: 130px;
+  padding: 13px 22px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--color-hud-dim);
+  background: rgb(255 255 255 / 0.55);
+  border: 1px solid var(--color-env-mark);
+  transition:
+    background-color 200ms var(--ease-out),
+    border-color 200ms var(--ease-out),
+    color 200ms var(--ease-out);
+}
+
+.gate__btn:hover,
+.gate__btn:focus-visible {
+  background: rgb(255 255 255 / 0.95);
+  border-color: var(--color-hud-faint);
+  color: var(--color-hud);
+}
+
+.gate[data-leaving="true"] {
+  opacity: 0;
+  transition: opacity 420ms var(--ease-out);
+  pointer-events: none;
+}

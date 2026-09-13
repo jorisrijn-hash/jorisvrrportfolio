@@ -29,8 +29,12 @@ const seen  = () => { try { sessionStorage.setItem("jvr.booted", "1"); } catch {
   const p = await ctx.newPage();
   await p.addInitScript(fresh);
   await p.goto(base, { waitUntil:"networkidle" });
-  await p.waitForTimeout(800);
-  pass("first visit: boot plays", (await p.locator(".boot").count()) === 1);
+  await p.waitForTimeout(700);
+  pass("first visit: audio gate shown", (await p.locator(".gate").count()) === 1);
+  pass("boot waits for the choice", (await p.locator(".boot").count()) === 0);
+  await p.getByRole("button", { name: /^on$/i }).click();
+  await p.waitForTimeout(600);
+  pass("choosing starts the sequence", (await p.locator(".boot").count()) === 1);
   pass("resting furniture hidden during boot",
        (await p.getAttribute(".resting", "data-resolved")) === "false");
   await p.waitForTimeout(11200);
@@ -47,6 +51,7 @@ const seen  = () => { try { sessionStorage.setItem("jvr.booted", "1"); } catch {
   await p.addInitScript(seen);
   await p.goto(base, { waitUntil:"networkidle" });
   await p.waitForTimeout(700);
+  pass("returning in session: gate skipped", (await p.locator(".gate").count()) === 0);
   pass("returning in session: boot skipped", (await p.locator(".boot").count()) === 0);
   pass("lands straight on home", (await p.getAttribute(".experience","data-state")) === "home");
   await p.context().close();
@@ -58,15 +63,16 @@ const seen  = () => { try { sessionStorage.setItem("jvr.booted", "1"); } catch {
   await p.addInitScript(fresh);
   await p.goto(base, { waitUntil:"networkidle" });
   await p.waitForTimeout(900);
+  pass("reduced motion: gate skipped", (await p.locator(".gate").count()) === 0);
   pass("reduced motion: boot skipped", (await p.locator(".boot").count()) === 0);
   pass("reduced motion: composition still present", (await p.locator(".centre").count()) === 1);
   await p.context().close();
 }
 
-// 5. SOUND CONSENT
+// 5. SOUND CONSENT — the gate's answer is the gesture that unlocks audio
 {
   const p = await (await b.newContext({ viewport:{width:1920,height:950} })).newPage();
-  await p.addInitScript(seen);
+  await p.addInitScript(fresh);
   await p.addInitScript(() => {
     window.__ac = 0;
     const O = window.AudioContext;
@@ -74,16 +80,12 @@ const seen  = () => { try { sessionStorage.setItem("jvr.booted", "1"); } catch {
   });
   await p.goto(base, { waitUntil:"networkidle" });
   await p.waitForTimeout(1500);
-  pass("sound defaults ON", (await p.getByRole("button",{name:/turn sound off/i}).count()) === 1);
-  pass("no AudioContext before any gesture", !(await p.evaluate(()=>window.__ac>0)));
-  const t = p.getByRole("button", { name: /turn sound off/i });
-  pass("sound toggle present and labelled", (await t.count()) === 1);
-  await t.click();                                   // -> off
-  await p.waitForTimeout(300);
-  pass("toggle reflects state", (await p.getByRole("button",{name:/turn sound on/i}).count()) === 1);
-  await p.getByRole("button",{name:/turn sound on/i}).click();   // -> on, a real gesture
-  await p.waitForTimeout(500);
-  pass("AudioContext only after a gesture", await p.evaluate(()=>window.__ac>0));
+  pass("no AudioContext at the gate", !(await p.evaluate(()=>window.__ac>0)));
+  await p.getByRole("button",{name:/^on$/i}).click();     // the choice IS the gesture
+  await p.waitForTimeout(700);
+  pass("AudioContext only after the choice", await p.evaluate(()=>window.__ac>0));
+  pass("toggle reflects the choice",
+       (await p.getByRole("button",{name:/turn sound off/i}).count()) === 1);
   await p.context().close();
 }
 
@@ -95,11 +97,10 @@ const seen  = () => { try { sessionStorage.setItem("jvr.booted", "1"); } catch {
   p.on("request", r => { if (/\/audio\//.test(r.url())) audioReqs.push(r.url()); });
   await p.goto(base, { waitUntil:"networkidle" });
   await p.waitForTimeout(2500);
-  // Default is ON, so the track may be requested — but it must not be PLAYING
-  // before the visitor has interacted with the page.
+  // Nothing may be audible while the gate is still asking.
   const playing = await p.evaluate(() =>
     [...document.querySelectorAll("audio")].some(a => !a.paused));
-  pass("boot track not audible before a gesture", !playing);
+  pass("nothing audible while the gate is open", !playing);
   await p.context().close();
 }
 await b.close();
