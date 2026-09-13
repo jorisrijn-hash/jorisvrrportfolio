@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint .",
     "verify": "node scripts/verify-a11y.mjs",
-    "shots": "node scripts/screenshots.mjs"
+    "verify:cursor": "node scripts/cursor-test.mjs",
+    "perf": "node scripts/perf.mjs"
   },
   "dependencies": {
     "cuelume": "^0.2.2",

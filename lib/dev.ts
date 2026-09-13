@@ -18,6 +18,8 @@ export type DevFlags = {
   SHOW_STATE: boolean;
   /** Jump state changes instantly, no transition timelines. */
   SKIP_TRANSITIONS: boolean;
+  /** Keep the native cursor visible alongside the custom one. */
+  CUSTOM_CURSOR_DEBUG: boolean;
 };
 
 const DEFAULTS: DevFlags = {
@@ -27,6 +29,7 @@ const DEFAULTS: DevFlags = {
   MUTE_SOUND: false,
   SHOW_STATE: false,
   SKIP_TRANSITIONS: false,
+  CUSTOM_CURSOR_DEBUG: false,
 };
 
 const isDev = process.env.NODE_ENV !== "production";

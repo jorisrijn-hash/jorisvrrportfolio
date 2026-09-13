@@ -5,6 +5,7 @@ import { dev } from "@/lib/dev";
 import { StaticComposition } from "./StaticComposition";
 import { BootSequence } from "@/components/boot/BootSequence";
 import { BootControls } from "@/components/hud/BootControls";
+import { CustomCursor } from "@/components/cursor/CustomCursor";
 
 export function Experience() {
   return (
@@ -25,6 +26,8 @@ function Stage() {
 
       {/* key on runId so a replay remounts the sequence cleanly */}
       <BootSequence key={runId} onDone={ready} replay={runId > 0} />
+
+      <CustomCursor />
 
       <div className="hud-corner">
         <BootControls />

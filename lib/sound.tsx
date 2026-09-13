@@ -85,17 +85,51 @@ function readStored(): SoundPref {
   }
 }
 
+/**
+ * Sound is ON by default. Nothing is actually audible until the browser lets
+ * us start — see unlockOnFirstGesture below — so defaulting to on expresses an
+ * intent, it does not bypass autoplay policy.
+ */
 function getSnapshot(): SoundPref {
   if (!hydrated) {
-    pref = readStored();
+    const stored = readStored();
+    pref = stored === null ? true : stored;
     hydrated = true;
   }
   return pref;
 }
 
-/** Sound is never on before a gesture, so the server can only say "unasked". */
+/** The server cannot know a stored preference, and must not assume audio. */
 function getServerSnapshot(): SoundPref {
   return null;
+}
+
+/**
+ * Browsers refuse audio until the page has been interacted with. Rather than
+ * leave a visitor who never touches the toggle in silence, we register a
+ * one-shot listener and start the moment they do anything at all.
+ */
+const gestureWaiters = new Set<() => void>();
+let gestureArmed = false;
+
+export function onFirstGesture(fn: () => void) {
+  if (typeof window === "undefined") return () => {};
+  gestureWaiters.add(fn);
+
+  if (!gestureArmed) {
+    gestureArmed = true;
+    const fire = () => {
+      gestureWaiters.forEach((w) => w());
+      gestureWaiters.clear();
+      ["pointerdown", "keydown", "wheel", "touchstart"].forEach((e) =>
+        window.removeEventListener(e, fire),
+      );
+    };
+    ["pointerdown", "keydown", "wheel", "touchstart"].forEach((e) =>
+      window.addEventListener(e, fire, { once: true, passive: true }),
+    );
+  }
+  return () => gestureWaiters.delete(fn);
 }
 
 function subscribe(onChange: () => void) {

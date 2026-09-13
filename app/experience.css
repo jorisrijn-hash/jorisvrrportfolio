@@ -528,3 +528,71 @@
 
 .ctl:hover:not(:disabled) { color: var(--color-hud-dim); border-color: var(--color-env-mark); }
 .ctl:disabled { opacity: 0.35; cursor: default; }
+
+/* =========================================================================
+   CURSOR
+   Fixed at 0,0 and moved only by transform. pointer-events:none so it can
+   never intercept a click. States come from data attributes written directly
+   by the rAF module — no React render is involved.
+   ========================================================================= */
+
+.cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  pointer-events: none;
+  color: var(--color-hud);
+  will-change: transform;
+  opacity: 0;
+  transition: opacity 140ms linear;
+}
+
+.cursor[data-visible="true"] { opacity: 1; }
+
+.cursor__mark {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  transition: transform 260ms var(--ease-out), opacity 260ms var(--ease-out);
+}
+
+.cursor__ring {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  opacity: 0;
+  transform: scale(0.5);
+  transition: transform 300ms var(--ease-out), opacity 200ms var(--ease-out);
+}
+
+/* LINK — the tip advances and a ring opens behind it */
+.cursor[data-state="link"] .cursor__mark { transform: translate(3px, 3px) scale(0.8); }
+.cursor[data-state="link"] .cursor__ring  { opacity: 0.7; transform: scale(3.2); }
+
+/* WORK — wider ring, mark recedes */
+.cursor[data-state="work"] .cursor__mark { transform: translate(-1px, -1px) scale(0.62); }
+.cursor[data-state="work"] .cursor__ring { opacity: 0.9; transform: scale(6); }
+
+/* BACK — the mark turns to point the other way */
+.cursor[data-state="back"] .cursor__mark { transform: rotate(180deg) scale(0.78); transform-origin: 6px 6px; }
+.cursor[data-state="back"] .cursor__ring { opacity: 0.6; transform: scale(3.2); }
+
+/* pressed */
+.cursor[data-pressed="true"] .cursor__mark { transform: scale(0.66); }
+.cursor[data-pressed="true"] .cursor__ring { transform: scale(2.2); opacity: 0.9; }
+
+/* The native cursor is hidden only while the custom one is actually running,
+   and CUSTOM_CURSOR_DEBUG leaves it visible for comparison. */
+html[data-cursor-hidden="true"],
+html[data-cursor-hidden="true"] * { cursor: none; }
+
+@media (pointer: coarse), (hover: none), (prefers-reduced-motion: reduce) {
+  .cursor { display: none; }
+}

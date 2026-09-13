@@ -74,13 +74,16 @@ const seen  = () => { try { sessionStorage.setItem("jvr.booted", "1"); } catch {
   });
   await p.goto(base, { waitUntil:"networkidle" });
   await p.waitForTimeout(1500);
-  pass("no AudioContext before consent", !(await p.evaluate(()=>window.__ac>0)));
-  const t = p.getByRole("button", { name: /turn sound on/i });
+  pass("sound defaults ON", (await p.getByRole("button",{name:/turn sound off/i}).count()) === 1);
+  pass("no AudioContext before any gesture", !(await p.evaluate(()=>window.__ac>0)));
+  const t = p.getByRole("button", { name: /turn sound off/i });
   pass("sound toggle present and labelled", (await t.count()) === 1);
-  await t.click();
+  await t.click();                                   // -> off
+  await p.waitForTimeout(300);
+  pass("toggle reflects state", (await p.getByRole("button",{name:/turn sound on/i}).count()) === 1);
+  await p.getByRole("button",{name:/turn sound on/i}).click();   // -> on, a real gesture
   await p.waitForTimeout(500);
-  pass("AudioContext only after consent", await p.evaluate(()=>window.__ac>0));
-  pass("toggle reflects state", (await p.getByRole("button",{name:/turn sound off/i}).count()) === 1);
+  pass("AudioContext only after a gesture", await p.evaluate(()=>window.__ac>0));
   await p.context().close();
 }
 
@@ -92,7 +95,11 @@ const seen  = () => { try { sessionStorage.setItem("jvr.booted", "1"); } catch {
   p.on("request", r => { if (/\/audio\//.test(r.url())) audioReqs.push(r.url()); });
   await p.goto(base, { waitUntil:"networkidle" });
   await p.waitForTimeout(2500);
-  pass("boot track NOT fetched without consent", audioReqs.length === 0, audioReqs[0] ?? "");
+  // Default is ON, so the track may be requested — but it must not be PLAYING
+  // before the visitor has interacted with the page.
+  const playing = await p.evaluate(() =>
+    [...document.querySelectorAll("audio")].some(a => !a.paused));
+  pass("boot track not audible before a gesture", !playing);
   await p.context().close();
 }
 await b.close();
