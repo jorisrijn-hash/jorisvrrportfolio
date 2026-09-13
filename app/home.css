@@ -1,0 +1,399 @@
+/* =========================================================================
+   SHARED EDITORIAL PIECES
+   ========================================================================= */
+
+.jvr-arrowlink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-mono);
+  font-size: var(--text-meta);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--rule);
+  transition: border-color var(--dur-base) var(--ease-signature),
+              color var(--dur-base) var(--ease-signature);
+}
+
+.jvr-arrowlink:hover {
+  border-color: var(--on-surface);
+}
+
+.jvr-arrowlink svg {
+  transition: transform var(--dur-base) var(--ease-signature);
+}
+
+.jvr-arrowlink:hover svg {
+  transform: translate(0.15rem, -0.15rem);
+}
+
+/* =========================================================================
+   01 HERO
+   ========================================================================= */
+
+.jvr-hero {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding-block: clamp(6rem, 16vh, 10rem) clamp(2rem, 6vh, 3.5rem);
+}
+
+.jvr-hero__top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 2rem;
+  justify-content: space-between;
+  color: var(--on-surface-dim);
+}
+
+.jvr-hero__name {
+  font-family: var(--font-display);
+  font-weight: 100;
+  font-size: var(--text-display-xl);
+  line-height: 0.82;
+  letter-spacing: -0.045em;
+  margin-block: clamp(2rem, 8vh, 5rem) 0;
+}
+
+/* The mark sits on the baseline of the name — identity and wordmark as one
+   lockup, rather than a logo parked in a corner. */
+.jvr-hero__lockup {
+  display: flex;
+  align-items: flex-end;
+  gap: clamp(0.75rem, 2vw, 1.5rem);
+  flex-wrap: wrap;
+}
+
+.jvr-hero__bottom {
+  display: grid;
+  gap: var(--gutter);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: end;
+  margin-top: clamp(3rem, 10vh, 6rem);
+}
+
+.jvr-hero__statement {
+  grid-column: 1 / -1;
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: var(--text-lead);
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  max-width: 34ch;
+}
+
+.jvr-hero__support {
+  grid-column: 1 / -1;
+  color: var(--on-surface-dim);
+  max-width: 46ch;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+@media (min-width: 64rem) {
+  .jvr-hero__bottom { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+  /* Asymmetry: statement left of centre, support pushed right (§22). */
+  .jvr-hero__statement { grid-column: 1 / span 5; }
+  .jvr-hero__support { grid-column: 8 / span 5; }
+}
+
+.jvr-scrollcue {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--on-surface-dim);
+}
+
+/* =========================================================================
+   02 MANIFESTO
+   ========================================================================= */
+
+.jvr-manifesto__statement {
+  font-family: var(--font-display);
+  font-size: var(--text-display-m);
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  margin-top: clamp(2rem, 6vh, 3.5rem);
+  max-width: 18ch;
+}
+
+.jvr-manifesto__lead { font-weight: 100; display: block; }
+.jvr-manifesto__emph { display: block; color: var(--accent); }
+
+.jvr-manifesto__body {
+  display: grid;
+  gap: 1.5rem;
+  margin-top: clamp(2.5rem, 7vh, 4rem);
+  max-width: 62ch;
+  color: var(--on-surface-dim);
+  line-height: 1.65;
+}
+
+@media (min-width: 64rem) {
+  .jvr-manifesto__body {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--gutter);
+    max-width: none;
+    margin-left: auto;
+    width: 72%;
+  }
+}
+
+/* =========================================================================
+   03 CURRENTLY — editorial rows, not cards (§17)
+   ========================================================================= */
+
+.jvr-currently__row {
+  display: grid;
+  gap: 0.75rem var(--gutter);
+  padding-block: clamp(1.5rem, 4vh, 2.5rem);
+  border-top: 1px solid var(--rule);
+  grid-template-columns: 1fr;
+}
+
+.jvr-currently__row:last-child { border-bottom: 1px solid var(--rule); }
+
+.jvr-currently__items {
+  display: grid;
+  gap: 0.5rem;
+  font-size: var(--text-lead);
+  font-weight: 300;
+  line-height: 1.35;
+  letter-spacing: -0.015em;
+}
+
+@media (min-width: 48rem) {
+  .jvr-currently__row { grid-template-columns: 1fr 3fr; }
+}
+
+/* =========================================================================
+   04/05 WORK + LAB
+   ========================================================================= */
+
+.jvr-empty {
+  border: 1px solid var(--rule);
+  padding: clamp(2rem, 7vw, 4.5rem);
+  display: grid;
+  gap: 1rem;
+  margin-top: clamp(2rem, 5vh, 3rem);
+}
+
+.jvr-empty__title {
+  font-family: var(--font-display);
+  font-weight: 100;
+  font-size: var(--text-display-s);
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  max-width: 24ch;
+}
+
+.jvr-empty__body {
+  color: var(--on-surface-dim);
+  max-width: 52ch;
+  line-height: 1.6;
+}
+
+.jvr-entry {
+  display: grid;
+  gap: 0.5rem var(--gutter);
+  padding-block: clamp(1.5rem, 4vh, 2.25rem);
+  border-top: 1px solid var(--rule);
+  grid-template-columns: 1fr;
+  align-items: baseline;
+  transition: opacity var(--dur-base) var(--ease-signature);
+}
+
+.jvr-entry__title {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: var(--text-display-s);
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+
+.jvr-entry__summary {
+  color: var(--on-surface-dim);
+  max-width: 48ch;
+  line-height: 1.55;
+}
+
+@media (min-width: 48rem) {
+  .jvr-entry { grid-template-columns: 4rem 1fr 1fr auto; }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .jvr-list:hover .jvr-entry { opacity: 0.5; }
+  .jvr-list .jvr-entry:hover { opacity: 1; }
+}
+
+/* =========================================================================
+   06 PROFILE TEASER
+   ========================================================================= */
+
+.jvr-teaser {
+  display: grid;
+  gap: var(--gutter);
+  grid-template-columns: 1fr;
+}
+
+.jvr-teaser__lead {
+  font-family: var(--font-display);
+  font-weight: 100;
+  font-size: var(--text-display-m);
+  letter-spacing: -0.035em;
+  line-height: 0.95;
+}
+
+.jvr-teaser__body {
+  color: var(--on-surface-dim);
+  line-height: 1.65;
+  max-width: 48ch;
+}
+
+@media (min-width: 64rem) {
+  .jvr-teaser { grid-template-columns: 1fr 1fr; align-items: end; }
+}
+
+/* =========================================================================
+   07 CLOSING CTA
+   ========================================================================= */
+
+.jvr-closing {
+  min-height: 82svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: clamp(2rem, 6vh, 3.5rem);
+  position: relative;
+  overflow: hidden;
+}
+
+.jvr-closing__lines {
+  font-family: var(--font-display);
+  font-weight: 100;
+  font-size: var(--text-display-l);
+  /* Loose enough that stacked clipped lines never crop each other's tails. */
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+  position: relative;
+  z-index: 1;
+}
+
+.jvr-closing__action { position: relative; z-index: 1; }
+
+/* =========================================================================
+   FOOTER
+   ========================================================================= */
+
+.jvr-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem var(--gutter);
+  justify-content: space-between;
+  align-items: end;
+  padding-block: clamp(2.5rem, 7vh, 4rem);
+  border-top: 1px solid var(--rule);
+  color: var(--on-surface-dim);
+}
+
+.jvr-footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.75rem;
+}
+
+/* =========================================================================
+   PROFILE (§20)
+   ========================================================================= */
+
+.jvr-profile__head {
+  display: grid;
+  gap: var(--gutter);
+  grid-template-columns: 1fr;
+  align-items: end;
+  margin-top: clamp(2rem, 6vh, 3.5rem);
+}
+
+.jvr-profile__portrait {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  max-width: 100%;
+  overflow: hidden;
+  background: var(--rule);
+}
+
+.jvr-profile__portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: grayscale(1) contrast(1.05);
+  transition: filter var(--dur-slow) var(--ease-signature);
+}
+
+.jvr-profile__portrait:hover img { filter: grayscale(0) contrast(1); }
+
+.jvr-profile__bio {
+  display: grid;
+  gap: 1.25rem;
+  color: var(--on-surface-dim);
+  line-height: 1.65;
+  max-width: 52ch;
+}
+
+.jvr-profile__bio strong {
+  color: var(--on-surface);
+  font-weight: 500;
+}
+
+@media (min-width: 64rem) {
+  .jvr-profile__head { grid-template-columns: 5fr 7fr; }
+}
+
+.jvr-timeline__row {
+  display: grid;
+  gap: 0.5rem var(--gutter);
+  padding-block: clamp(1.25rem, 3.5vh, 2rem);
+  border-top: 1px solid var(--rule);
+  grid-template-columns: 1fr;
+}
+
+.jvr-timeline__row:last-child { border-bottom: 1px solid var(--rule); }
+
+.jvr-timeline__title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 1.125rem;
+  letter-spacing: -0.015em;
+}
+
+.jvr-timeline__detail {
+  color: var(--on-surface-dim);
+  line-height: 1.6;
+  max-width: 52ch;
+}
+
+@media (min-width: 48rem) {
+  .jvr-timeline__row { grid-template-columns: 8rem 1fr 2fr; }
+}
+
+.jvr-caps {
+  display: grid;
+  gap: var(--gutter);
+  grid-template-columns: 1fr;
+  margin-top: clamp(2rem, 6vh, 3rem);
+}
+
+.jvr-caps__group { display: grid; gap: 0.75rem; align-content: start; }
+
+.jvr-caps__list {
+  display: grid;
+  gap: 0.4rem;
+  color: var(--on-surface-dim);
+  line-height: 1.5;
+}
+
+@media (min-width: 48rem) {
+  .jvr-caps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
