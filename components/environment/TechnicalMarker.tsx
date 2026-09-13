@@ -1,9 +1,13 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
-type Props = {
-  /** Rect in reference units (1920 x 950), exactly as measured. */
-  x: number;
-  y: number;
+type Anchor = {
+  left?: number;
+  right?: number;
+  top?: number;
+  bottom?: number;
+};
+
+type Props = Anchor & {
   w: number;
   h: number;
   label: string;
@@ -12,27 +16,30 @@ type Props = {
 
 /**
  * A corner technical marker: a hairline frame with a diagram inside and a mono
- * label centred beneath it. All four corners of loadingempty.png are this same
+ * label centred beneath. All four corners of loadingempty.png are this same
  * component.
  *
- * Measured frames (reference units):
- *   STATUS-LOG  x 67   y 74   155 x 106
- *   ALL-CLEAR   x 1709 y 68   117 x 116
- *   CH-OPEN     x 85   y 762  125 x 75
- *   SYNC-OK     x 1635 y 757  179 x 96
+ * Anchored in FIXED PIXELS to the nearest edges, not percentages. The
+ * reference is a HUD: its markers sit a set distance from the viewport edge
+ * and keep their size, rather than stretching with the window. Percentage
+ * positioning distorted the composition on any viewport that was not exactly
+ * 1920x950 — which is every real one.
  *
- * Positioned as percentages of the reference so the composition holds when the
- * viewport is not exactly 1920x950.
+ * Measured offsets (from loadingempty.png, design area 1904 x 946):
+ *   STATUS-LOG  left 67   top 74      155 x 106
+ *   ALL-CLEAR   right 78  top 68      117 x 116
+ *   CH-OPEN     left 85   bottom 109  125 x 75
+ *   SYNC-OK     right 90  bottom 93   179 x 96
  */
-export function TechnicalMarker({ x, y, w, h, label, children }: Props) {
-  const pc = (v: number, total: number) => `${(v / total) * 100}%`;
+export function TechnicalMarker({ left, right, top, bottom, w, h, label, children }: Props) {
+  const style: CSSProperties = { width: w, height: h };
+  if (left !== undefined) style.left = left;
+  if (right !== undefined) style.right = right;
+  if (top !== undefined) style.top = top;
+  if (bottom !== undefined) style.bottom = bottom;
 
   return (
-    <div
-      className="marker"
-      style={{ left: pc(x, 1920), top: pc(y, 950), width: pc(w, 1920), height: pc(h, 950) }}
-      aria-hidden="true"
-    >
+    <div className="marker" style={style} aria-hidden="true">
       <div className="marker__frame">
         <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="xMidYMid meet">{children}</svg>
       </div>
@@ -43,7 +50,7 @@ export function TechnicalMarker({ x, y, w, h, label, children }: Props) {
 
 /* ---- the four diagrams, drawn in each marker's own coordinate space ---- */
 
-/** Four readout rules of decreasing length, plus a filled node. */
+/** Five readout rules of varying length, plus a filled node. */
 export function StatusLogDiagram() {
   const lines = [
     { y: 16, x2: 130 },
@@ -74,13 +81,12 @@ export function AllClearDiagram() {
 
 /** A small ringed node with a starburst through it. */
 export function ChannelOpenDiagram() {
-  const r = 13;
   const cx = 62.5;
   const cy = 37.5;
   const d = 21;
   return (
     <g stroke="currentColor" fill="none" strokeWidth="1">
-      <circle cx={cx} cy={cy} r={r} />
+      <circle cx={cx} cy={cy} r="13" />
       <circle cx={cx} cy={cy} r="3.2" fill="currentColor" stroke="none" />
       <line x1={cx - d} y1={cy - d} x2={cx + d} y2={cy + d} />
       <line x1={cx + d} y1={cy - d} x2={cx - d} y2={cy + d} />

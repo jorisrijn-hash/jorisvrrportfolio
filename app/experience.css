@@ -155,10 +155,11 @@
   position: absolute;
   z-index: 4;
   left: 50%;
-  top: calc(74 / 950 * 100%);
+  /* fixed offset from the top edge, like every other HUD element */
+  top: 74px;
   transform: translateX(-50%);
-  width: calc(313 / 1920 * 100%);
-  height: calc(32 / 950 * 100%);
+  width: 313px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;

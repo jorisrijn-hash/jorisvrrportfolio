@@ -26,19 +26,19 @@ export function StaticComposition() {
       <CornerRegistrationMarks />
       <StateLabel />
 
-      <TechnicalMarker x={67} y={74} w={155} h={106} label="Status-Log">
+      <TechnicalMarker left={67} top={74} w={155} h={106} label="Status-Log">
         <StatusLogDiagram />
       </TechnicalMarker>
 
-      <TechnicalMarker x={1709} y={68} w={117} h={116} label="All-Clear">
+      <TechnicalMarker right={78} top={68} w={117} h={116} label="All-Clear">
         <AllClearDiagram />
       </TechnicalMarker>
 
-      <TechnicalMarker x={85} y={762} w={125} h={75} label="CH-Open">
+      <TechnicalMarker left={85} bottom={109} w={125} h={75} label="CH-Open">
         <ChannelOpenDiagram />
       </TechnicalMarker>
 
-      <TechnicalMarker x={1635} y={757} w={179} h={96} label="Sync-OK">
+      <TechnicalMarker right={90} bottom={93} w={179} h={96} label="Sync-OK">
         <SyncOkDiagram />
       </TechnicalMarker>
 
