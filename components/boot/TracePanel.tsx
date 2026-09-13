@@ -1,51 +1,66 @@
 "use client";
 
 import { motion } from "motion/react";
+import type { CSSProperties } from "react";
 
 type Props = {
   title: string;
   lines: readonly string[];
   /** Anchor in fixed px, like every other element in the composition. */
-  style: React.CSSProperties;
-  /** Seconds before the first line appears. */
+  style: CSSProperties;
+  /** ms before the first line starts typing. */
   delay?: number;
-  /** Seconds between lines — the panels stream rather than appear. */
+  /** ms between the start of consecutive lines. */
   stagger?: number;
+  /** ms per character. */
+  charMs?: number;
   visible: boolean;
 };
 
 /**
- * A telemetry panel from phase 1 of the boot sequence.
+ * A telemetry panel from phase 1.
  *
- * Lines reveal one at a time on a stagger, which is what the source does — the
- * panels stream in as a log rather than fading in as a block. Reveal is a pure
- * opacity transition per line (transform/opacity only, no layout).
+ * Lines TYPE in rather than appearing: each is revealed left-to-right by a
+ * clip-path animation with a steps() timing function, so the edge lands on
+ * character boundaries. clip-path is composited, the step count comes from the
+ * line's own length, and nothing runs per frame in JavaScript — the whole
+ * panel is a handful of CSS animations.
  */
-export function TracePanel({ title, lines, style, delay = 0, stagger = 0.055, visible }: Props) {
+export function TracePanel({
+  title,
+  lines,
+  style,
+  delay = 0,
+  stagger = 55,
+  charMs = 9,
+  visible,
+}: Props) {
   return (
     <motion.div
       className="trace"
       style={style}
+      data-typing={visible}
       initial={{ opacity: 0 }}
       animate={{ opacity: visible ? 1 : 0 }}
-      transition={{ duration: visible ? 0.18 : 0.45, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: visible ? 0.16 : 0.45, ease: [0.16, 1, 0.3, 1] }}
       aria-hidden="true"
     >
       <p className="trace__title">{title}</p>
       <div className="trace__body">
         {lines.map((l, i) => (
-          <motion.span
+          <span
             key={i}
             className="trace__line"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: visible ? 1 : 0 }}
-            transition={{
-              duration: 0.1,
-              delay: visible ? delay + i * stagger : 0,
-            }}
+            style={
+              {
+                "--type-steps": Math.max(8, l.length),
+                "--type-dur": `${Math.max(8, l.length) * charMs}ms`,
+                "--type-delay": `${delay + i * stagger}ms`,
+              } as CSSProperties
+            }
           >
             {l}
-          </motion.span>
+          </span>
         ))}
       </div>
     </motion.div>

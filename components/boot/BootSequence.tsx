@@ -14,6 +14,7 @@ import { dev } from "@/lib/dev";
 import { useSessionFlag, setSessionFlag } from "@/lib/clock";
 import { useReducedMotion } from "@/lib/motion";
 import { useSound } from "@/lib/sound";
+import { startBootTrack, stopBootTrack } from "@/lib/bootAudio";
 
 const SESSION_KEY = "jvr.booted";
 
@@ -42,7 +43,7 @@ export function BootSequence({ onDone }: { onDone: () => void }) {
   /** The centre readout changes partway through phase 1, as in the source. */
   const [locked, setLocked] = useState(false);
   const reduced = useReducedMotion();
-  const { cue } = useSound();
+  const { cue, enabled } = useSound();
   const seen = useSessionFlag(SESSION_KEY);
   const settled = useRef(false);
 
@@ -62,11 +63,28 @@ export function BootSequence({ onDone }: { onDone: () => void }) {
       return;
     }
 
-    cue("scan");
     const at = (ms: number, fn: () => void) => window.setTimeout(fn, ms);
+
+    // The score is Joris's own loadinganimation.mp3. Cuelume sits UNDER it as
+    // a soft texture layer, not as the main audio — hence the low gains and
+    // the sparse placement.
+    //
+    // Consent gate: the track only starts if sound is ALREADY on. Nothing here
+    // may be the thing that first makes noise at a visitor.
+    if (enabled === true) startBootTrack();
+    cue("scan");
+
     const timers = [
-      at(1250, () => setLocked(true)),
+      // soft ticks scattered through phase 1 while the panels type
+      at(420, () => cue("hover")),
+      at(980, () => cue("hover")),
+      at(1250, () => { setLocked(true); cue("select"); }),
+      at(1760, () => cue("hover")),
       at(PHASES.auth.start, () => { setPhase("auth"); cue("scan"); }),
+      // phase 2 beats, matching the readout stages
+      at(PHASES.auth.start + 900, () => cue("hover")),
+      at(PHASES.auth.start + 2100, () => cue("hover")),
+      at(PHASES.auth.start + 3400, () => cue("select")),
       at(PHASES.complete.start, () => { setPhase("complete"); cue("scan"); }),
       at(PHASES.settle.start, () => { setPhase("settle"); cue("arrive"); }),
       at(BOOT_TOTAL, () => {
@@ -76,8 +94,11 @@ export function BootSequence({ onDone }: { onDone: () => void }) {
         onDone();
       }),
     ];
-    return () => timers.forEach(window.clearTimeout);
-  }, [skip, onDone, cue]);
+    return () => {
+      timers.forEach(window.clearTimeout);
+      stopBootTrack();
+    };
+  }, [skip, onDone, cue, enabled]);
 
   // Slow deterministic tick for the checkerboard. Only runs during AUTH.
   useEffect(() => {
@@ -105,21 +126,21 @@ export function BootSequence({ onDone }: { onDone: () => void }) {
         {...TRACE_A}
         visible={isTrace}
         style={{ left: 63, top: 55, width: 592 }}
-        stagger={0.05}
+        stagger={52}
       />
       <TracePanel
         {...TRACE_B}
         visible={isTrace}
         style={{ left: 1320, top: 78, width: 525 }}
-        delay={0.18}
-        stagger={0.05}
+        delay={180}
+        stagger={52}
       />
       <TracePanel
         {...TRACE_C}
         visible={isTrace}
         style={{ left: 63, top: 578, width: 692 }}
-        delay={0.32}
-        stagger={0.045}
+        delay={320}
+        stagger={48}
       />
       <SignalBars visible={isTrace} />
       <motion.p

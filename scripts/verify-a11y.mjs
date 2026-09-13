@@ -83,4 +83,16 @@ const seen  = () => { try { sessionStorage.setItem("jvr.booted", "1"); } catch {
   pass("toggle reflects state", (await p.getByRole("button",{name:/turn sound off/i}).count()) === 1);
   await p.context().close();
 }
+
+// 6. BOOT AUDIO CONSENT
+{
+  const p = await (await b.newContext({ viewport:{width:1920,height:950} })).newPage();
+  await p.addInitScript(fresh);
+  const audioReqs = [];
+  p.on("request", r => { if (/\/audio\//.test(r.url())) audioReqs.push(r.url()); });
+  await p.goto(base, { waitUntil:"networkidle" });
+  await p.waitForTimeout(2500);
+  pass("boot track NOT fetched without consent", audioReqs.length === 0, audioReqs[0] ?? "");
+  await p.context().close();
+}
 await b.close();

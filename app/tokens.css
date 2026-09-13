@@ -25,6 +25,16 @@
   --color-env-centre-line: #d8d8d8;   /* 216 */
   --color-env-centre-fill: #e5e5e5;   /* 229 — composites to ~222 over the wash */
 
+  /* ---- BOOT SEQUENCE (measured from loadinganimation.mp4 at t=1.75s) ----
+     The telemetry is background texture, not something to read: the panels sit
+     at 238 and their text bottoms out at 161, typically ~197. Earlier this was
+     rendered at 74, which made it shout. */
+  --color-boot-panel: #eeeeee;   /* 238 */
+  --color-boot-text: #a4a4a4;    /* 164 */
+  --color-boot-title: #9e9e9e;   /* 158 */
+  --color-boot-dim: #b0b0b0;     /* 176 — secondary readouts */
+  --color-boot-strong: #333333;  /*  51 — the centre readout only */
+
   /* ---- INK ------------------------------------------------------------ */
   --color-ink: #0b0b0a;
   --color-hud: #1a1a1a;
