@@ -32,19 +32,25 @@
   --font-display: var(--font-1955), "Helvetica Neue", Arial, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
 
-  /* ---- TYPE SCALE (fluid, editorial jumps) --------------------------- */
-  --text-display-xl: clamp(3.5rem, 17vw, 20rem);
-  --text-display-l: clamp(2.75rem, 9vw, 8rem);
-  --text-display-m: clamp(2rem, 5.5vw, 4.5rem);
-  --text-display-s: clamp(1.5rem, 3.4vw, 2.75rem);
-  --text-lead: clamp(1.125rem, 1.9vw, 1.625rem);
+  /* ---- TYPE SCALE -----------------------------------------------------
+     Architectural. Display sizes are driven by vw so type spans the viewport
+     rather than sitting inside it — a line at --text-scene fills the width at
+     any window size, which is the point. Mono stays tiny for contrast. */
+  --text-scene: clamp(3rem, 13vw, 17rem);   /* owns a viewport row */
+  --text-xl: clamp(2.5rem, 9.5vw, 12rem);
+  --text-l: clamp(2rem, 6vw, 7rem);
+  --text-m: clamp(1.5rem, 3.6vw, 3.75rem);
+  --text-s: clamp(1.25rem, 2vw, 2rem);
+  --text-lead: clamp(1.0625rem, 1.35vw, 1.375rem);
   --text-body: 1rem;
   --text-meta: 0.75rem;
   --text-micro: 0.6875rem;
 
-  /* ---- GRID ----------------------------------------------------------- */
+  /* ---- GRID -----------------------------------------------------------
+     12 columns across the WHOLE viewport. There is deliberately no page
+     maximum: readability comes from column placement, never from a centred
+     wrapper. */
   --grid-cols: 12;
-  --page-max: 96rem;
 
   /* ---- RADII — sharp by default (§23). 2px is the ceiling. ----------- */
   --radius-none: 0px;
@@ -88,7 +94,8 @@
   --z-intro: 400;
   --z-cursor: 500;
 
-  --gutter: clamp(1.25rem, 4vw, 5rem);
+  /* Inner gutter only — the section itself always owns 100vw. */
+  --gutter: clamp(1rem, 3vw, 4rem);
   --rule-weight: 1px;
 }
 

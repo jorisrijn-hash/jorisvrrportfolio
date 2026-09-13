@@ -17,24 +17,43 @@ export const SITE = {
   disciplines: ["Design", "Technology", "Systems"],
 } as const;
 
-/** Hero. Short enough to be set in display type without wrapping badly. */
+/** SCENE 01 — Hero. The name carries the scene; these are the only support. */
 export const HERO = {
-  statement: "I build interfaces and the systems underneath them.",
   support:
-    "Studying ICT, business and data in the Netherlands. Working in design, development and motion in between.",
+    "Studying ICT, business and data in the Netherlands. Design, development and motion in between.",
 } as const;
 
-/** 02 — Positioning. The argument for the intersection (§17). */
-export const MANIFESTO = {
-  lead: "Most work sits inside one discipline.",
-  emphasis: "The interesting problems sit between them.",
-  body: [
-    "A design decision is a technical decision. A technical decision is a business decision. Treating those as separate conversations is how software ends up looking considered and behaving badly — or working correctly and convincing nobody.",
-    "I work across all three because the seams are where the real constraints live, and because a system you can see the whole of is a system you can actually improve.",
+/**
+ * SCENE 02 — Positioning. One row per discipline; each owns a viewport row and
+ * gains weight on scroll. Notes are deliberately short — they sit tiny beside
+ * type at --text-scene.
+ */
+export const POSITIONING: { word: string; note: string }[] = [
+  {
+    word: "Design",
+    note: "Typography, interface, art direction. The part that decides whether anyone trusts the thing.",
+  },
+  {
+    word: "Technology",
+    note: "TypeScript, React, Java. Building it myself is what keeps the design honest.",
+  },
+  {
+    word: "Systems",
+    note: "Data models, process, constraints. Where a design decision quietly becomes a business decision.",
+  },
+];
+
+/** SCENE 03 — Statement. A title card. One thought, nothing else. */
+export const STATEMENT = {
+  lines: [
+    "I like the space",
+    "between an idea",
+    "and the system",
+    "that makes it work.",
   ],
 } as const;
 
-/** 03 — Currently. Editorial rows, never three SaaS cards (§17). */
+/** SCENE 04 — Currently. Drives the sticky typographic sequence. */
 export const CURRENTLY: { label: string; items: string[] }[] = [
   {
     label: "Building",
@@ -59,15 +78,15 @@ export const CURRENTLY: { label: string; items: string[] }[] = [
   },
 ];
 
-/** 06 — Profile teaser. The full story lives on /profile. */
+/** SCENE 07 — Profile teaser. The full story lives on /profile. */
 export const PROFILE_TEASER = {
   lead: "Before software, cameras.",
   body: "Years of video and cinematography work taught me pacing, framing and how attention actually moves — which turns out to be most of what interface design is. The tools changed. The questions did not.",
 } as const;
 
-/** 07 — Closing. One of the most experimental moments on the site (§17). */
+/** SCENE 08 — Closing. */
 export const CLOSING = {
-  lines: ["Let's build", "something worth", "remembering."],
+  lines: ["Let's make", "something", "interesting."],
   action: "Contact",
 } as const;
 

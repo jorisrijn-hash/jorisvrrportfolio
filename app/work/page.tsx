@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { Section } from "@/components/primitives/Section";
-import { SectionLabel } from "@/components/primitives/SectionLabel";
+import { Scene } from "@/components/primitives/Scene";
+import { Meta } from "@/components/primitives/Meta";
 import { MaskReveal } from "@/components/primitives/MaskReveal";
-import { ArrowLink } from "@/components/primitives/ArrowLink";
-import { Footer } from "@/components/modules/Footer";
+import { TextLink } from "@/components/primitives/TextLink";
+import { Footer } from "@/components/scenes/Footer";
 import { STATUS_LABEL, WORK } from "@/content/work";
 
 export const metadata: Metadata = {
@@ -14,50 +14,51 @@ export const metadata: Metadata = {
 export default function WorkPage() {
   return (
     <>
-      <Section tone="ivory" className="u-page" style={{ paddingTop: "clamp(7rem, 18vh, 12rem)" }}>
-        <SectionLabel index="02">Work</SectionLabel>
+      <Scene tone="ivory" measure="loose" style={{ paddingTop: "clamp(7rem, 20vh, 13rem)" }}>
+        <div style={{ paddingInline: "var(--gutter)", marginBottom: "clamp(2rem, 6vh, 3.5rem)" }}>
+          <Meta style={{ color: "var(--on-surface-dim)" }}>02 / Work</Meta>
+        </div>
+
+        <h1 className="plain__type">
+          {WORK.length > 0 ? (
+            <MaskReveal>Work</MaskReveal>
+          ) : (
+            <>
+              <MaskReveal>Work in</MaskReveal>
+              <MaskReveal delay={0.08}>progress.</MaskReveal>
+            </>
+          )}
+        </h1>
 
         {WORK.length > 0 ? (
-          <div className="jvr-list" style={{ marginTop: "clamp(2.5rem, 8vh, 4.5rem)" }}>
-            <h1 style={{ position: "absolute", left: "-9999px" }}>Work</h1>
+          <div style={{ marginTop: "clamp(3rem, 9vh, 5rem)" }}>
             {WORK.map((entry) => (
-              <article key={entry.slug} className="jvr-entry">
-                <p className="u-micro" style={{ color: "var(--accent)" }}>
-                  {entry.year}
-                </p>
-                <h2 className="jvr-entry__title">
-                  <MaskReveal>{entry.title}</MaskReveal>
-                </h2>
-                <p className="jvr-entry__summary">{entry.summary}</p>
-                <p className="u-micro" style={{ color: "var(--on-surface-dim)" }}>
+              <article key={entry.slug} className="vgrid pos__row" style={{ alignItems: "baseline" }}>
+                <Meta className="col-full" style={{ color: "var(--accent)" }}>{entry.year}</Meta>
+                <h2 className="lab__title col-full col-1-5">{entry.title}</h2>
+                <p className="plain__note col-full col-7-5">{entry.summary}</p>
+                <Meta className="col-full" style={{ color: "var(--on-surface-dim)" }}>
                   {STATUS_LABEL[entry.status]}
-                </p>
+                </Meta>
               </article>
             ))}
           </div>
         ) : (
-          <>
-            <h1 className="jvr-empty__title" style={{ marginTop: "clamp(2rem, 6vh, 3.5rem)", fontSize: "var(--text-display-m)" }}>
-              <MaskReveal>Nothing published yet.</MaskReveal>
-            </h1>
-            <div className="jvr-empty">
-              <p className="jvr-empty__body">
-                Two projects are in progress and will be published as full case
-                studies — the problem, the decisions, and what they changed. I would
-                rather show that properly than list screenshots.
-              </p>
-              <p className="jvr-empty__body">
-                In the meantime the Lab documents the work as it happens, and the
-                profile covers the background.
-              </p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "1.5rem", marginTop: "0.75rem" }}>
-                <ArrowLink href="/lab">Lab</ArrowLink>
-                <ArrowLink href="/profile">Profile</ArrowLink>
-              </div>
+          <div className="vgrid" style={{ marginTop: "clamp(2.5rem, 8vh, 4rem)", rowGap: "1.25rem" }}>
+            <p className="plain__note col-full col-8-4">
+              Case studies are being written — the problem, the decisions, and what
+              they changed. I would rather publish two properly than six in outline.
+            </p>
+            <p className="plain__note col-full col-8-4">
+              The Lab documents the work as it happens.
+            </p>
+            <div className="col-full col-8-4" style={{ display: "flex", gap: "2rem", flexWrap: "wrap" }}>
+              <TextLink href="/lab">Lab</TextLink>
+              <TextLink href="/profile">Profile</TextLink>
             </div>
-          </>
+          </div>
         )}
-      </Section>
+      </Scene>
       <Footer />
     </>
   );

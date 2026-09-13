@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "./tokens.css";
 @import "./chrome.css";
-@import "./home.css";
+@import "./scenes.css";
 
 /* =========================================================================
    BASE
@@ -148,28 +148,68 @@ img, svg, video, canvas {
 }
 
 /* =========================================================================
-   LAYOUT
+   LAYOUT — FULL BLEED
+   There is no centred page wrapper. Every scene owns 100vw; readability is
+   solved by COLUMN PLACEMENT inside a viewport-wide grid, never by boxing
+   content into a max-width column.
    ========================================================================= */
 
-.u-page {
+/* A scene is a full-bleed environment. It sets its own ground and its own
+   vertical measure — scenes are deliberately NOT uniformly spaced. */
+.scene {
+  position: relative;
   width: 100%;
-  max-width: var(--page-max);
-  margin-inline: auto;
-  padding-inline: var(--gutter);
+  background: var(--surface);
+  color: var(--on-surface);
 }
 
-.u-grid {
+/* The grid spans the viewport edge to edge; the gutter is inset padding only. */
+.vgrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--gutter);
+  column-gap: var(--gutter);
+  padding-inline: var(--gutter);
+  width: 100%;
 }
 
 @media (min-width: 48rem) {
-  .u-grid { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+  .vgrid { grid-template-columns: repeat(8, minmax(0, 1fr)); }
 }
 
 @media (min-width: 64rem) {
-  .u-grid { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+  .vgrid { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+}
+
+/* Column placement utilities. Readable measures come from these. */
+.col-full { grid-column: 1 / -1; }
+
+@media (min-width: 64rem) {
+  .col-1-5  { grid-column: 1 / span 5; }
+  .col-1-6  { grid-column: 1 / span 6; }
+  .col-1-7  { grid-column: 1 / span 7; }
+  .col-4-6  { grid-column: 4 / span 6; }
+  .col-7-5  { grid-column: 7 / span 5; }
+  .col-8-4  { grid-column: 8 / span 4; }
+  .col-9-4  { grid-column: 9 / span 4; }
+  .col-10-3 { grid-column: 10 / span 3; }
+}
+
+/* Type that is meant to span the viewport. Optical alignment pulls the first
+   glyph flush to the gutter so the line genuinely touches the edge. */
+.scene-type {
+  font-family: var(--font-display);
+  font-size: var(--text-scene);
+  line-height: 0.8;
+  letter-spacing: -0.045em;
+  margin-left: -0.045em;
+  text-transform: uppercase;
+}
+
+.edge-type {
+  font-family: var(--font-display);
+  line-height: 0.82;
+  letter-spacing: -0.04em;
+  margin-left: -0.04em;
 }
 
 .u-rule {

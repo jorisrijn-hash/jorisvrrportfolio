@@ -9,9 +9,9 @@ const pass = (n,c,x="") => console.log(`${c?"PASS":"FAIL"}  ${n}${x?"  — "+x:"
   const p = await ctx.newPage();
   await p.goto(base, { waitUntil:"networkidle" });
   await p.waitForTimeout(1200);
-  const choice = await p.getByRole("button",{name:/enter silently/i}).isVisible().catch(()=>false);
+  const choice = await p.getByRole("button",{name:/^without$/i}).isVisible().catch(()=>false);
   pass("reduced-motion: sound choice still offered", choice);
-  if (choice) await p.getByRole("button",{name:/enter silently/i}).click();
+  if (choice) await p.getByRole("button",{name:/^without$/i}).click();
   await p.waitForTimeout(1200);
   const hidden = await p.evaluate(()=>{
     let stuck=0;
@@ -19,7 +19,7 @@ const pass = (n,c,x="") => console.log(`${c?"PASS":"FAIL"}  ${n}${x?"  — "+x:"
     return stuck;
   });
   pass("reduced-motion: no content stuck hidden", hidden===0, `${hidden} stuck`);
-  const cursor = await p.locator(".jvr-cursor").count();
+  const cursor = await p.locator(".cursor").count();
   pass("reduced-motion: custom cursor not mounted", cursor===0);
   await ctx.close();
 }
@@ -30,11 +30,11 @@ const pass = (n,c,x="") => console.log(`${c?"PASS":"FAIL"}  ${n}${x?"  — "+x:"
   const p = await ctx.newPage();
   await p.goto(base, { waitUntil:"networkidle" });
   await p.waitForTimeout(2200);
-  await p.getByRole("button",{name:/enter silently/i}).click();
+  await p.getByRole("button",{name:/^without$/i}).click();
   await p.waitForTimeout(1400);
   await p.goto(base+"/work", { waitUntil:"networkidle" });
   await p.waitForTimeout(700);
-  const introOnSecond = await p.locator(".jvr-intro").count();
+  const introOnSecond = await p.locator(".intro").count();
   pass("returning visit: intro skipped entirely", introOnSecond===0);
   const sound = await p.evaluate(()=>localStorage.getItem("jvr.sound"));
   pass("sound choice persisted", sound==="off", `stored=${sound}`);
@@ -47,7 +47,7 @@ const pass = (n,c,x="") => console.log(`${c?"PASS":"FAIL"}  ${n}${x?"  — "+x:"
   const p = await ctx.newPage();
   await p.goto(base, { waitUntil:"networkidle" });
   await p.waitForTimeout(2200);
-  await p.getByRole("button",{name:/enter silently/i}).click();
+  await p.getByRole("button",{name:/^without$/i}).click();
   await p.waitForTimeout(1400);
   await p.keyboard.press("Tab");
   const first = await p.evaluate(()=>document.activeElement?.className||document.activeElement?.tagName);
@@ -55,14 +55,16 @@ const pass = (n,c,x="") => console.log(`${c?"PASS":"FAIL"}  ${n}${x?"  — "+x:"
 
   await p.getByRole("button",{name:/^menu/i}).click();
   await p.waitForTimeout(1300);
-  const inMenu = await p.evaluate(()=>!!document.activeElement?.closest(".jvr-menu"));
+  const inMenu = await p.evaluate(()=>!!document.activeElement?.closest(".drape"));
   pass("menu open: focus moved inside", inMenu);
   for (let i=0;i<12;i++) await p.keyboard.press("Tab");
-  const trapped = await p.evaluate(()=>!!document.activeElement?.closest(".jvr-menu"));
+  const trapped = await p.evaluate(()=>!!document.activeElement?.closest(".drape"));
   pass("menu: focus trapped after 12 tabs", trapped);
   await p.keyboard.press("Escape");
-  await p.waitForTimeout(1300);
-  const closed = await p.locator(".jvr-menu").count();
+  // The drape's exit runs for DUR.drape (1.1s); wait past it before asserting
+  // the node is gone. aria-expanded flips immediately.
+  await p.waitForTimeout(1800);
+  const closed = await p.locator(".drape").count();
   pass("Escape closes menu", closed===0);
   const restored = await p.evaluate(()=>document.activeElement?.textContent?.trim().slice(0,10));
   pass("focus returned to trigger", /Menu|Close/i.test(String(restored)), String(restored));

@@ -10,6 +10,22 @@ npm run verify   # accessibility + behaviour checks (needs the server running)
 npm run shots    # screenshot every route, desktop + mobile
 ```
 
+## The homepage is a sequence of scenes
+
+Not a stack of sections. Every scene owns 100vw, sets its own ground, and
+carries ONE memorable behaviour:
+
+| Scene | Ground | Behaviour |
+|---|---|---|
+| 01 Hero | Ink | ASSEMBLE + pointer drift |
+| 02 Positioning | Ivory | WEIGHT (scroll-driven, thin→black) |
+| 03 Statement | Burgundy | MASK |
+| 04 Currently | Ink | STICKY TRANSFORM |
+| 05 Work | Ivory | restrained |
+| 06 Lab | Ink | SCROLL-LINKED HORIZONTAL |
+| 07 Profile | Ivory | MASK |
+| 08 Final | Burgundy | SILK |
+
 ## Where things live
 
 ```
@@ -17,7 +33,7 @@ app/
   tokens.css        every colour, type, space, motion and z-index token
   globals.css       base styles, focus, utilities, reduced-motion
   chrome.css        intro, header, menu, cursor
-  home.css          section modules
+  scenes.css        the eight scenes
   fonts.ts          1955 + Geist Mono loading
 lib/
   logo.ts           the mark, as grid geometry
@@ -26,9 +42,10 @@ lib/
   type.ts           weight roles
 content/            site copy, work registry, lab registry  <- edit here
 components/
-  primitives/       MaskReveal, MotionText, WeightText, Section, LogoMark…
-  chrome/           SiteIntro, ChromeHeader, DrapeMenu, CustomCursor
-  modules/          homepage sections
+  primitives/       Scene, MaskReveal, MotionText, WeightText, LogoMark,
+                    PixelMark, Silk, LabGlyph, Meta, TextLink
+  chrome/           SiteIntro, Nav, DrapeMenu, CustomCursor, SoundToggle
+  scenes/           the eight homepage scenes
 ```
 
 ## Adding content
@@ -60,6 +77,15 @@ component's props would not change.
 **Fonts are not preloaded.** Eight faces is ~350KB to use two. They load on
 demand, and the intro sequence covers that first round-trip.
 
+**There is no centred page wrapper.** Layout is full-bleed: a scene owns
+100vw and content is placed by COLUMN on a viewport-wide grid (`.vgrid` plus
+`.col-*`). Readability comes from column placement, never from `max-width` +
+`margin: auto`. Adding a centred container is the one change that would undo
+the whole design.
+
+**Scenes are not uniformly spaced.** `<Scene measure>` is chosen per scene on
+purpose — identical padding everywhere is what makes a page read as a template.
+
 **`MaskReveal` triggers on its outer element, not the clipped child.** The child
 starts translated outside its own `overflow:hidden` parent, so an
 IntersectionObserver on it measures zero visible area and the reveal never
@@ -69,6 +95,17 @@ fires. Keep the trigger outside the clip.
 layer (`--surface`, `--on-surface`, `--rule`, `--accent`). Components should
 never name a brand colour directly — that is what makes tone switching and the
 inverting cursor work.
+
+**Scroll-driven `useTransform` needs a strictly increasing input range inside
+[0, 1].** Motion converts these to WAAPI keyframe offsets; an out-of-range or
+duplicated stop throws "Offsets must be monotonically non-decreasing" and takes
+down the whole page on hydration, not just the component. Where the range has
+pinned or constant edges (the sticky Currently sequence), use the FUNCTION form
+of `useTransform` instead — see `components/scenes/Currently.tsx`.
+
+**Never `useSpring` a value with units.** Spring a number, then format it
+(`useTransform(v => \`${v}%\`)`). Springing a percentage string produces
+invalid keyframes.
 
 **Stone is not a text colour on light grounds.** `#949087` is 2.72:1 on ivory,
 below AA. `--on-surface-dim` resolves to `--color-stone-deep` there instead.

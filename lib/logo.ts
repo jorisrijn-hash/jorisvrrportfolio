@@ -1,110 +1,100 @@
 /**
- * THE MARK
+ * THE MARK — "cut pointer"
  *
- * An abstracted pointer defined as cells on a 7x7 grid — geometry as DATA,
- * not as a drawn path. Everything the brief asks the mark to do falls out of
- * that decision:
+ * An arrowhead with deliberately uneven wings and NO tail. The tail is the
+ * part that makes an OS pointer look like an OS pointer, so it is gone; the
+ * asymmetry is what keeps the silhouette from reading as a generic play/arrow
+ * glyph. A single straight cut, perpendicular to the pointing axis, detaches
+ * the tip from the body.
  *
- *   ASSEMBLE     cells genuinely fly in, because the mark *is* cells
- *   PIXELATE     lowering resolution resamples real geometry, not a filter
- *   FAVICON      gap:0 collapses it to one solid silhouette, legible at 16px
- *   CURSOR       the same cells collapse toward the pointer form
- *   MONOCHROME   it is a pure silhouette, so ink/ivory/burgundy all work
+ * The mark is TRUE VECTOR GEOMETRY, not a pixel grid. (V1 defined the logo as
+ * grid cells, which meant it could only ever look blocky.) Pixelation is now
+ * an *effect* derived from this geometry — see rasterize() — rather than the
+ * geometry itself.
  *
- * Shape: two interlocking apexes separated by a diagonal fault. The upper mass
- * converges up-left, the lower mass falls away down-right, and the seam between
- * them is offset rather than continuous.
+ * One shape, three states, driven by `split`:
+ *   split 0    solid arrowhead        — favicon, 16px, the custom cursor
+ *   split ~.6  tip detached           — header, resting identity
+ *   split 1    fully separated planes  — transitions, hover, deconstruction
  *
- * Why this and not an arrow: a single triangle with a void reads as the letter
- * A, and a triangle with a tail is just the OS pointer. The fault keeps the
- * cursor DNA — convergence, direction, selection — while staying a symbol. It
- * also gives the identity its core motion: the two halves slide into alignment
- * to resolve the mark, and apart to deconstruct it.
- *
- *        # #
- *        # # #
- *        # # # #
- *        # # # # #
- *            # # # # #
- *              # # # #
- *                # # #
+ * ASSEMBLE is therefore intrinsic: animating split 1 → 0 is the mark locking
+ * itself together, not an animation laid over a finished logo.
  */
 
-export const GRID = 7;
+export const VIEWBOX = 100;
 
-/** Cells as [col, row], origin top-left. */
-export const MARK_CELLS: ReadonlyArray<readonly [number, number]> = [
-  // Upper mass — converges up-left
-  [0, 0], [1, 0],
-  [0, 1], [1, 1], [2, 1],
-  [0, 2], [1, 2], [2, 2], [3, 2],
-  [0, 3], [1, 3], [2, 3], [3, 3], [4, 3],
-  // Lower mass — offset right across the fault, falling away down-right
-  [2, 4], [3, 4], [4, 4], [5, 4], [6, 4],
-  [3, 5], [4, 5], [5, 5], [6, 5],
-  [4, 6], [5, 6], [6, 6],
+/** Solid outline: tip, long right wing, inner notch, lower wing. */
+export const SOLID: ReadonlyArray<readonly [number, number]> = [
+  [5, 5],
+  [97, 44],
+  [48, 54],
+  [60, 97],
 ] as const;
 
-export const CELL_COUNT = MARK_CELLS.length;
+/** The detached tip. Also the shape the custom cursor uses. */
+export const TIP: ReadonlyArray<readonly [number, number]> = [
+  [5, 5],
+  [38.7, 19.3],
+  [23, 35],
+] as const;
 
-export type AssembleOrder = "apex" | "scan" | "scatter";
+/** The body, with the tip sliced away. */
+export const BODY: ReadonlyArray<readonly [number, number]> = [
+  [45, 22],
+  [97, 44],
+  [48, 54],
+  [60, 97],
+  [26.3, 40.7],
+] as const;
+
+export const toPoints = (poly: ReadonlyArray<readonly [number, number]>) =>
+  poly.map(([x, y]) => `${x},${y}`).join(" ");
 
 /**
- * Stable draw order for staggered ASSEMBLE. Deterministic — no Math.random,
- * so server and client render identically and the sequence is art-directable.
- *
- *   apex     builds outward from the point: the mark "grows" a direction
- *   scan     row by row, like a raster resolving — pairs with the `scan` cue
- *   scatter  fixed pseudo-shuffle for a constructing-from-noise read
+ * Travel applied to each half at split=1, along the pointing axis (45°).
+ * The tip advances, the body falls back — the cut opens along its own normal.
  */
-export function assembleOrder(mode: AssembleOrder = "apex"): number[] {
-  const idx = MARK_CELLS.map((_, i) => i);
+export const SPLIT_TRAVEL = 7;
 
-  if (mode === "scan") {
-    return idx.sort((a, b) => {
-      const [ax, ay] = MARK_CELLS[a];
-      const [bx, by] = MARK_CELLS[b];
-      return ay - by || ax - bx;
-    });
+/**
+ * Rasterize the solid mark onto an n x n grid — the source for the intro's
+ * pixel assembly. Even-odd point-in-polygon against real geometry, so the
+ * blocks describe the actual silhouette at every resolution.
+ */
+export function rasterize(n: number): Array<[number, number]> {
+  const cells: Array<[number, number]> = [];
+  const step = VIEWBOX / n;
+
+  for (let y = 0; y < n; y++) {
+    for (let x = 0; x < n; x++) {
+      if (contains((x + 0.5) * step, (y + 0.5) * step)) cells.push([x, y]);
+    }
   }
+  return cells;
+}
 
-  if (mode === "scatter") {
-    // Deterministic hash shuffle — same result every render.
-    return idx.sort((a, b) => ((a * 2654435761) % 97) - ((b * 2654435761) % 97));
+function contains(px: number, py: number): boolean {
+  let inside = false;
+  for (let i = 0, j = SOLID.length - 1; i < SOLID.length; j = i++) {
+    const [xi, yi] = SOLID[i];
+    const [xj, yj] = SOLID[j];
+    if (yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) {
+      inside = !inside;
+    }
   }
-
-  // apex: Chebyshev distance from the tip at [0,0]
-  return idx.sort((a, b) => {
-    const [ax, ay] = MARK_CELLS[a];
-    const [bx, by] = MARK_CELLS[b];
-    return Math.max(ax, ay) - Math.max(bx, by) || ay - by;
-  });
+  return inside;
 }
 
 /**
- * Resample the mark onto a coarser grid. `n` < GRID yields genuinely chunkier
- * geometry (a cell turns on when enough of its source area is filled), which
- * is what makes the intro's pixel-resolve read as real rather than blurred.
+ * Deterministic build order for the pixel assembly: blocks resolve outward
+ * from the tip, so the mark grows a direction instead of fading up as noise.
  */
-export function cellsAtResolution(n: number): Array<[number, number]> {
-  if (n >= GRID) return MARK_CELLS.map(([x, y]) => [x, y]);
-
-  const filled = new Set(MARK_CELLS.map(([x, y]) => `${x},${y}`));
-  const scale = GRID / n;
-  const out: Array<[number, number]> = [];
-
-  for (let ry = 0; ry < n; ry++) {
-    for (let rx = 0; rx < n; rx++) {
-      let hit = 0;
-      let total = 0;
-      for (let y = Math.floor(ry * scale); y < Math.min(GRID, Math.ceil((ry + 1) * scale)); y++) {
-        for (let x = Math.floor(rx * scale); x < Math.min(GRID, Math.ceil((rx + 1) * scale)); x++) {
-          total++;
-          if (filled.has(`${x},${y}`)) hit++;
-        }
-      }
-      if (total > 0 && hit / total >= 0.5) out.push([rx, ry]);
-    }
-  }
-  return out;
+export function buildOrder(cells: Array<[number, number]>): number[] {
+  return cells
+    .map((_, i) => i)
+    .sort((a, b) => {
+      const da = cells[a][0] + cells[a][1];
+      const db = cells[b][0] + cells[b][1];
+      return da - db || cells[a][1] - cells[b][1];
+    });
 }

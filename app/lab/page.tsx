@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import { Section } from "@/components/primitives/Section";
-import { SectionLabel } from "@/components/primitives/SectionLabel";
+import { Scene } from "@/components/primitives/Scene";
+import { Meta } from "@/components/primitives/Meta";
 import { MaskReveal } from "@/components/primitives/MaskReveal";
-import { ArrowLink } from "@/components/primitives/ArrowLink";
-import { Footer } from "@/components/modules/Footer";
-import { KIND_LABEL, LAB } from "@/content/lab";
+import { TextLink } from "@/components/primitives/TextLink";
+import { LabGlyph } from "@/components/primitives/LabGlyph";
+import { Footer } from "@/components/scenes/Footer";
+import { KIND_LABEL, LAB, LAB_TRACKS } from "@/content/lab";
 
 export const metadata: Metadata = {
   title: "Lab",
@@ -13,49 +14,58 @@ export const metadata: Metadata = {
 };
 
 export default function LabPage() {
+  const live = LAB.length > 0;
+
   return (
     <>
-      <Section tone="ink" className="u-page" style={{ paddingTop: "clamp(7rem, 18vh, 12rem)" }}>
-        <SectionLabel index="03">Lab</SectionLabel>
+      <Scene tone="ink" measure="loose" style={{ paddingTop: "clamp(7rem, 20vh, 13rem)" }}>
+        <div style={{ paddingInline: "var(--gutter)", marginBottom: "clamp(2rem, 6vh, 3.5rem)" }}>
+          <Meta style={{ color: "var(--on-surface-dim)" }}>03 / Lab</Meta>
+        </div>
 
-        <h1 className="jvr-empty__title" style={{ marginTop: "clamp(2rem, 6vh, 3.5rem)", fontSize: "var(--text-display-m)" }}>
-          <MaskReveal>A working record.</MaskReveal>
+        <h1 className="plain__type">
+          <MaskReveal>A working</MaskReveal>
+          <MaskReveal delay={0.08}>record.</MaskReveal>
         </h1>
 
-        <p className="jvr-empty__body" style={{ marginTop: "1.5rem" }}>
-          Interaction work, motion studies, generative graphics, data pieces and
-          things written outside the browser. Smaller than a case study, and kept
-          honest — including the ones that did not work.
-        </p>
+        <div className="vgrid" style={{ marginTop: "clamp(2rem, 6vh, 3rem)" }}>
+          <p className="plain__note col-full col-8-4">
+            Interaction work, motion studies, generative graphics, data pieces and
+            things written outside the browser. Smaller than a case study, and kept
+            honest — including the ones that did not work.
+          </p>
+        </div>
 
-        {LAB.length > 0 ? (
-          <div className="jvr-list" style={{ marginTop: "clamp(3rem, 9vh, 5rem)" }}>
-            {LAB.map((entry) => (
-              <article key={entry.slug} className="jvr-entry">
-                <p className="u-micro" style={{ color: "var(--accent)" }}>{entry.index}</p>
-                <h2 className="jvr-entry__title">
-                  <MaskReveal>{entry.title}</MaskReveal>
-                </h2>
-                <p className="jvr-entry__summary">{entry.summary}</p>
-                <p className="u-micro" style={{ color: "var(--on-surface-dim)" }}>
-                  {KIND_LABEL[entry.kind]} — {entry.year}
-                </p>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <div className="jvr-empty">
-            <p className="jvr-empty__body">
-              The first entries are being prepared. This page is built to grow — new
-              experiments are added as single content entries, so publishing one is
-              a matter of writing it, not rebuilding anything.
+        <div
+          className="vgrid"
+          style={{ marginTop: "clamp(3rem, 10vh, 6rem)", rowGap: "clamp(2rem, 6vh, 3.5rem)" }}
+        >
+          {(live
+            ? LAB.map((e, i) => ({ key: e.slug, index: e.index, title: e.title, meta: `${KIND_LABEL[e.kind]} — ${e.year}`, body: e.summary, seed: i }))
+            : LAB_TRACKS.map((t, i) => ({ key: t.index, index: t.index, title: t.title, meta: "Open", body: "", seed: i }))
+          ).map((item) => (
+            <article key={item.key} className="lab__item col-full col-1-5" style={{ width: "auto" }}>
+              <Meta style={{ color: "var(--accent)" }}>{item.index}</Meta>
+              <h2 className="lab__title">{item.title}</h2>
+              <Meta style={{ color: "var(--on-surface-dim)" }}>{item.meta}</Meta>
+              {item.body ? <p className="plain__note">{item.body}</p> : null}
+              <div className="lab__glyph"><LabGlyph seed={item.seed} /></div>
+            </article>
+          ))}
+        </div>
+
+        {!live ? (
+          <div className="vgrid" style={{ marginTop: "clamp(2.5rem, 8vh, 4rem)" }}>
+            <p className="plain__note col-full col-8-4">
+              First entries land shortly. Publishing one is a matter of writing it —
+              the page is built to grow.
             </p>
-            <p style={{ marginTop: "0.75rem" }}>
-              <ArrowLink href="/contact">Get in touch</ArrowLink>
-            </p>
+            <div className="col-full col-8-4" style={{ marginTop: "1rem" }}>
+              <TextLink href="/contact">Get in touch</TextLink>
+            </div>
           </div>
-        )}
-      </Section>
+        ) : null}
+      </Scene>
       <Footer />
     </>
   );

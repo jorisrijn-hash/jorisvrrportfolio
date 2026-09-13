@@ -53,3 +53,19 @@ export const KIND_LABEL: Record<LabKind, string> = {
   software: "Software",
   note: "Note",
 };
+
+/**
+ * The territories the Lab covers. These are NOT projects — they are the
+ * standing categories, shown on the homepage strip so the scene has real
+ * structure before any entry exists. Each gets a generated geometric glyph.
+ *
+ * When LAB fills up, the homepage strip shows real entries instead and these
+ * become the filter set for /lab.
+ */
+export const LAB_TRACKS: { index: string; title: string; kind: LabKind }[] = [
+  { index: "001", title: "Type / Motion", kind: "motion" },
+  { index: "002", title: "Network / Trace", kind: "data" },
+  { index: "003", title: "Java / System", kind: "software" },
+  { index: "004", title: "Interaction", kind: "interaction" },
+  { index: "005", title: "Generative", kind: "graphics" },
+];

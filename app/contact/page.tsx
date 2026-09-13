@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import { Section } from "@/components/primitives/Section";
-import { SectionLabel } from "@/components/primitives/SectionLabel";
+import { Scene } from "@/components/primitives/Scene";
+import { Meta } from "@/components/primitives/Meta";
 import { MotionText } from "@/components/primitives/MotionText";
-import { ArrowLink } from "@/components/primitives/ArrowLink";
-import { Footer } from "@/components/modules/Footer";
+import { TextLink } from "@/components/primitives/TextLink";
+import { Silk } from "@/components/primitives/Silk";
+import { Footer } from "@/components/scenes/Footer";
 import { SITE } from "@/content/site";
 
 export const metadata: Metadata = {
@@ -14,42 +15,26 @@ export const metadata: Metadata = {
 export default function ContactPage() {
   return (
     <>
-      <Section
-        tone="burgundy"
-        className="u-page"
-        style={{ paddingTop: "clamp(7rem, 18vh, 12rem)", minHeight: "80svh" }}
-      >
-        <SectionLabel index="05">Contact</SectionLabel>
-
-        <h1
-          className="jvr-closing__lines"
-          style={{ marginTop: "clamp(2rem, 7vh, 4rem)", fontSize: "var(--text-display-m)" }}
-        >
-          <MotionText as="span" split="line" stagger={0.1}>
-            {"Open to internships,\ncollaboration and\ninteresting problems."}
-          </MotionText>
-        </h1>
-
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "1.5rem 2.5rem",
-            marginTop: "clamp(2.5rem, 8vh, 4rem)",
-          }}
-        >
-          <ArrowLink href={`mailto:${SITE.email}`} external>
-            {SITE.email}
-          </ArrowLink>
-          <ArrowLink href="https://github.com/jorisrijn-hash" external>
-            GitHub
-          </ArrowLink>
+      <Scene tone="burgundy" full measure="none" className="final">
+        <Silk className="final__silk" />
+        <div className="final__inner" style={{ paddingTop: "clamp(7rem, 20vh, 13rem)" }}>
+          <Meta style={{ opacity: 0.72, marginBottom: "clamp(2rem, 8vh, 4rem)" }}>05 / Contact</Meta>
+          <h1 className="final__type">
+            <MotionText split="line" stagger={0.1}>
+              {"Open to internships,\ncollaboration and\ninteresting problems."}
+            </MotionText>
+          </h1>
+          <div
+            style={{ display: "flex", flexWrap: "wrap", gap: "1rem 2.5rem", marginTop: "clamp(2.5rem, 8vh, 4rem)" }}
+          >
+            <TextLink href={`mailto:${SITE.email}`} external>{SITE.email}</TextLink>
+            <TextLink href="https://github.com/jorisrijn-hash" external>GitHub</TextLink>
+          </div>
+          <Meta style={{ marginTop: "clamp(2rem, 6vh, 3rem)", opacity: 0.7 }}>
+            {SITE.location} — {SITE.availability}
+          </Meta>
         </div>
-
-        <p className="u-micro" style={{ marginTop: "3rem", opacity: 0.75 }}>
-          {SITE.location} — {SITE.availability}
-        </p>
-      </Section>
+      </Scene>
       <Footer />
     </>
   );

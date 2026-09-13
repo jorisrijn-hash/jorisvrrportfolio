@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { display, mono } from "./fonts";
 import { SoundProvider } from "@/lib/sound";
-import { ChromeHeader } from "@/components/chrome/ChromeHeader";
+import { Nav } from "@/components/chrome/Nav";
 import { SiteIntro } from "@/components/chrome/SiteIntro";
 import { CustomCursor } from "@/components/chrome/CustomCursor";
 import "./globals.css";
@@ -53,7 +53,7 @@ export default function RootLayout({
             Skip to content
           </a>
           <SiteIntro />
-          <ChromeHeader />
+          <Nav showProgress />
           <CustomCursor />
           <main id="main">{children}</main>
         </SoundProvider>

@@ -1,25 +1,25 @@
-import { Section } from "@/components/primitives/Section";
-import { SectionLabel } from "@/components/primitives/SectionLabel";
-import { ArrowLink } from "@/components/primitives/ArrowLink";
+import { Scene } from "@/components/primitives/Scene";
+import { Meta } from "@/components/primitives/Meta";
+import { TextLink } from "@/components/primitives/TextLink";
 import { LogoMark } from "@/components/primitives/LogoMark";
 
 export default function NotFound() {
   return (
-    <Section
-      tone="ink"
-      className="u-page"
-      style={{ minHeight: "100svh", display: "flex", flexDirection: "column", justifyContent: "center", gap: "2rem" }}
-    >
-      <LogoMark size={40} gap={0.14} />
-      <SectionLabel index="404">Not found</SectionLabel>
-      <h1 style={{ fontSize: "var(--text-display-m)", fontWeight: 100, letterSpacing: "-0.035em", lineHeight: 0.95, maxWidth: "16ch" }}>
-        This page does not exist.
-      </h1>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "1.5rem 2.5rem" }}>
-        <ArrowLink href="/">Index</ArrowLink>
-        <ArrowLink href="/work">Work</ArrowLink>
-        <ArrowLink href="/lab">Lab</ArrowLink>
+    <Scene tone="ink" full measure="none" style={{ justifyContent: "center", gap: "2rem" }}>
+      <div style={{ paddingInline: "var(--gutter)", display: "grid", gap: "2rem" }}>
+        <LogoMark size={36} split={0.6} />
+        <Meta style={{ color: "var(--on-surface-dim)" }}>404 / Not found</Meta>
+        <h1 className="plain__type" style={{ paddingInline: 0 }}>
+          This page
+          <br />
+          does not exist.
+        </h1>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "2rem" }}>
+          <TextLink href="/">Index</TextLink>
+          <TextLink href="/work">Work</TextLink>
+          <TextLink href="/lab">Lab</TextLink>
+        </div>
       </div>
-    </Section>
+    </Scene>
   );
 }
