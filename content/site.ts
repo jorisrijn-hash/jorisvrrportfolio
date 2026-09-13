@@ -1,11 +1,8 @@
 /**
- * SITE COPY + PROFILE DATA
+ * SITE COPY
  *
- * Everything here is meant to be edited often. Keeping it out of the
- * components means updating the site is a content change, not a code change.
- *
- * Copy rules (§21): concrete, confident, understated. No "passionate about",
- * no "crafting digital experiences", no "bringing your vision to life".
+ * Edited often; kept out of components so updating the site is a content
+ * change, not a code change.
  */
 
 export const SITE = {
@@ -13,114 +10,34 @@ export const SITE = {
   domain: "jorisvrr.com",
   location: "The Netherlands",
   email: "jorisvrr@gmail.com",
-  availability: "Available for select opportunities",
-  disciplines: ["Design", "Technology", "Systems"],
+  version: "1.0.0",
+  study: "HBO-ICT Business & Data Management",
 } as const;
 
-/** SCENE 01 — Hero. The name carries the scene; these are the only support. */
-export const HERO = {
-  support:
-    "Studying ICT, business and data in the Netherlands. Design, development and motion in between.",
-} as const;
+/** ABOUT — the one place longer text is allowed, and only once opened. */
+export const ABOUT = {
+  /** The line the About state opens on. */
+  lead: "I'm interested in what happens between a business problem and a working solution.",
 
-/**
- * SCENE 02 — Positioning. One row per discipline; each owns a viewport row and
- * gains weight on scroll. Notes are deliberately short — they sit tiny beside
- * type at --text-scene.
- */
-export const POSITIONING: { word: string; note: string }[] = [
-  {
-    word: "Design",
-    note: "Typography, interface, art direction. The part that decides whether anyone trusts the thing.",
-  },
-  {
-    word: "Technology",
-    note: "TypeScript, React, Java. Building it myself is what keeps the design honest.",
-  },
-  {
-    word: "Systems",
-    note: "Data models, process, constraints. Where a design decision quietly becomes a business decision.",
-  },
-];
+  /** Short-form summary, shown in the About panel. */
+  summary:
+    "HBO-ICT Business & Data Management student with a background in visual design and digital media, interested in the intersection of business, technology, data and user experience.",
 
-/** SCENE 03 — Statement. A title card. One thought, nothing else. */
-export const STATEMENT = {
-  lines: [
-    "I like the space",
-    "between an idea",
-    "and the system",
-    "that makes it work.",
+  /** Long-form, revealed on deeper About content. */
+  body: [
+    "I enjoy understanding how businesses and digital products work, identifying problems or inefficiencies, and developing practical solutions through interface design, software, data and process improvement.",
+    "My background started in visual design and filmmaking, which taught me how to communicate ideas and think creatively. Today, through HBO-ICT Business & Data Management, I'm developing the technical and analytical side of that skill set.",
+    "I'm most interested in projects where I can understand how a business or product currently works, identify where it can improve, and turn that into something tangible — whether that means designing a better interface, improving a process, working with data or building a digital system.",
+    "My goal is to develop strong technical and analytical expertise without losing sight of the complete process: from understanding the initial business problem and designing a solution to implementation, iteration and measuring its impact.",
+    "Long term, I want to be able to connect business, design and technology rather than seeing them as separate disciplines.",
   ],
+
+  /** Mono metadata shown beside the About panels. */
+  meta: [
+    ["Module", "Profile_Node"],
+    ["Study", "HBO-ICT Business & Data Management"],
+    ["Focus", "Business · Technology · Data · UX"],
+    ["Origin", "Visual design / Filmmaking"],
+    ["Location", "The Netherlands"],
+  ] as const,
 } as const;
-
-/** SCENE 04 — Currently. Drives the sticky typographic sequence. */
-export const CURRENTLY: { label: string; items: string[] }[] = [
-  {
-    label: "Building",
-    items: [
-      "Interfaces and internal tools in TypeScript and Next.js",
-      "This site, as a long-running design system rather than a template",
-    ],
-  },
-  {
-    label: "Learning",
-    items: [
-      "Java, and how object models hold up outside the browser",
-      "Data modelling — the part of business that is really schema design",
-    ],
-  },
-  {
-    label: "Exploring",
-    items: [
-      "Motion as interface language, not decoration",
-      "Generative and procedural graphics on canvas",
-    ],
-  },
-];
-
-/** SCENE 07 — Profile teaser. The full story lives on /profile. */
-export const PROFILE_TEASER = {
-  lead: "Before software, cameras.",
-  body: "Years of video and cinematography work taught me pacing, framing and how attention actually moves — which turns out to be most of what interface design is. The tools changed. The questions did not.",
-} as const;
-
-/** SCENE 08 — Closing. */
-export const CLOSING = {
-  lines: ["Let's make", "something", "interesting."],
-  action: "Contact",
-} as const;
-
-/** /profile — timeline. Newest first. */
-export const TIMELINE: { period: string; title: string; detail: string }[] = [
-  {
-    period: "2026 —",
-    title: "ICT, Business & Data",
-    detail: "Studying the systems side: data modelling, process, and how software earns its place in a business.",
-  },
-  {
-    period: "2024 —",
-    title: "Independent web development",
-    detail: "Designing and building sites and tools for small businesses in the Netherlands. Full responsibility, from brief to deployment.",
-  },
-  {
-    period: "2020 —",
-    title: "Video and cinematography",
-    detail: "Shooting and editing. Where the interest in timing, composition and attention started.",
-  },
-];
-
-/** /profile — capabilities. Disciplines, not percentage bars (§20). */
-export const CAPABILITIES: { group: string; items: string[] }[] = [
-  {
-    group: "Design",
-    items: ["Interface design", "Typography", "Art direction", "Motion design", "Design systems"],
-  },
-  {
-    group: "Development",
-    items: ["TypeScript", "React & Next.js", "Java", "CSS architecture", "Web animation"],
-  },
-  {
-    group: "Systems",
-    items: ["Data modelling", "Process design", "Technical writing", "Requirements"],
-  },
-];

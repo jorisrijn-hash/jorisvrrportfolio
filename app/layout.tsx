@@ -1,21 +1,16 @@
 import type { Metadata, Viewport } from "next";
 import { display, mono } from "./fonts";
 import { SoundProvider } from "@/lib/sound";
-import { Nav } from "@/components/chrome/Nav";
-import { SiteIntro } from "@/components/chrome/SiteIntro";
-import { CustomCursor } from "@/components/chrome/CustomCursor";
+import { CustomCursor } from "@/components/cursor/CustomCursor";
 import "./globals.css";
 
 const SITE = "https://jorisvrr.com";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),
-  title: {
-    default: "Joris van Rijn",
-    template: "%s — Joris van Rijn",
-  },
+  title: { default: "Joris van Rijn", template: "%s — Joris van Rijn" },
   description:
-    "Joris van Rijn works across design, technology and systems — building interfaces, tools and experiments from the Netherlands.",
+    "Joris van Rijn — HBO-ICT Business & Data Management. Working between business problems and working solutions: interface design, software, data and process.",
   openGraph: {
     type: "website",
     locale: "en",
@@ -23,37 +18,26 @@ export const metadata: Metadata = {
     siteName: "Joris van Rijn",
     title: "Joris van Rijn",
     description:
-      "Design, technology and systems. Interfaces, tools and experiments from the Netherlands.",
+      "Working between business problems and working solutions: interface design, software, data and process.",
   },
   twitter: { card: "summary_large_image" },
   robots: { index: true, follow: true },
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#F1EDE4" },
-    { media: "(prefers-color-scheme: dark)", color: "#0B0B0A" },
-  ],
-  colorScheme: "light dark",
+  themeColor: "#E8E8E8",
+  colorScheme: "light",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${display.variable} ${mono.variable}`}>
-      <head>
-        <noscript>
-          <style>{`.jvr-intro{display:none!important}`}</style>
-        </noscript>
-      </head>
-      <body data-tone="ivory">
+      <body>
         <SoundProvider>
-          <a className="skip-link" href="#main">
-            Skip to content
-          </a>
-          <SiteIntro />
-          <Nav showProgress />
+          <a className="skip-link" href="#main">Skip to content</a>
           <CustomCursor />
           <main id="main">{children}</main>
         </SoundProvider>

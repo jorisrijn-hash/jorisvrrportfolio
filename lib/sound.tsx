@@ -22,30 +22,57 @@ import {
  *      for every visitor who never turns sound on.
  */
 
-/** Semantic cue names, mapped to cuelume recipes in CUE. */
+/**
+ * Semantic cue names -> cuelume recipes, with a per-cue gain and a rate limit.
+ *
+ * The point of the map is a SONIC HIERARCHY: the user should feel the weight
+ * of an action before they think about it. A hover is a whisper; a scene
+ * change is a tone. Nothing is the same click twice.
+ */
 export type Cue =
-  | "hover"
+  // micro
+  | "hover"        // nav/pill pointerenter — quietest thing on the site
   | "press"
   | "release"
   | "toggle"
-  | "navigate"
-  | "reveal"
-  | "assemble"
-  | "enter";
+  // navigation / scene
+  | "navigate"     // state change committed
+  | "arrive"       // scene finished resolving
+  // boot
+  | "scan"         // each boot phase ticks over
+  | "boot"         // boot complete
+  // work
+  | "index"        // project index changed
+  | "select"       // project selected
+  | "open"         // project opened
+  | "close";
 
-const CUE: Record<Cue, string> = {
-  hover: "tick",
-  press: "press",
-  release: "release",
-  toggle: "toggle",
-  navigate: "page",
-  reveal: "bloom",
-  assemble: "scan",
-  enter: "arrival",
+type CueDef = {
+  /** cuelume recipe name */
+  recipe: string;
+  /** relative gain, multiplied by master */
+  gain: number;
+  /** minimum ms between repeats of this cue */
+  limit: number;
 };
 
-/** Interface feedback sits well under the content. */
-const VOLUME = 0.22;
+const CUES: Record<Cue, CueDef> = {
+  hover:    { recipe: "tick",    gain: 0.34, limit: 90 },
+  press:    { recipe: "press",   gain: 0.70, limit: 40 },
+  release:  { recipe: "release", gain: 0.55, limit: 40 },
+  toggle:   { recipe: "toggle",  gain: 0.80, limit: 80 },
+  navigate: { recipe: "page",    gain: 0.95, limit: 200 },
+  arrive:   { recipe: "arrival", gain: 0.85, limit: 300 },
+  scan:     { recipe: "scan",    gain: 0.45, limit: 110 },
+  boot:     { recipe: "bloom",   gain: 0.90, limit: 500 },
+  index:    { recipe: "tick",    gain: 0.62, limit: 70 },
+  select:   { recipe: "press",   gain: 0.85, limit: 90 },
+  open:     { recipe: "bloom",   gain: 0.85, limit: 260 },
+  close:    { recipe: "toggle",  gain: 0.62, limit: 200 },
+};
+
+/** Master. Interface feedback sits well under the content (§25). */
+const VOLUME = 0.28;
 const STORAGE_KEY = "jvr.sound";
 
 type SoundPref = boolean | null;
@@ -137,19 +164,35 @@ export function SoundProvider({ children }: { children: React.ReactNode }) {
         // Called from a click handler, so the AudioContext starts unblocked.
         void load().then((mod) => mod?.setEnabled(true));
       } else {
+        // OFF must truly silence everything, not just stop new cues (§26).
         engine.current?.setEnabled(false);
       }
     },
     [load],
   );
 
+  const lastPlayed = useRef<Partial<Record<Cue, number>>>({});
+
   const cue = useCallback(
     (name: Cue) => {
       if (enabled !== true) return;
       const mod = engine.current;
       if (!mod) return;
+
+      const def = CUES[name];
+      if (!def) return;
+
+      // Rate limit per cue. Without this, a pointer crossing a row of pills
+      // machine-guns the hover tick (§25).
+      const now = performance.now();
+      const prev = lastPlayed.current[name] ?? -Infinity;
+      if (now - prev < def.limit) return;
+      lastPlayed.current[name] = now;
+
       try {
-        mod.play(CUE[name] as Parameters<typeof mod.play>[0]);
+        mod.play(def.recipe as Parameters<typeof mod.play>[0], {
+          volume: VOLUME * def.gain,
+        });
       } catch {
         /* a failed cue must never break an interaction */
       }

@@ -1,169 +1,89 @@
 /* =========================================================================
-   DESIGN TOKENS — jorisvrr.com
-   Single source of truth. No component declares a raw colour, duration or
-   easing. Section tone flipping happens on the SEMANTIC layer only, so a
-   burgundy section is a token swap rather than a restyle.
+   TOKENS — measured from the supplied reference files, not chosen.
+   loadingempty.png / mainbackground.mp4 @ 1920x950
    ========================================================================= */
 
 @theme {
-  /* ---- BRAND PALETTE (fixed, never flips) ---------------------------- */
+  /* ---- ENVIRONMENT (measured) ---------------------------------------
+     loadingempty.png: flat #E8E8E8 ground, #DEDEDE grid (contrast ~10).
+     mainbackground.mp4: radial, ~#FAFAFA centre -> ~#9C9C9C corners. */
+  --color-env: #e8e8e8;
+  --color-env-line: #dedede;
+  --color-env-centre: #fafafa;
+  --color-env-edge: #9c9c9c;
+
+  /* ---- INK ------------------------------------------------------------ */
   --color-ink: #0b0b0a;
+  --color-hud: #1a1a1a;
+  --color-hud-dim: #6b6b6b;
+  --color-hud-faint: #9a9a9a;
+  --color-panel: #f4f4f2;
+  --color-panel-line: #c9c9c9;
+
+  /* ---- BRAND (rare; the reference is near-monochrome) ----------------- */
   --color-ivory: #f1ede4;
   --color-burgundy: #661f2c;
   --color-racing: #19382a;
-  --color-stone: #949087;
 
-  /* Tonal steps, derived — used for rules, dim text, pressed states.
-     Kept few on purpose: this is an editorial palette, not a UI kit. */
-  --color-ink-soft: #161614;
-  --color-ivory-dim: #d9d3c6;
-  --color-burgundy-deep: #4a141f;
-  --color-racing-bright: #4fa87e;
-
-  /* Stone at full strength is 2.72:1 on ivory — below AA for any text size.
-     It stays in the palette for rules, dots and fills; secondary TEXT on
-     light grounds uses this darkened cut of the same hue instead (5.05:1). */
-  --color-stone-deep: #67645e;
-
-  /* ---- TYPEFACES ------------------------------------------------------
-     1955 (Alan Smithee Studio) is loaded in app/fonts.ts, which also supplies
-     a metric-adjusted Arial fallback so there is no layout shift on swap.
-     Weights available: 100 / 300 / 500 / 900 only — see lib/type.ts. */
+  /* ---- TYPE ----------------------------------------------------------- */
   --font-display: var(--font-1955), "Helvetica Neue", Arial, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
 
-  /* ---- TYPE SCALE -----------------------------------------------------
-     Architectural. Display sizes are driven by vw so type spans the viewport
-     rather than sitting inside it — a line at --text-scene fills the width at
-     any window size, which is the point. Mono stays tiny for contrast. */
-  --text-scene: clamp(3rem, 13vw, 17rem);   /* owns a viewport row */
-  --text-xl: clamp(2.5rem, 9.5vw, 12rem);
-  --text-l: clamp(2rem, 6vw, 7rem);
-  --text-m: clamp(1.5rem, 3.6vw, 3.75rem);
-  --text-s: clamp(1.25rem, 2vw, 2rem);
-  --text-lead: clamp(1.0625rem, 1.35vw, 1.375rem);
-  --text-body: 1rem;
-  --text-meta: 0.75rem;
-  --text-micro: 0.6875rem;
+  /* The reference HUD is almost entirely tiny mono. */
+  --text-hud: 11px;
+  --text-hud-sm: 10px;
+  --text-label: 13px;
+  --text-version: 19px;
+  --text-loop: 92px;
 
-  /* ---- GRID -----------------------------------------------------------
-     12 columns across the WHOLE viewport. There is deliberately no page
-     maximum: readability comes from column placement, never from a centred
-     wrapper. */
-  --grid-cols: 12;
-
-  /* ---- RADII — sharp by default (§23). 2px is the ceiling. ----------- */
-  --radius-none: 0px;
-  --radius-sm: 1px;
-  --radius-md: 2px;
-
-  /* ---- BREAKPOINTS ---------------------------------------------------- */
-  --breakpoint-xs: 30rem;
-  --breakpoint-sm: 48rem;
-  --breakpoint-md: 64rem;
-  --breakpoint-lg: 90rem;
-}
-
-/* ---- MOTION + Z-INDEX ------------------------------------------------
-   Plain custom properties (not @theme): these are read by JS in lib/motion.ts
-   as well as by CSS, so they must stay resolvable at runtime. */
-:root {
-  --dur-snap: 180ms;
-  --dur-base: 420ms;
-  --dur-slow: 760ms;
-  --dur-drape: 1100ms;
-
-  /* The signature curve. Carried over from MODUS — a decisive, settled
-     deceleration with no overshoot. Used for essentially everything. */
-  --ease-signature: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-mask: cubic-bezier(0.65, 0, 0.35, 1);
-  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
-
-  --stagger-tight: 40ms;
-  --stagger-base: 70ms;
-  --stagger-loose: 120ms;
-
-  --travel-sm: 0.5rem;
-  --travel-md: 1.25rem;
-
-  --z-base: 0;
-  --z-raised: 10;
-  --z-chrome: 100;
-  --z-menu: 200;
-  --z-transition: 300;
-  --z-intro: 400;
-  --z-cursor: 500;
-
-  /* Inner gutter only — the section itself always owns 100vw. */
-  --gutter: clamp(1rem, 3vw, 4rem);
-  --rule-weight: 1px;
+  --track-hud: 0.14em;
+  --track-label: 0.2em;
 }
 
 /* =========================================================================
-   SEMANTIC TONE LAYER
-   Every surface declares a tone; children inherit. This is what makes the
-   dark/light section switching (§5) and the INVERT cursor work for free.
+   GEOMETRY — the reference composition, in its own units
    ========================================================================= */
-:root,
-[data-tone="ivory"] {
-  --surface: var(--color-ivory);
-  --on-surface: var(--color-ink);
-  --on-surface-dim: var(--color-stone-deep);
-  --rule: color-mix(in oklab, var(--color-ink) 16%, transparent);
-  --accent: var(--color-burgundy);
-  --selection-bg: var(--color-burgundy);
-  --selection-fg: var(--color-ivory);
-}
-
-[data-tone="ink"] {
-  --surface: var(--color-ink);
-  --on-surface: var(--color-ivory);
-  --on-surface-dim: var(--color-stone);
-  --rule: color-mix(in oklab, var(--color-ivory) 18%, transparent);
-  --accent: var(--color-ivory);
-  --selection-bg: var(--color-ivory);
-  --selection-fg: var(--color-ink);
-}
-
-[data-tone="burgundy"] {
-  --surface: var(--color-burgundy);
-  --on-surface: var(--color-ivory);
-  --on-surface-dim: color-mix(in oklab, var(--color-ivory) 62%, transparent);
-  --rule: color-mix(in oklab, var(--color-ivory) 26%, transparent);
-  --accent: var(--color-ivory);
-  --selection-bg: var(--color-ivory);
-  --selection-fg: var(--color-burgundy);
-}
-
-/* Racing green is a *state* colour, not an environment (§5). It gets a tone
-   for the rare accent section, but availability/status use --status-* below. */
-[data-tone="racing"] {
-  --surface: var(--color-racing);
-  --on-surface: var(--color-ivory);
-  --on-surface-dim: color-mix(in oklab, var(--color-ivory) 58%, transparent);
-  --rule: color-mix(in oklab, var(--color-ivory) 24%, transparent);
-  --accent: var(--color-ivory);
-  --selection-bg: var(--color-ivory);
-  --selection-fg: var(--color-racing);
-}
-
 :root {
-  --status-available: var(--color-racing);
-  --status-available-on-dark: var(--color-racing-bright);
-}
+  /* Reference viewport. Everything below is expressed against it, then
+     scaled, so the composition holds at other sizes. */
+  --ref-w: 1920;
+  --ref-h: 950;
 
-/* The status dot carries meaning, so it needs 3:1 against its own ground
-   (WCAG 1.4.11). Racing green is near-invisible on burgundy, so that context
-   gets the brighter cut. */
-[data-tone="ivory"] .jvr-status__dot { background: var(--color-racing); }
-[data-tone="ink"] .jvr-status__dot,
-[data-tone="burgundy"] .jvr-status__dot { background: var(--color-racing-bright); }
+  /* Grid: measured 24px cells; verticals at x = 0 (mod 24),
+     horizontals at y = 14 (mod 24). */
+  --grid-cell: 24px;
+  --grid-offset-x: 0px;
+  --grid-offset-y: 14px;
 
-/* Expose the semantic layer to Tailwind utilities (bg-surface, text-on-surface…) */
-@theme inline {
-  --color-surface: var(--surface);
-  --color-on-surface: var(--on-surface);
-  --color-on-surface-dim: var(--on-surface-dim);
-  --color-rule: var(--rule);
-  --color-accent: var(--accent);
+  /* Centre construction (loadingempty.png), measured at the viewport centre */
+  --ring-r: 119px;      /* main circle */
+  --ring-dash-r: 153px; /* dashed outer arc */
+  --ring-outer-r: 179px;
+  --diamond-r: 119px;   /* vertices sit on the main circle */
+
+  /* Radial wash over the grid: contrast falls 10.7 -> 6.6 toward centre */
+  --wash-alpha: 0.38;
+  --wash-radius: 520px;
+
+  --hud-pad-x: 26px;
+  --hud-pad-y: 14px;
+
+  /* ---- MOTION --------------------------------------------------------- */
+  --dur-fast: 150ms;
+  --dur-ui: 280ms;
+  --dur-med: 560ms;
+  --dur-scene: 1200ms;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-inout: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-in: cubic-bezier(0.55, 0, 1, 0.45);
+
+  --z-env: 0;
+  --z-media: 10;
+  --z-construct: 20;
+  --z-hud: 40;
+  --z-panel: 50;
+  --z-overlay: 80;
+  --z-boot: 90;
+  --z-cursor: 100;
 }

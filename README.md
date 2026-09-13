@@ -10,43 +10,57 @@ npm run verify   # accessibility + behaviour checks (needs the server running)
 npm run shots    # screenshot every route, desktop + mobile
 ```
 
-## The homepage is a sequence of scenes
+## The site is one fullscreen experience
 
-Not a stack of sections. Every scene owns 100vw, sets its own ground, and
-carries ONE memorable behaviour:
+`/` is a state machine, not a scrolling page. Every surface is 100vw x 100dvh
+with `overflow: hidden`.
 
-| Scene | Ground | Behaviour |
-|---|---|---|
-| 01 Hero | Ink | ASSEMBLE + pointer drift |
-| 02 Positioning | Ivory | WEIGHT (scroll-driven, thin→black) |
-| 03 Statement | Burgundy | MASK |
-| 04 Currently | Ink | STICKY TRANSFORM |
-| 05 Work | Ivory | restrained |
-| 06 Lab | Ink | SCROLL-LINKED HORIZONTAL |
-| 07 Profile | Ivory | MASK |
-| 08 Final | Burgundy | SILK |
+    BOOT -> HOME <-> WORK_IN / WORK / WORK_OUT
+                 <-> ABOUT_IN / ABOUT / ABOUT_OUT
 
-## Where things live
+`lib/experience.tsx` owns it. A transition is a STATE, not a flag, which is
+what lets input be locked while one runs — no double navigation, no
+overlapping timelines. `/work` and `/about` are deep links into their states.
 
-```
-app/
-  tokens.css        every colour, type, space, motion and z-index token
-  globals.css       base styles, focus, utilities, reduced-motion
-  chrome.css        intro, header, menu, cursor
-  scenes.css        the eight scenes
-  fonts.ts          1955 + Geist Mono loading
-lib/
-  logo.ts           the mark, as grid geometry
-  motion.ts         durations, easings, stagger, variants
-  sound.tsx         SoundProvider (opt-in, persisted)
-  type.ts           weight roles
-content/            site copy, work registry, lab registry  <- edit here
-components/
-  primitives/       Scene, MaskReveal, MotionText, WeightText, LogoMark,
-                    PixelMark, Silk, LabGlyph, Meta, TextLink
-  chrome/           SiteIntro, Nav, DrapeMenu, CustomCursor, SoundToggle
-  scenes/           the eight homepage scenes
-```
+## Reference assets
+
+`public/reference/` holds Joris's original design files, untouched:
+`loadingempty.png`, `loadinganimation.mp4/.mp3`, `mainbackground.mp4`,
+`maintofeaturedwork.mp4`, `maintoabout.mp4` — all 1920x950 @ 59.94fps.
+
+`public/media/` holds the web-encoded derivatives. **Never edit those by hand**
+— re-encode from `public/reference/`.
+
+Important: the originals are SCREEN RECORDINGS. Each carries a browser
+scrollbar (right 15px), a mouse cursor and OS corner icons. The encode crops
+16px from each side; the About globe is cropped further to its own 760x760
+bounding box so the recording's baked top bar and URL bar are excluded.
+
+## Measured values (do not "tidy" these)
+
+Everything in `app/tokens.css` was measured from the reference, not chosen:
+
+| | |
+|---|---|
+| ground | `#E8E8E8` |
+| grid | 24px cells, verticals at x=0, horizontals at **y=14** (mod 24) |
+| grid line | `#DEDEDE`, contrast ~10/255 |
+| radial wash | contrast falls 10.7 -> 6.6 at centre; ~0.38 alpha over ~500px |
+| centre construction | circle r=119, dashed arc r=153, outer r=179, diamond vertices on the circle |
+| work panel | quad NW(224,124) SW(224,657) SE(1002,629) NE(1002,172) |
+| about panels | A 554-1351 x 197-413 · B 554-931 x 472-657 · C 974-1351 x 472-739 |
+
+Project titles are set in a **serif**, not 1955 — that is what the reference
+does.
+
+## Dev flags
+
+`lib/dev.ts`, compiled out of production. Toggle live in the console:
+
+    __jvr.set("FORCE_INTRO", true)
+
+`FORCE_INTRO` · `SHOW_GRID_DEBUG` · `REDUCE_MEDIA` · `MUTE_SOUND` ·
+`SHOW_STATE` · `SKIP_TRANSITIONS`
 
 ## Adding content
 
