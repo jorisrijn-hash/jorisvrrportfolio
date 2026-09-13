@@ -4,13 +4,26 @@
    ========================================================================= */
 
 @theme {
-  /* ---- ENVIRONMENT (measured) ---------------------------------------
-     loadingempty.png: flat #E8E8E8 ground, #DEDEDE grid (contrast ~10).
-     mainbackground.mp4: radial, ~#FAFAFA centre -> ~#9C9C9C corners. */
+  /* ---- ENVIRONMENT (measured from loadingempty.png) -------------------
+     ground #E8E8E8 (mode of the whole file), grid line #DEDEDE at ~10/255
+     contrast. Marker and centre strokes sit between the two. */
+  /* Every tone below is derived from a MEASURED delta against the #E8E8E8
+     ground in loadingempty.png (value = 232 - delta). The reference is far
+     fainter than it looks in a boosted view:
+        grid line      delta 11
+        marker frame   delta 19
+        marker label   delta 15
+        marker diagram delta 26  (the strongest ink in the file)
+        centre ring    delta 18
+        centre apex    delta 13
+        state label    delta 16                                            */
   --color-env: #e8e8e8;
-  --color-env-line: #dedede;
-  --color-env-centre: #fafafa;
-  --color-env-edge: #9c9c9c;
+  --color-env-line: #dddddd;          /* 221 */
+  --color-env-mark: #d5d5d5;          /* 213 */
+  --color-env-label: #d9d9d9;         /* 217 */
+  --color-env-diagram: #cecece;       /* 206 */
+  --color-env-centre-line: #d8d8d8;   /* 216 */
+  --color-env-centre-fill: #e5e5e5;   /* 229 — composites to ~222 over the wash */
 
   /* ---- INK ------------------------------------------------------------ */
   --color-ink: #0b0b0a;

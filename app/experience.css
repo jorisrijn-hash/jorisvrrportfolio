@@ -1,5 +1,7 @@
 /* =========================================================================
-   THE EXPERIENCE — one fullscreen surface, no scrolling document
+   THE EXPERIENCE — one fullscreen surface, no document scrolling
+   Reference: loadingempty.png @ 1920 x 950. Every value below was measured
+   from that file, not chosen.
    ========================================================================= */
 
 .experience {
@@ -14,20 +16,27 @@
   isolation: isolate;
 }
 
-/* =========================================================================
-   ENVIRONMENT — grid + radial wash (measured from loadingempty.png)
-   ========================================================================= */
-
-.env-grid {
+/* ---- block noise -------------------------------------------------------
+   The soft tonal patches. This is what reads as a "larger grid" — it is a
+   texture, not a subdivision (every period 2x-10x tested within noise). */
+.noise-layer {
   position: absolute;
   inset: 0;
-  z-index: var(--z-env);
+  z-index: 0;
+  /* tuned so overall image variance matches the reference (std 3.78) */
+  opacity: 0.05;
+  mix-blend-mode: multiply;
   pointer-events: none;
 }
 
-.env-grid__lines {
+.noise-layer svg { width: 100%; height: 100%; display: block; }
+
+/* ---- grid: uniform 24px, verticals x=0, horizontals y=14 --------------- */
+.grid-layer {
   position: absolute;
   inset: 0;
+  z-index: 1;
+  pointer-events: none;
   background-image:
     linear-gradient(to right, var(--color-env-line) 1px, transparent 1px),
     linear-gradient(to bottom, var(--color-env-line) 1px, transparent 1px);
@@ -35,318 +44,103 @@
   background-position: var(--grid-offset-x) var(--grid-offset-y);
 }
 
-/* The measured falloff: grid contrast 10.7 at the edges -> 6.6 at centre.
-   A ground-coloured radial wash reproduces it without touching the lines. */
-.env-grid__wash {
+.grid-layer.is-debug {
+  background-image:
+    linear-gradient(to right, #ff00aa66 1px, transparent 1px),
+    linear-gradient(to bottom, #ff00aa66 1px, transparent 1px);
+}
+
+/* ---- radial wash -------------------------------------------------------
+   Measured: grid contrast falls 10.7 at the edges to 6.6 at the centre. A
+   ground-coloured radial overlay reproduces it without touching the lines. */
+.wash-layer {
   position: absolute;
   inset: 0;
+  z-index: 2;
+  pointer-events: none;
   background: radial-gradient(
-    circle at 50% 50%,
+    circle at 50% 49.5%,
     rgb(232 232 232 / var(--wash-alpha)) 0,
     rgb(232 232 232 / calc(var(--wash-alpha) * 0.55)) calc(var(--wash-radius) * 0.55),
     rgb(232 232 232 / 0) var(--wash-radius)
   );
 }
 
-.env-grid.is-debug .env-grid__lines {
-  background-image:
-    linear-gradient(to right, #ff00aa55 1px, transparent 1px),
-    linear-gradient(to bottom, #ff00aa55 1px, transparent 1px);
-}
-
-.env-grid.is-debug .env-grid__wash { display: none; }
-
-/* ---- centre construction ---------------------------------------------- */
-
-.env-construct {
+/* ---- corner registration brackets -------------------------------------- */
+.reg-marks i {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  z-index: var(--z-construct);
-  pointer-events: none;
-}
-
-/* ---- corner registration marks ---------------------------------------- */
-
-.env-marks i {
-  position: absolute;
-  width: 22px;
-  height: 22px;
-  border: 0 solid var(--color-panel-line);
-  opacity: 0.9;
-}
-
-.env-marks i[data-c="tl"] { left: 22px;  top: 22px;    border-left-width: 1px; border-top-width: 1px; }
-.env-marks i[data-c="tr"] { right: 22px; top: 22px;    border-right-width: 1px; border-top-width: 1px; }
-.env-marks i[data-c="bl"] { left: 22px;  bottom: 22px; border-left-width: 1px; border-bottom-width: 1px; }
-.env-marks i[data-c="br"] { right: 22px; bottom: 22px; border-right-width: 1px; border-bottom-width: 1px; }
-
-/* =========================================================================
-   MEDIA LAYER — the supplied reference animations
-   ========================================================================= */
-
-.media-layer {
-  position: absolute;
-  inset: 0;
-  z-index: var(--z-media);
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity var(--dur-med) var(--ease-out);
-}
-
-.media-layer[data-visible="true"] { opacity: 1; }
-
-.media-layer video,
-.media-layer img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-/* =========================================================================
-   HUD — tiny mono, the reference's entire interface language
-   ========================================================================= */
-
-.hud {
-  position: absolute;
-  inset: 0;
-  z-index: var(--z-hud);
-  pointer-events: none;
-  font-size: var(--text-hud);
-  letter-spacing: var(--track-hud);
-  text-transform: uppercase;
-  color: var(--color-hud);
-}
-
-.hud > * { pointer-events: auto; }
-
-.hud-topbar {
-  position: absolute;
-  top: var(--hud-pad-y);
-  left: var(--hud-pad-x);
-  right: var(--hud-pad-x);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.hud-topbar__left {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  color: var(--color-hud-dim);
-  white-space: nowrap;
-}
-
-.hud-topbar__right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.hud-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--color-hud-dim);
-  display: inline-block;
-}
-
-/* Pills — measured from the reference: hairline border, 2px radius, not
-   SaaS capsules. [REBUILD] is the one inverted control. */
-.pill {
-  font: inherit;
-  font-size: var(--text-hud);
-  letter-spacing: var(--track-hud);
-  text-transform: uppercase;
-  padding: 5px 11px;
-  border: 1px solid var(--color-panel-line);
-  border-radius: 2px;
-  background: rgb(255 255 255 / 0.55);
-  color: var(--color-hud);
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  transition:
-    background-color var(--dur-fast) var(--ease-out),
-    border-color var(--dur-fast) var(--ease-out),
-    transform var(--dur-fast) var(--ease-out),
-    color var(--dur-fast) var(--ease-out);
-}
-
-.pill:hover { background: rgb(255 255 255 / 0.95); border-color: #9a9a9a; }
-.pill:active { transform: translateY(1px); }
-.pill[aria-current="true"] { border-color: #8a8a8a; background: rgb(255 255 255 / 0.98); }
-
-.pill--invert {
-  background: var(--color-hud);
-  border-color: var(--color-hud);
-  color: #ececec;
-}
-
-.pill--invert:hover { background: #000; border-color: #000; }
-
-.pill__spin {
-  display: inline-block;
-  width: 9px;
-  height: 9px;
-  border: 1px solid currentColor;
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: pill-spin 1.8s linear infinite;
-}
-
-@keyframes pill-spin { to { transform: rotate(360deg); } }
-
-/* ---- left system readout ---------------------------------------------- */
-
-.hud-readout {
-  position: absolute;
-  z-index: var(--z-hud);
-  text-transform: uppercase;
-  letter-spacing: var(--track-hud);
-  left: 104px;
-  top: 96px;
-  display: grid;
-  gap: 3px;
-  color: var(--color-hud-dim);
-  font-size: var(--text-hud-sm);
-  line-height: 1.7;
-}
-
-.hud-readout__bracket {
-  width: 12px;
-  height: 12px;
-  border-left: 1px solid var(--color-panel-line);
-  border-top: 1px solid var(--color-panel-line);
-  margin: 6px 0;
-}
-
-.hud-version {
-  position: absolute;
-  z-index: var(--z-hud);
-  text-transform: uppercase;
-  left: 104px;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: var(--text-version);
-  letter-spacing: 0.22em;
-  color: var(--color-hud);
-  white-space: nowrap;
-}
-
-/* ---- bottom centre scroll cue ------------------------------------------ */
-
-.hud-scroll {
-  position: absolute;
-  z-index: var(--z-hud);
-  text-transform: uppercase;
-  left: 50%;
-  bottom: 30px;
-  transform: translateX(-50%);
-  display: grid;
-  justify-items: center;
-  gap: 10px;
-  color: var(--color-hud-dim);
-  letter-spacing: 0.3em;
-}
-
-.hud-scroll__mark {
-  width: 26px;
+  z-index: 3;
+  width: 20px;
   height: 20px;
-  border: 1px solid var(--color-panel-line);
-  border-left: 0;
-  border-right: 0;
-  position: relative;
+  border: 0 solid var(--color-env-mark);
 }
 
-.hud-scroll__mark::before,
-.hud-scroll__mark::after {
-  content: "";
+.reg-marks i[data-c="tl"] { left: 24px;  top: 15px;    border-left-width: 1px; border-top-width: 1px; }
+.reg-marks i[data-c="tr"] { right: 24px; top: 15px;    border-right-width: 1px; border-top-width: 1px; }
+.reg-marks i[data-c="bl"] { left: 24px;  bottom: 15px; border-left-width: 1px; border-bottom-width: 1px; }
+.reg-marks i[data-c="br"] { right: 24px; bottom: 15px; border-right-width: 1px; border-bottom-width: 1px; }
+
+/* ---- corner technical markers ------------------------------------------ */
+.marker {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 5px;
-  border: 1px solid var(--color-panel-line);
-}
-
-.hud-scroll__mark::before { left: 0; border-right: 0; }
-.hud-scroll__mark::after  { right: 0; border-left: 0; }
-
-/* ---- bottom-right loop counter ----------------------------------------- */
-
-.hud-loop {
-  position: absolute;
-  right: 44px;
-  bottom: 34px;
-  text-align: right;
-  color: var(--color-hud-faint);
-}
-
-.hud-loop__label { letter-spacing: 0.34em; }
-
-.hud-loop__value {
-  font-size: var(--text-loop);
-  line-height: 0.92;
-  letter-spacing: 0.04em;
-  color: transparent;
-  -webkit-text-stroke: 1px #b0b0b0;
-  margin-top: 6px;
-}
-
-.hud-loop__tick {
-  position: absolute;
-  right: 0;
-  top: -14px;
-  width: 12px;
-  height: 12px;
-  border-right: 1px solid var(--color-panel-line);
-  border-top: 1px solid var(--color-panel-line);
-}
-
-/* =========================================================================
-   BOOT
-   ========================================================================= */
-
-.boot {
-  position: absolute;
-  inset: 0;
-  z-index: var(--z-boot);
-  background: var(--color-env);
-}
-
-.boot video { width: 100%; height: 100%; object-fit: cover; display: block; }
-
-.boot__skip {
-  position: absolute;
-  right: var(--hud-pad-x);
-  bottom: var(--hud-pad-y);
-  z-index: 2;
-}
-
-/* The boot hands over by fading only its own layer — the home surface is
-   already mounted underneath, so there is no white frame and no layout jump. */
-.boot[data-leaving="true"] {
-  opacity: 0;
-  transition: opacity 420ms var(--ease-out);
+  z-index: 4;
   pointer-events: none;
+  /* the diagram inside is the strongest ink in the reference */
+  color: var(--color-env-diagram);
+}
+
+.marker__frame {
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--color-env-mark);
+}
+
+.marker__frame svg { width: 100%; height: 100%; display: block; }
+
+.marker__label {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 5px);
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  line-height: 1;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--color-env-label);
+}
+
+/* ---- centre construction ----------------------------------------------- */
+.centre {
+  position: absolute;
+  left: 50%;
+  top: 49.5%;
+  width: 840px;
+  height: 840px;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+  pointer-events: none;
+  color: var(--color-env-centre-line);
+}
+
+.centre__label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  fill: var(--color-env-label);
 }
 
 /* =========================================================================
    DEV
    ========================================================================= */
-
 .dev-state {
   position: absolute;
   left: 50%;
   top: 8px;
   transform: translateX(-50%);
-  z-index: var(--z-overlay);
+  z-index: 90;
   background: #111;
   color: #0f0;
   font-size: 10px;
@@ -355,581 +149,49 @@
   pointer-events: none;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .pill__spin { animation: none; }
-  .media-layer { transition: none; }
-}
-
-/* =========================================================================
-   WORK — measured from maintofeaturedwork.mp4 @ 1920x950
-   ========================================================================= */
-
-.work {
+/* ---- top-centre bracketed state label ---------------------------------
+   Measured: brackets x 796..1109, y 74..106; label baseline ~y 88. */
+.state-label {
   position: absolute;
-  inset: 0;
-  z-index: var(--z-panel);
-  perspective: 2400px;
-}
-
-/* Panel quad measured NW(224,124) SW(224,657) SE(1002,629) NE(1002,172):
-   the right edge is SHORTER than the left, i.e. it recedes — a rotateY, and
-   a small rotateZ for the slight tilt of the whole plate. */
-.work__panel {
-  position: absolute;
-  left: calc(224 / var(--ref-w) * 100%);
-  top: calc(124 / var(--ref-h) * 100%);
-  width: calc(790 / var(--ref-w) * 100%);
-  height: calc(533 / var(--ref-h) * 100%);
-  transform-style: preserve-3d;
-  animation: panel-in 900ms var(--ease-out) both;
-}
-
-.work__panel-inner {
-  width: 100%;
-  height: 100%;
-  transform: rotateY(-11deg) rotateZ(-1.6deg);
-  transform-origin: left center;
-  box-shadow: 0 30px 80px rgb(0 0 0 / 0.14);
-  overflow: hidden;
-  background: #0d0d0d;
-}
-
-.work__panel-inner img,
-.work__panel-inner video { width: 100%; height: 100%; object-fit: cover; }
-
-@keyframes panel-in {
-  from { opacity: 0; transform: translate3d(-40px, -18px, -180px); }
-  to   { opacity: 1; transform: none; }
-}
-
-.work__viewport-map {
-  position: absolute;
+  z-index: 4;
   left: 50%;
-  top: calc(730 / var(--ref-h) * 100%);
-  transform: translateX(-58%);
-  color: var(--color-hud-faint);
-  letter-spacing: 0.16em;
-}
-
-.work__ring {
-  position: absolute;
-  left: calc(905 / var(--ref-w) * 100%);
-  top: calc(730 / var(--ref-h) * 100%);
-  width: 96px;
-  height: 96px;
-  border: 1px solid rgb(255 255 255 / 0.75);
-  border-radius: 50%;
-  background: rgb(255 255 255 / 0.32);
-}
-
-/* ---- right column ------------------------------------------------------ */
-
-.work__info {
-  position: absolute;
-  left: calc(1420 / var(--ref-w) * 100%);
-  right: calc(60 / var(--ref-w) * 100%);
-  top: calc(240 / var(--ref-h) * 100%);
-  animation: info-in 700ms 180ms var(--ease-out) both;
-}
-
-@keyframes info-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-
-.work__eyebrow { color: var(--color-hud-faint); letter-spacing: 0.22em; }
-
-.work__title {
+  top: calc(74 / 950 * 100%);
+  transform: translateX(-50%);
+  width: calc(313 / 1920 * 100%);
+  height: calc(32 / 950 * 100%);
   display: flex;
-  align-items: baseline;
-  gap: 12px;
-  margin-top: 14px;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
 }
 
-.work__index {
+.state-label__bracket {
+  position: absolute;
+  top: 0;
+  width: 34px;
+  height: 32px;
+  border: 0 solid var(--color-env-mark);
+}
+
+.state-label__bracket[data-side="l"] {
+  left: 0;
+  border-left-width: 1px;
+  border-top-width: 1px;
+  border-bottom-width: 1px;
+}
+
+.state-label__bracket[data-side="r"] {
+  right: 0;
+  border-right-width: 1px;
+  border-top-width: 1px;
+  border-bottom-width: 1px;
+}
+
+.state-label__text {
   font-family: var(--font-mono);
-  font-size: 26px;
-  letter-spacing: 0.06em;
-  color: var(--color-hud);
-}
-
-.work__slash { color: var(--color-hud-faint); font-size: 22px; }
-
-/* The reference sets project titles in a SERIF, not the display face. */
-.work__name {
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 33px;
-  letter-spacing: 0.005em;
-  text-transform: none;
-  color: #141414;
-}
-
-.work__body {
-  margin-top: 22px;
-  border-left: 2px solid #8f8f8f;
-  background: rgb(255 255 255 / 0.28);
-  padding: 16px 18px;
-  min-height: 172px;
-}
-
-.work__body p {
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 13.5px;
-  line-height: 1.75;
-  letter-spacing: 0;
-  text-transform: none;
-  color: #2c2c2c;
-  max-width: 46ch;
-}
-
-.work__hint {
-  margin-top: 14px;
-  text-align: right;
-  color: var(--color-hud-faint);
-  letter-spacing: 0.2em;
-}
-
-.work__thumbs {
-  display: flex;
-  gap: 12px;
-  margin-top: 10px;
-}
-
-.work__thumb {
-  width: 124px;
-  height: 81px;
-  overflow: hidden;
-  border: 1px solid transparent;
-  filter: grayscale(1) contrast(1.05);
-  opacity: 0.82;
-  transition:
-    opacity var(--dur-ui) var(--ease-out),
-    border-color var(--dur-ui) var(--ease-out),
-    transform var(--dur-ui) var(--ease-out);
-}
-
-.work__thumb img { width: 100%; height: 100%; object-fit: cover; }
-.work__thumb:hover { opacity: 1; transform: translateY(-2px); }
-.work__thumb[aria-current="true"] { opacity: 1; border-color: #6f6f6f; }
-
-/* ---- bottom scrub ------------------------------------------------------ */
-
-.work__scrub {
-  position: absolute;
-  left: calc(1420 / var(--ref-w) * 100%);
-  right: calc(60 / var(--ref-w) * 100%);
-  bottom: calc(30 / var(--ref-h) * 100%);
-  color: var(--color-hud-dim);
-}
-
-.work__scrub-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  letter-spacing: 0.22em;
-}
-
-.work__scrub-head span:last-child { font-size: 15px; color: var(--color-hud); }
-
-.work__segments {
-  display: flex;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.work__segments span {
-  height: 3px;
-  flex: 1;
-  background: #cccccc;
-  transition: background-color var(--dur-ui) var(--ease-out);
-}
-
-.work__segments span[data-on="true"] { background: #4a4a4a; }
-
-.work__rule { height: 1px; background: var(--color-panel-line); margin-top: 12px; }
-
-.work__controls {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 14px;
-  gap: 12px;
-}
-
-.work__current { letter-spacing: 0.22em; color: var(--color-hud-dim); }
-.work__buttons { display: flex; gap: 6px; }
-
-/* =========================================================================
-   ABOUT — measured from maintoabout.mp4 @ 1920x950
-
-   Panel rectangles fitted from the reference by detecting the border runs:
-     A  x 554-1351  y 197-413   (797 x 216)
-     B  x 554-931   y 472-657   (377 x 185)
-     C  x 974-1351  y 472-739   (377 x 267)
-   Three overlapping frames with corner handles, centred over the globe.
-   ========================================================================= */
-
-.about { position: absolute; inset: 0; z-index: var(--z-panel); }
-
-.about__module {
-  position: absolute;
-  left: calc(60 / var(--ref-w) * 100%);
-  top: calc(330 / var(--ref-h) * 100%);
-  color: var(--color-hud-dim);
-  letter-spacing: var(--track-hud);
+  font-size: 9px;
+  letter-spacing: 0.26em;
   text-transform: uppercase;
-}
-
-.about__panel {
-  position: absolute;
-  border: 1px solid #7e7e7e;
-  /* The reference frames are translucent — the globe reads through them. */
-  background: rgb(246 246 246 / 0.74);
-  padding: 18px 22px;
-  overflow: hidden;
-  animation: about-panel-in 720ms var(--ease-out) both;
-}
-
-.about__panel--a {
-  left: calc(554 / var(--ref-w) * 100%);
-  top: calc(197 / var(--ref-h) * 100%);
-  width: calc(797 / var(--ref-w) * 100%);
-  height: calc(216 / var(--ref-h) * 100%);
-  display: flex;
-  align-items: center;
-}
-
-.about__panel--b {
-  left: calc(554 / var(--ref-w) * 100%);
-  top: calc(472 / var(--ref-h) * 100%);
-  width: calc(377 / var(--ref-w) * 100%);
-  height: calc(185 / var(--ref-h) * 100%);
-  animation-delay: 110ms;
-}
-
-.about__panel--c {
-  left: calc(974 / var(--ref-w) * 100%);
-  top: calc(472 / var(--ref-h) * 100%);
-  width: calc(377 / var(--ref-w) * 100%);
-  height: calc(267 / var(--ref-h) * 100%);
-  animation-delay: 220ms;
-  overflow-y: auto;
-}
-
-@keyframes about-panel-in {
-  from { opacity: 0; transform: translateY(10px) scale(0.99); }
-  to   { opacity: 1; transform: none; }
-}
-
-.about__lead {
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 21px;
-  line-height: 1.42;
-  letter-spacing: 0;
-  text-transform: none;
-  color: #141414;
-  max-width: 48ch;
-}
-
-.about__summary {
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 12.5px;
-  line-height: 1.68;
-  text-transform: none;
-  letter-spacing: 0;
-  color: #2c2c2c;
-}
-
-.about__meta { display: grid; gap: 5px; }
-.about__meta > div { display: flex; gap: 10px; }
-.about__meta dt { width: 62px; color: var(--color-hud-faint); flex: none; text-transform: uppercase; letter-spacing: var(--track-hud); }
-.about__meta dd { margin: 0; color: var(--color-hud-dim); text-transform: uppercase; letter-spacing: 0.06em; }
-
-.about__detail { display: grid; gap: 9px; }
-
-.about__detail p {
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 12px;
-  line-height: 1.72;
-  text-transform: none;
-  letter-spacing: 0;
-  color: #333;
-}
-
-.about__sig {
-  position: absolute;
-  right: calc(60 / var(--ref-w) * 100%);
-  bottom: calc(34 / var(--ref-h) * 100%);
-  color: var(--color-hud-faint);
-  letter-spacing: var(--track-hud);
-  text-transform: uppercase;
-}
-
-/* corner handles on framed panels */
-.handles i {
-  position: absolute;
-  width: 5px;
-  height: 5px;
-  background: #fff;
-  border: 1px solid #5f5f5f;
-}
-.handles i:nth-child(1) { left: -3px;  top: -3px; }
-.handles i:nth-child(2) { right: -3px; top: -3px; }
-.handles i:nth-child(3) { left: -3px;  bottom: -3px; }
-.handles i:nth-child(4) { right: -3px; bottom: -3px; }
-
-/* =========================================================================
-   CURSOR
-   ========================================================================= */
-
-.cursor {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: var(--z-cursor);
-  pointer-events: none;
-  color: var(--color-hud);
-  will-change: transform;
-  transition: opacity var(--dur-fast) linear;
-}
-
-.cursor[data-visible="false"] { opacity: 0; }
-
-.cursor__mark {
-  position: absolute;
-  left: 0;
-  top: 0;
-  transition: transform var(--dur-ui) var(--ease-out);
-}
-
-.cursor__ring {
-  position: absolute;
-  left: 0; top: 0;
-  width: 8px; height: 8px;
-  margin: -4px 0 0 -4px;
-  border: 1px solid currentColor;
-  border-radius: 50%;
-  opacity: 0;
-  transform: scale(0.4);
-  transition: opacity var(--dur-ui) var(--ease-out), transform var(--dur-ui) var(--ease-out);
-}
-
-/* ACTIVE: the tip advances and a ring opens behind it. */
-.cursor[data-state="active"] .cursor__mark { transform: translate(3px, 3px) scale(0.82); }
-.cursor[data-state="active"] .cursor__ring { opacity: 0.85; transform: scale(3.4); }
-
-/* VIEW / OPEN: ring opens wide and takes a label. */
-.cursor[data-state="view"] .cursor__ring,
-.cursor[data-state="open"] .cursor__ring { opacity: 1; transform: scale(8.5); }
-.cursor[data-state="view"] .cursor__mark,
-.cursor[data-state="open"] .cursor__mark { transform: translate(-2px, -2px) scale(0.6); }
-
-.cursor__label {
-  position: absolute;
-  left: 40px;
-  top: -4px;
-  font-size: 10px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  color: var(--color-env-label);
   white-space: nowrap;
-  color: var(--color-hud);
-}
-
-@media (pointer: coarse), (hover: none) { .cursor { display: none; } }
-
-/* Work's mono labels live outside .hud, so they need the HUD casing rules. */
-.work__eyebrow,
-.work__hint,
-.work__scrub,
-.work__current,
-.work__viewport-map {
-  text-transform: uppercase;
-  letter-spacing: var(--track-hud);
-}
-
-/* The small tilted secondary plate at the lower-left of the reference. */
-.work__aside {
-  position: absolute;
-  left: calc(-30 / var(--ref-w) * 100%);
-  top: calc(648 / var(--ref-h) * 100%);
-  width: calc(232 / var(--ref-w) * 100%);
-  height: calc(224 / var(--ref-h) * 100%);
-  overflow: hidden;
-  transform: rotateY(-14deg) rotateZ(-3deg);
-  transform-origin: left center;
-  opacity: 0.9;
-  box-shadow: 0 18px 40px rgb(0 0 0 / 0.1);
-  animation: panel-in 900ms 120ms var(--ease-out) both;
-}
-
-.work__aside img { width: 100%; height: 100%; object-fit: cover; }
-
-/* =========================================================================
-   STATE SCRIM
-   Work and About sit on a hazier ground than Home in the reference. The same
-   wash also suppresses the LOOP readout that is baked into the bottom-right
-   of mainbackground.mp4 (it is a screen recording, and that layer is now
-   present in every state).
-   ========================================================================= */
-
-.state-scrim {
-  position: absolute;
-  inset: 0;
-  z-index: calc(var(--z-media) + 1);
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity var(--dur-med) var(--ease-out);
-  background:
-    /* local knock-out over the baked loop readout */
-    radial-gradient(
-      ellipse 320px 210px at calc(1735 / var(--ref-w) * 100%) calc(788 / var(--ref-h) * 100%),
-      rgb(228 228 228 / 0.96) 0,
-      rgb(228 228 228 / 0.7) 55%,
-      rgb(228 228 228 / 0) 100%
-    ),
-    /* overall haze */
-    linear-gradient(rgb(233 233 233 / 0.46), rgb(233 233 233 / 0.46));
-}
-
-.experience[data-surface="WORK"] .state-scrim,
-.experience[data-surface="ABOUT"] .state-scrim { opacity: 1; }
-
-/* the secondary plate reads as a desaturated offcut in the reference */
-.work__aside img { filter: grayscale(1) contrast(1.04) brightness(1.02); }
-
-/* =========================================================================
-   ABOUT GLOBE
-   Cropped from maintoabout.mp4 to the globe's own bounding box — measured at
-   t=3.1 as 760x760 at (580,120) in the 1920x950 frame — so the recording's
-   baked top bar, left readout and URL bar are excluded entirely.
-   ========================================================================= */
-
-.about-globe {
-  position: absolute;
-  /* `inset` must be reset BEFORE the offsets, or it wipes them out. */
-  inset: auto;
-  left: calc(580 / var(--ref-w) * 100%);
-  top: calc(120 / var(--ref-h) * 100%);
-  width: calc(760 / var(--ref-w) * 100%);
-  height: calc(760 / var(--ref-h) * 100%);
-  z-index: calc(var(--z-media) + 2);
-  mix-blend-mode: multiply;
-  /* The crop is a rectangle over a non-transparent frame, so its edges would
-     otherwise show as a visible box. A radial mask feathers it back into the
-     ground, matching how the globe sits in the reference. */
-  -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 60%, transparent 76%);
-  mask-image: radial-gradient(circle at 50% 50%, #000 60%, transparent 76%);
-}
-
-.about-globe video,
-.about-globe img { width: 100%; height: 100%; object-fit: contain; }
-
-/* =========================================================================
-   RESPONSIVE
-   Desktop (1920x950) is the reference composition and is left untouched.
-   Below it the layout is recomposed deliberately — never scaled down, never
-   stacked into cards. The full-screen state concept is preserved at every
-   size; only density and placement change.
-   ========================================================================= */
-
-/* ---- laptop: tighten the reference without moving anything ------------- */
-@media (max-width: 1500px) {
-  :root { --hud-pad-x: 20px; --text-version: 17px; }
-  .hud-readout { left: 72px; top: 84px; }
-  .hud-version { left: 72px; }
-  .work__info { left: calc(1380 / var(--ref-w) * 100%); }
-  .work__scrub { left: calc(1380 / var(--ref-w) * 100%); }
-}
-
-/* ---- tablet: the work panel gives up the 3D tilt, info moves below ----- */
-@media (max-width: 1100px) {
-  :root { --text-loop: 68px; --text-version: 15px; }
-
-  .hud-topbar { flex-wrap: wrap; row-gap: 8px; }
-  .hud-topbar__left { font-size: var(--text-hud-sm); gap: 9px; }
-
-  .hud-readout { left: var(--hud-pad-x); top: 76px; }
-  .hud-version { left: var(--hud-pad-x); top: 42%; }
-
-  .work__panel {
-    left: 4%;
-    top: 96px;
-    width: 92%;
-    height: 40%;
-  }
-  /* A perspective tilt at this width crops the media; flatten it instead. */
-  .work__panel-inner { transform: none; }
-  .work__aside, .work__ring, .work__viewport-map { display: none; }
-
-  .work__info {
-    left: 4%;
-    right: 4%;
-    top: auto;
-    bottom: 150px;
-  }
-  .work__body { min-height: 0; }
-  .work__scrub { left: 4%; right: 4%; bottom: 16px; }
-
-  .about__panel--a,
-  .about__panel--b,
-  .about__panel--c {
-    left: 6%;
-    width: 88%;
-    height: auto;
-  }
-  .about__panel--a { top: 84px; }
-  .about__panel--b { top: 240px; }
-  .about__panel--c { top: 390px; max-height: 46vh; }
-  .about__module, .about__sig { display: none; }
-  .about-globe { opacity: 0.55; }
-}
-
-/* ---- phone: one column, hover replaced by touch ------------------------ */
-@media (max-width: 680px) {
-  :root {
-    --hud-pad-x: 14px;
-    --hud-pad-y: 10px;
-    --text-hud: 10px;
-    --text-hud-sm: 9px;
-    --text-version: 13px;
-  }
-
-  /* The full identity string does not fit; keep the live status, drop prose. */
-  .hud-topbar { align-items: flex-start; }
-  .hud-topbar__left > span:first-child { display: none; }
-  .hud-topbar__right { flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
-  .pill { padding: 5px 8px; }
-
-  /* The top bar wraps to two rows here, so the readout has to clear it. */
-  .hud-readout { top: 104px; font-size: 9px; }
-  .hud-readout div:nth-child(4) { display: none; }
-
-  .hud-version { top: auto; bottom: 84px; transform: none; }
-  .hud-scroll { bottom: 18px; }
-
-  .work__panel { top: 84px; height: 30%; }
-  .work__info { bottom: 132px; }
-  .work__title { flex-wrap: wrap; gap: 8px; }
-  .work__name { font-size: 24px; }
-  .work__index { font-size: 20px; }
-  .work__body { padding: 12px 14px; }
-  .work__body p { font-size: 12.5px; }
-  .work__thumbs { gap: 8px; }
-  .work__thumb { width: 88px; height: 58px; }
-  .work__hint { display: none; }
-
-  .about__panel { padding: 14px 16px; }
-  .about__panel--a { top: 72px; }
-  .about__panel--b { top: 210px; }
-  .about__panel--c { top: 340px; max-height: 40vh; }
-  .about__lead { font-size: 16px; }
-
-  .env-marks i { width: 14px; height: 14px; }
-  .env-marks i[data-c="tl"], .env-marks i[data-c="bl"] { left: 10px; }
-  .env-marks i[data-c="tr"], .env-marks i[data-c="br"] { right: 10px; }
-  .env-marks i[data-c="tl"], .env-marks i[data-c="tr"] { top: 10px; }
-  .env-marks i[data-c="bl"], .env-marks i[data-c="br"] { bottom: 10px; }
-}
-
-/* Touch: hover states must not stick after a tap. */
-@media (hover: none) {
-  .pill:hover { background: rgb(255 255 255 / 0.55); border-color: var(--color-panel-line); }
-  .work__thumb:hover { transform: none; }
 }

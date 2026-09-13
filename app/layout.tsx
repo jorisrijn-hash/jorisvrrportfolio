@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { display, mono } from "./fonts";
 import { SoundProvider } from "@/lib/sound";
-import { CustomCursor } from "@/components/cursor/CustomCursor";
 import "./globals.css";
 
 const SITE = "https://jorisvrr.com";
@@ -38,7 +37,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <SoundProvider>
           <a className="skip-link" href="#main">Skip to content</a>
-          <CustomCursor />
           <main id="main">{children}</main>
         </SoundProvider>
       </body>
