@@ -25,7 +25,7 @@ export function AudioGate({ onChoose }: { onChoose: (withSound: boolean) => void
   return (
     <div className="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title">
       <div className="gate__inner">
-        <p className="gate__eyebrow">// Audio·RX</p>
+        <p className="gate__eyebrow">{"// Audio·RX"}</p>
         <h1 id="gate-title" className="gate__title">Output Routing</h1>
         <p className="gate__line">Select channel state to initialize interface</p>
         <p className="gate__line">Scope: SFX · Voice Synth · No ambient loop</p>
