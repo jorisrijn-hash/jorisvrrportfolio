@@ -9,14 +9,20 @@
  */
 let el: HTMLAudioElement | null = null;
 
-export function startBootTrack(volume = 0.55) {
+export function startBootTrack(volume = 0.55, offsetSeconds = 0) {
   if (typeof window === "undefined") return;
-  stopBootTrack();
+  stopBootTrack(0);
   const a = new Audio();
   // opus first where supported; mp3 is the universal fallback
   a.src = a.canPlayType("audio/ogg; codecs=opus") ? "/audio/boot.opus" : "/audio/boot.mp3";
   a.volume = volume;
   a.preload = "auto";
+  // If consent arrives part-way through the sequence, join the track where the
+  // visuals already are rather than restarting it underneath them.
+  if (offsetSeconds > 0.15) {
+    a.currentTime = offsetSeconds;
+    a.addEventListener("loadedmetadata", () => { a.currentTime = offsetSeconds; }, { once: true });
+  }
   el = a;
   void a.play().catch(() => {
     /* refused — the sequence simply runs silent */
@@ -28,6 +34,7 @@ export function stopBootTrack(fadeMs = 260) {
   const a = el;
   el = null;
   if (!a) return;
+  if (fadeMs <= 0) { a.pause(); return; }
   const from = a.volume;
   const t0 = performance.now();
   const step = (now: number) => {

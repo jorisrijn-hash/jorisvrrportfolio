@@ -37,7 +37,7 @@ type Phase = "trace" | "auth" | "complete" | "settle" | "done";
  * Returning within the same session skips straight to the resting state.
  * FORCE_INTRO replays it.
  */
-export function BootSequence({ onDone }: { onDone: () => void }) {
+export function BootSequence({ onDone, replay = false }: { onDone: () => void; replay?: boolean }) {
   const [phase, setPhase] = useState<Phase>("trace");
   const [tick, setTick] = useState(0);
   /** The centre readout changes partway through phase 1, as in the source. */
@@ -46,8 +46,11 @@ export function BootSequence({ onDone }: { onDone: () => void }) {
   const { cue, enabled } = useSound();
   const seen = useSessionFlag(SESSION_KEY);
   const settled = useRef(false);
+  const startedAt = useRef<number | null>(null);
 
-  const skip = seen === null ? null : dev("FORCE_INTRO") ? false : seen || reduced;
+  // A replay always runs, regardless of the session flag.
+  const skip =
+    seen === null ? null : replay || dev("FORCE_INTRO") ? false : seen || reduced;
 
   // Phase timeline. One setTimeout per boundary, cleared together.
   useEffect(() => {
@@ -65,13 +68,7 @@ export function BootSequence({ onDone }: { onDone: () => void }) {
 
     const at = (ms: number, fn: () => void) => window.setTimeout(fn, ms);
 
-    // The score is Joris's own loadinganimation.mp3. Cuelume sits UNDER it as
-    // a soft texture layer, not as the main audio — hence the low gains and
-    // the sparse placement.
-    //
-    // Consent gate: the track only starts if sound is ALREADY on. Nothing here
-    // may be the thing that first makes noise at a visitor.
-    if (enabled === true) startBootTrack();
+    startedAt.current = performance.now();
     cue("scan");
 
     const timers = [
@@ -94,11 +91,23 @@ export function BootSequence({ onDone }: { onDone: () => void }) {
         onDone();
       }),
     ];
-    return () => {
-      timers.forEach(window.clearTimeout);
-      stopBootTrack();
-    };
-  }, [skip, onDone, cue, enabled]);
+    return () => timers.forEach(window.clearTimeout);
+  }, [skip, onDone, cue]);
+
+  /**
+   * The score, handled separately from the timeline.
+   *
+   * Consent has to come first, so a first-time visitor's boot is silent until
+   * they switch sound on. If they do that mid-sequence we start the track at
+   * the elapsed offset rather than from zero, so it stays in step with what is
+   * on screen instead of restarting under them.
+   */
+  useEffect(() => {
+    if (skip !== false || enabled !== true) return;
+    const elapsed = startedAt.current ? (performance.now() - startedAt.current) / 1000 : 0;
+    startBootTrack(0.55, elapsed);
+    return () => stopBootTrack();
+  }, [skip, enabled]);
 
   // Slow deterministic tick for the checkerboard. Only runs during AUTH.
   useEffect(() => {

@@ -508,3 +508,23 @@
   background: var(--color-env-mark);
   transform-origin: bottom center;
 }
+
+/* ---- boot controls ------------------------------------------------------ */
+.boot-controls { display: flex; align-items: center; gap: 4px; }
+
+.ctl {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-hud-faint);
+  padding: 5px 8px;
+  border: 1px solid transparent;
+  transition: color 180ms var(--ease-out), border-color 180ms var(--ease-out);
+}
+
+.ctl:hover:not(:disabled) { color: var(--color-hud-dim); border-color: var(--color-env-mark); }
+.ctl:disabled { opacity: 0.35; cursor: default; }
