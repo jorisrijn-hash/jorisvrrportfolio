@@ -550,11 +550,21 @@
 
 .cursor[data-visible="true"] { opacity: 1; }
 
+/* Explicit size and max-width:none are load-bearing. globals.css gives every
+   svg max-width:100%, and .cursor is a zero-width box (all its children are
+   absolutely positioned) — so the arrowhead was clamped to 0px wide and its
+   outer <svg> clipped the shape to nothing. Only the ring, a <span>, ever
+   painted, which is why the cursor appeared on buttons (link state) and while
+   pressing (pressed state), and vanished everywhere else. */
 .cursor__mark {
   position: absolute;
   left: 0;
   top: 0;
   display: block;
+  width: 18px;
+  height: 18px;
+  max-width: none;
+  overflow: visible;
   transition: transform 260ms var(--ease-out), opacity 260ms var(--ease-out);
 }
 

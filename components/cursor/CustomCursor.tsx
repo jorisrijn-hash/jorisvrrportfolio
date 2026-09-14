@@ -11,21 +11,26 @@ const SMOOTHING = 0.22;
 const HIT = "[data-cursor], a[href], button, [role='button'], input, select, textarea";
 
 /**
- * THE CURSOR — rebuilt from zero.
+ * THE CURSOR
  *
- * Rules this follows exactly:
  *   · position fixed at 0,0; moved only by transform
  *   · coordinates live in refs, never in React state
- *   · ONE rAF loop, and it is the only one in the application
- *   · zero React re-renders after mount — hover state is written straight to
- *     the DOM as a data attribute, not pushed through the component tree
+ *   · ONE rAF loop, and it parks itself once caught up
+ *   · hover state written straight to the DOM, so input never causes a render
  *   · pointer-events: none, so it can never intercept a click
  *
- * The mark is the brand arrowhead, not a circle. State comes from `data-cursor`
- * on whatever is under the pointer; CSS animates between states.
+ * Position is fed by BOTH pointermove and mousemove, through one handler. On
+ * some real hardware paths plain hover arrives as mousemove while pointermove
+ * only fires during a drag — which makes a pointermove-only cursor follow just
+ * while a button is held. No automated input reproduced that (Playwright,
+ * including real Chrome against the live deploy), so neither feed is trusted
+ * alone.
  *
- * The native cursor is hidden only once this is mounted and running, and
- * CUSTOM_CURSOR_DEBUG keeps it visible alongside for comparison.
+ * It hides only when the pointer leaves the root element or the window loses
+ * focus — never on pointerout. pointerout can report a null relatedTarget when
+ * the element under a STATIONARY pointer is replaced, which the typewriter and
+ * phase changes do constantly, and would leave the cursor hidden until the
+ * next click.
  */
 export function CustomCursor() {
   const el = useRef<HTMLDivElement>(null);
@@ -37,11 +42,9 @@ export function CustomCursor() {
     const node = el.current;
     if (!active || !node) return;
 
-    const debug = dev("CUSTOM_CURSOR_DEBUG");
     const root = document.documentElement;
-    if (!debug) root.setAttribute("data-cursor-hidden", "true");
+    if (!dev("CUSTOM_CURSOR_DEBUG")) root.setAttribute("data-cursor-hidden", "true");
 
-    // --- state kept out of React entirely ---------------------------------
     const target = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
     const current = { ...target };
     let raf = 0;
@@ -54,7 +57,6 @@ export function CustomCursor() {
       current.y += (target.y - current.y) * SMOOTHING;
       node.style.transform = `translate3d(${current.x}px, ${current.y}px, 0)`;
 
-      // Park the loop once it has caught up; no idle frames.
       if (Math.abs(target.x - current.x) < 0.05 && Math.abs(target.y - current.y) < 0.05) {
         running = false;
         return;
@@ -74,15 +76,22 @@ export function CustomCursor() {
       node.dataset.visible = "true";
     };
 
-    const onMove = (e: PointerEvent) => {
-      target.x = e.clientX;
-      target.y = e.clientY;
+    const hide = () => {
+      visible = false;
+      node.dataset.visible = "false";
+    };
+
+    /** The single entry point for every position source. */
+    const point = (x: number, y: number) => {
+      target.x = x;
+      target.y = y;
       reveal();
       kick();
     };
 
-    // Hover state is occasional, not per-frame, and is written directly to the
-    // DOM so it never causes a render.
+    const onPointerMove = (e: PointerEvent) => point(e.clientX, e.clientY);
+    const onMouseMove = (e: MouseEvent) => point(e.clientX, e.clientY);
+
     const onOver = (e: PointerEvent) => {
       reveal();
       const hit = (e.target as Element | null)?.closest?.(HIT);
@@ -94,43 +103,32 @@ export function CustomCursor() {
     };
 
     const onDown = (e: PointerEvent) => {
-      // Any pointer event reveals it, not just movement. A visitor who clicks
-      // before moving would otherwise see nothing until their first drag.
-      target.x = e.clientX;
-      target.y = e.clientY;
       node.dataset.pressed = "true";
-      reveal();
-      kick();
+      point(e.clientX, e.clientY);
     };
-    const onUp = () => { node.dataset.pressed = "false"; };
-
-    // Hide ONLY when the pointer genuinely leaves the window. The previous
-    // pointerleave/pointerenter pair on `document` was fragile: those events do
-    // not bubble, and in some browsers they fire while crossing between child
-    // elements, which made the cursor flicker out mid-move.
-    const onOut = (e: PointerEvent) => {
-      if (e.relatedTarget === null) {
-        visible = false;
-        node.dataset.visible = "false";
-      }
+    const onUp = () => {
+      node.dataset.pressed = "false";
     };
-    const onBlur = () => { visible = false; node.dataset.visible = "false"; };
 
-    window.addEventListener("pointermove", onMove, { passive: true });
+    window.addEventListener("pointermove", onPointerMove, { passive: true });
+    window.addEventListener("mousemove", onMouseMove, { passive: true });
     window.addEventListener("pointerover", onOver, { passive: true });
     window.addEventListener("pointerdown", onDown, { passive: true });
     window.addEventListener("pointerup", onUp, { passive: true });
-    window.addEventListener("pointerout", onOut, { passive: true });
-    window.addEventListener("blur", onBlur);
+    window.addEventListener("pointercancel", onUp, { passive: true });
+    root.addEventListener("mouseleave", hide);
+    window.addEventListener("blur", hide);
 
     return () => {
       cancelAnimationFrame(raf);
-      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("pointerover", onOver);
       window.removeEventListener("pointerdown", onDown);
       window.removeEventListener("pointerup", onUp);
-      window.removeEventListener("pointerout", onOut);
-      window.removeEventListener("blur", onBlur);
+      window.removeEventListener("pointercancel", onUp);
+      root.removeEventListener("mouseleave", hide);
+      window.removeEventListener("blur", hide);
       root.removeAttribute("data-cursor-hidden");
     };
   }, [active]);

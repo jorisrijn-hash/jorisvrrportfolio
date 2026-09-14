@@ -51,4 +51,25 @@ const frames = await p.evaluate(()=>new Promise(res=>{
 }));
 const s=frames.slice(5).sort((a,b)=>a-b);
 console.log(`frame interval while idle: p50 ${s[Math.floor(s.length*0.5)].toFixed(1)}ms  worst ${s[s.length-1].toFixed(1)}ms`);
+// RENDERED SIZE — the arrowhead must actually occupy space on screen, not just
+// carry the right attributes. Every earlier PASS checked data-visible and the
+// transform while the <svg> was clamped to 0px wide and painted nothing.
+for (const [label, x, y] of [["off controls", 500, 300], ["over a control", null, null]]) {
+  if (x === null) {
+    const bb = await p.getByRole("button", { name: /replay the boot/i }).boundingBox();
+    await p.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2, { steps: 5 });
+  } else {
+    await p.mouse.move(x, y, { steps: 5 });
+  }
+  await p.waitForTimeout(450);
+  const box = await p.evaluate(() => {
+    const svg = document.querySelector(".cursor__mark");
+    const r = svg.getBoundingClientRect();
+    return { w: r.width, h: r.height, maxWidth: getComputedStyle(svg).maxWidth };
+  });
+  pass(`arrowhead renders at full size ${label}`,
+       box.w >= 12 && box.h >= 12,
+       `${box.w.toFixed(1)}x${box.h.toFixed(1)} max-width:${box.maxWidth}`);
+}
+
 await b.close();
