@@ -10,6 +10,7 @@ import { createContext, useContext, useMemo, useReducer } from "react";
  * is what makes that guarantee structural rather than a convention.
  *
  *   gate -> loading -> loading-to-home -> home
+ *   home -> to-about -> about -> to-home -> home
  *   home -> crash -> gate               ([REBUILD] resets to the sound selection)
  */
 export type State =
@@ -18,22 +19,23 @@ export type State =
   | "loading-to-home"
   | "home"
   | "crash"
-  | "to-work"
-  | "work"
   | "to-about"
-  | "about";
+  | "about"
+  | "to-home"
+  | "to-work"
+  | "work";
 
 type Action =
   | { type: "BEGIN" }          // the audio choice has been made
   | { type: "SKIP_TO_HOME" }   // already seen this session
   | { type: "READY" }          // the boot sequence finished
-  | { type: "ARRIVE" }         // the loading -> home transition finished
+  | { type: "ARRIVE" }         // the running transition finished
   | { type: "CRASH" }          // [REBUILD] pressed in home
   | { type: "REBOOT" }         // the fake crash finished
   | { type: "GO"; to: "home" | "work" | "about" }
   | { type: "REPLAY" };
 
-const TRANSITIONS: State[] = ["gate", "loading", "loading-to-home", "crash", "to-work", "to-about"];
+const TRANSITIONS: State[] = ["gate", "loading", "loading-to-home", "crash", "to-about", "to-home", "to-work"];
 
 type Model = { state: State; runId: number };
 
@@ -41,7 +43,11 @@ function reducer(m: Model, a: Action): Model {
   if (a.type === "BEGIN") return m.state === "gate" ? { ...m, state: "loading" } : m;
   if (a.type === "SKIP_TO_HOME") return m.state === "gate" ? { ...m, state: "home" } : m;
   if (a.type === "READY") return m.state === "loading" ? { ...m, state: "loading-to-home" } : m;
-  if (a.type === "ARRIVE") return m.state === "loading-to-home" ? { ...m, state: "home" } : m;
+  if (a.type === "ARRIVE") {
+    if (m.state === "loading-to-home" || m.state === "to-home") return { ...m, state: "home" };
+    if (m.state === "to-about") return { ...m, state: "about" };
+    return m;
+  }
   if (a.type === "CRASH") return m.state === "home" ? { ...m, state: "crash" } : m;
 
   // The reboot resets the whole experience to the sound selection. runId bumps
@@ -50,7 +56,9 @@ function reducer(m: Model, a: Action): Model {
 
   // Replaying restarts at the gate. Refused mid-transition.
   if (a.type === "REPLAY") {
-    return m.state === "loading-to-home" || m.state === "crash" ? m : { state: "gate", runId: m.runId + 1 };
+    return TRANSITIONS.includes(m.state) && m.state !== "gate" && m.state !== "loading"
+      ? m
+      : { state: "gate", runId: m.runId + 1 };
   }
 
   const state = m.state;
@@ -58,9 +66,9 @@ function reducer(m: Model, a: Action): Model {
   // Navigation is only accepted from a settled state.
   if (TRANSITIONS.includes(state)) return m;
   if (a.type === "GO") {
-    if (a.to === "work" && state !== "work") return { ...m, state: "to-work" };
-    if (a.to === "about" && state !== "about") return { ...m, state: "to-about" };
-    if (a.to === "home") return { ...m, state: "home" };
+    if (a.to === "about" && state === "home") return { ...m, state: "to-about" };
+    if (a.to === "home" && state === "about") return { ...m, state: "to-home" };
+    // WORK is not built yet.
   }
   return m;
 }

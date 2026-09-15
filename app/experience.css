@@ -766,23 +766,57 @@ html[data-cursor-hidden="true"] * { cursor: none; }
 
 .experience[data-x-ui] .home-hud [data-reveal] { opacity: 1; transform: none; }
 
-/* Clear of the corner registration brackets (20px arms at 24px / 15px). */
-.home-hud__id {
+/* The reference top bar, kept clear of the corner registration brackets
+   (20px arms at 24px / 15px). Measured: 9px mono, 0.3em tracking. */
+.home-hud__bar {
   position: absolute;
   left: 60px;
   top: 20px;
   height: 28px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.26em;
+  font-size: 9px;
+  letter-spacing: 0.3em;
   text-transform: uppercase;
-  color: var(--color-hud-dim);
+  color: #8c8c8c;
+  white-space: nowrap;
 }
 
-.home-hud__rule { width: 22px; height: 1px; background: currentColor; opacity: 0.6; }
+.home-hud__rule { width: 20px; height: 1px; background: currentColor; opacity: 0.55; margin-right: -4px; }
+
+.home-hud__link { display: inline-flex; align-items: center; gap: 6px; }
+
+.home-hud__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2fd08a;
+  box-shadow: 0 0 6px rgb(47 208 138 / 0.55);
+}
+
+/* Telemetry block. Measured from the reference at x 106:
+   [USER] y101 · tick y118 · MODULE y153 · FACILITY y172 · unix y194 · ISO y213 */
+.home-hud__telemetry {
+  position: absolute;
+  left: 106px;
+  top: 0;
+  width: 520px;
+  height: 230px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.home-hud__telemetry > * { position: absolute; left: 0; line-height: 1; }
+.home-hud__t-user     { top: 96px;  font-size: 10px; letter-spacing: 0.2em;  color: #a2a2a2; }
+.home-hud__t-tick     { top: 118px; width: 13px; height: 13px; border-left: 1px solid #a8a8a8; border-top: 1px solid #a8a8a8; }
+.home-hud__t-module   { top: 147px; font-size: 11px; letter-spacing: 0.24em; color: #858585; }
+.home-hud__t-facility { top: 167px; font-size: 9.5px; letter-spacing: 0.2em; color: #999999; }
+.home-hud__t-unix     { top: 187px; font-size: 13px; letter-spacing: 0.03em; color: #858585; text-transform: none; }
+.home-hud__t-iso      { top: 208px; font-size: 10px; letter-spacing: 0.18em; color: #a3a3a3; }
 
 .home-pill {
   display: inline-flex;
@@ -850,7 +884,9 @@ html[data-cursor-hidden="true"] * { cursor: none; }
   .home-hud__title { left: 24px; font-size: 12px; letter-spacing: 0.24em; top: auto; bottom: 64px; transform: none; }
   .experience[data-x-ui] .home-hud__title { transform: none; }
   .home-hud__nav { right: 52px; gap: 8px; top: 54px; }
-  .home-hud__id { left: 52px; }
+  .home-hud__bar { left: 52px; gap: 10px; letter-spacing: 0.18em; }
+  .home-hud__bar > span:nth-child(3), .home-hud__bar > span:nth-child(4) { display: none; }
+  .home-hud__telemetry { display: none; }
 }
 
 /* The pointer over a sculpture asset: the cursor opens a small ring. */
@@ -962,3 +998,225 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
 
 /* The cursor stays findable on the black reboot screen. */
 .experience:has(.crash[data-stage="black"]) .cursor { color: #cfcfcf; }
+
+/* Current destination in the nav. */
+.home-pill[aria-current="page"] { color: var(--color-hud); border-color: rgb(0 0 0 / 0.26); background: rgb(255 255 255 / 0.7); }
+
+/* =========================================================================
+   ABOUT — globe, orbit rings and glass panels (maintoabout.mp4)
+   Geometry in reference px around the viewport centre, scaled by --fit.
+   ========================================================================= */
+
+/* Home furniture steps aside while About is open. */
+.home-hud [data-home-only] { transition: opacity 360ms var(--ease-out), transform 560ms var(--ease-out); }
+.experience[data-x-about] .home-hud [data-home-only] { opacity: 0 !important; pointer-events: none !important; }
+.experience[data-x-about] .grid-layer { opacity: 0.12; }
+.experience[data-x-about] .bloom-layer { opacity: 1; }
+
+.about { position: absolute; inset: 0; z-index: 6; pointer-events: none; --fit: 1; }
+
+.about__globe {
+  position: absolute;
+  left: 50%;
+  top: 49.5%;
+  width: 1px;
+  height: 1px;
+  max-width: none;
+  overflow: visible;
+  transform: scale(var(--fit));
+  transform-origin: 0 0;
+}
+
+.about__labels,
+.about__panels {
+  position: absolute;
+  left: 50%;
+  top: 49.5%;
+  width: 0;
+  height: 0;
+  transform: scale(var(--fit));
+  transform-origin: 0 0;
+}
+
+/* ---- transition labels --------------------------------------------------- */
+.about__label {
+  position: absolute;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: #969696;
+  opacity: 0;
+  transition: opacity 280ms var(--ease-out);
+}
+
+.about__label[data-label="route"]     { left: -127px; top: 108px; padding-top: 6px; border-top: 1px solid rgb(0 0 0 / 0.35); }
+.about__label[data-label="handshake"] { left: -758px; top: 108px; }
+.about__label[data-label="online"]    { left: 19px;  top: -14px; padding-top: 6px; border-top: 1px solid rgb(0 0 0 / 0.35); }
+
+.about[data-labels] .about__label[data-label="route"],
+.about[data-labels] .about__label[data-label="handshake"],
+.about[data-online] .about__label[data-label="online"] { opacity: 1; }
+.about[data-labels-out] .about__label { opacity: 0 !important; }
+
+/* ---- glass panels ---------------------------------------------------------
+   Measured: top 814x233 at (-405,-279); meta 394x200 at (-405,-3);
+   body 394x283 at (15,-3). Outer glass, 7px inset hairline frame, dark
+   corner squares on the frame. */
+.about__panel {
+  position: absolute;
+  pointer-events: auto;
+  border-radius: 6px;
+  background: rgb(244 244 245 / 0.6);
+  -webkit-backdrop-filter: blur(16px) saturate(1.05);
+  backdrop-filter: blur(16px) saturate(1.05);
+  border: 1px solid rgb(255 255 255 / 0.7);
+  box-shadow: 0 10px 30px rgb(0 0 0 / 0.07), inset 0 1px 0 rgb(255 255 255 / 0.6);
+  opacity: 0;
+  transform: translateY(16px) scale(0.985);
+  transition:
+    opacity 520ms var(--ease-out) var(--pd, 0ms),
+    transform 760ms var(--ease-out) var(--pd, 0ms);
+}
+
+.about__panel[data-panel="top"]  { left: -405px; top: -279px; width: 814px; height: 233px; --pd: 0ms; }
+.about__panel[data-panel="meta"] { left: -405px; top: -3px;   width: 394px; height: 200px; --pd: 140ms; }
+.about__panel[data-panel="body"] { left: 15px;   top: -3px;   width: 394px; height: 283px; --pd: 280ms; }
+
+.about[data-panels] .about__panel { opacity: 1; transform: none; }
+
+.about[data-leaving] .about__panel {
+  opacity: 0;
+  transform: translateY(-10px) scale(0.99);
+  transition-duration: 300ms, 420ms;
+  transition-delay: 0ms;
+}
+
+.about__panel::before {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  border: 1px solid rgb(60 60 60 / 0.36);
+  pointer-events: none;
+}
+
+.about__corner {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  background: #5e5e5e;
+}
+.about__corner[data-c="tl"] { left: 4px;  top: 4px; }
+.about__corner[data-c="tr"] { right: 4px; top: 4px; }
+.about__corner[data-c="bl"] { left: 4px;  bottom: 4px; }
+.about__corner[data-c="br"] { right: 4px; bottom: 4px; }
+
+.about__inner {
+  position: absolute;
+  inset: 8px;
+  padding: 18px 24px 18px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.about__eyebrow {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: #8a8a8a;
+  margin-bottom: 14px;
+}
+
+.about__lead {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: 27px;
+  line-height: 1.14;
+  letter-spacing: -0.005em;
+  color: #262626;
+  max-width: 700px;
+}
+
+.about__summary {
+  margin-top: 16px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.75;
+  color: #575757;
+  max-width: 660px;
+}
+
+.about__meta { display: grid; gap: 10px; margin: 0; }
+.about__meta > div { display: grid; grid-template-columns: 78px 1fr; gap: 12px; align-items: baseline; }
+.about__meta dt {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #929292;
+}
+.about__meta dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: #3d3d3d;
+}
+
+.about__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(0 0 0 / 0.25) transparent;
+}
+.about__body p {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  line-height: 1.75;
+  color: #4a4a4a;
+}
+.about__body p + p { margin-top: 10px; }
+.about__body:focus-visible { outline: 1px solid rgb(0 0 0 / 0.3); outline-offset: 4px; }
+
+/* Content settles a beat after its glass. */
+.about__inner > * {
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 420ms var(--ease-out), transform 560ms var(--ease-out);
+  transition-delay: calc(var(--pd, 0ms) + 260ms);
+}
+.about[data-panels] .about__inner > * { opacity: 1; transform: none; }
+
+/* ---- narrow screens: the panels stack in a scrolling column -------------- */
+@media (max-width: 900px) {
+  .about__labels { display: none; }
+  .about__panels {
+    left: 16px;
+    right: 16px;
+    top: 92px;
+    bottom: 16px;
+    width: auto;
+    height: auto;
+    transform: none;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+    pointer-events: auto;
+  }
+  .about__panel,
+  .about__panel[data-panel] { position: relative; left: auto; top: auto; width: auto; height: auto; }
+  .about__inner { position: relative; inset: auto; padding: 22px 22px 20px; }
+  .about__lead { font-size: 21px; }
+  .about__body { overflow: visible; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about__panel, .about__inner > *, .about__label { transition: none; }
+}

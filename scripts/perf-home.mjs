@@ -84,6 +84,18 @@ async function page(init) {
     paths: document.querySelectorAll(".sculpture path").length,
   }));
   console.log("videos", media.v, "canvases", media.c, "sculpture paths", media.paths);
+
+  // 3. home -> about, then the settled About state (glass panels over the globe)
+  await p.getByRole("button", { name: "[About]" }).hover();
+  await p.waitForTimeout(400);
+  await p.getByRole("button", { name: "[About]" }).click();
+  let a0 = await metrics(cdp);
+  let fa = await sample(p, 150);
+  report("TO-ABOUT", fa, a0, await metrics(cdp));
+  await p.waitForTimeout(800);
+  a0 = await metrics(cdp);
+  fa = await sample(p, 400);
+  report("ABOUT", fa, a0, await metrics(cdp));
   await ctx.close();
 }
 

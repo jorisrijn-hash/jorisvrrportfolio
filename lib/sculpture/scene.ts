@@ -312,6 +312,8 @@ export type Pose = {
   hover: Float32Array;
   /** viewport fit — 1 at the 1920x950 reference */
   fit: number;
+  /** 0 = home, 1 = folded into the centre (About is open) */
+  collapse: number;
 };
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
@@ -336,13 +338,17 @@ export function createScene() {
     const transform = inOut(seg(t, XFER.transform[0], XFER.transform[1]));
     const expand = inOut(seg(t, XFER.expand[0], XFER.expand[1]));
 
-    const k = lerp(1, pose.fit, expand) * (1 - 0.035 * Math.sin(Math.PI * lock));
+    // Collapse toward About: everything shrinks into the centre while the
+    // cluster spins up, then fades.
+    const fold = smooth(clamp01(pose.collapse));
+    const fade = 1 - smooth(clamp01(pose.collapse * 1.3));
+    const k = lerp(1, pose.fit, expand) * (1 - 0.035 * Math.sin(Math.PI * lock)) * (1 - 0.86 * fold);
 
     // ---- idle (every term is periodic in IDLE_LOOP and zero at loop = 0) --
     const w = (loop / IDLE_LOOP) * TAU;
     const tilt = qEuler(pose.tiltX, pose.tiltY, 0);
-    const cluster = qToM3(qMul(tilt, qEuler(deg(5) * Math.sin(2 * w), deg(16) * Math.sin(w), 0)));
-    const secondary = qToM3(tilt);
+    const cluster = qToM3(qMul(tilt, qEuler(deg(5) * Math.sin(2 * w), deg(16) * Math.sin(w) + deg(150) * fold, 0)));
+    const secondary = qToM3(qMul(tilt, qEuler(0, deg(70) * fold, 0)));
 
     const project = (p: V3): [number, number] => {
       const s = (F / Math.max(80, F + p[2])) * k;
@@ -560,15 +566,22 @@ export function createScene() {
       });
     }
 
+    if (fade < 1) {
+      for (const f of faces) {
+        f.fa *= fade;
+        f.sa *= fade;
+      }
+    }
+
     // Far first. Array.sort is stable, so an object's faces stay together.
     faces.sort((a, b) => b.z - a.z);
 
     return {
       opacity: smooth(seg(t, XFER.resolve[0], XFER.resolve[1])),
       faces,
-      orbit, orbitA: 0.28 * (1 - orbitC),
-      stem, stemA: 1 - seg(t, 1.3, 2.1),
-      links: linkPath, dots, linkA,
+      orbit, orbitA: 0.28 * (1 - orbitC) * fade,
+      stem, stemA: (1 - seg(t, 1.3, 2.1)) * fade,
+      links: linkPath, dots, linkA: linkA * fade,
     };
   };
 }

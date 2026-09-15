@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { IDLE_LOOP, XFER, XFER_CUES } from "@/content/transition";
+import { ABOUT_IN, ABOUT_OUT } from "@/content/about";
 import { OBJECT_COUNT, createScene, type DrawFace } from "@/lib/sculpture/scene";
+import { inOut, seg } from "@/lib/sculpture/math";
 import { addTick } from "@/lib/ticker";
 import { useSound } from "@/lib/sound";
 
@@ -21,10 +23,12 @@ const SHIFT_Y = 14;
 /** How far a hovered asset grows. */
 const HOVER_SCALE = 1.12;
 /** Controls take the pointer; the sculpture only reacts over open space. */
-const CONTROL = "button, a[href], [role='button'], input, [data-cursor]";
+const CONTROL = "button, a[href], [role='button'], input, [data-cursor], .about__panel";
 
 /** Glitch timing for the fake crash, seconds. */
 const CRASH_RAMP = 1.1;
+
+export type StageMode = "home" | "to-about" | "about" | "to-home";
 
 type Slot = { el: SVGPathElement; d: string; g: number; fa: number; sa: number };
 
@@ -54,8 +58,9 @@ function inside(pts: number[], x: number, y: number) {
  *   · reports arrival, which moves the state machine to `home`
  *
  * In home it also hit-tests the pointer against the projected faces, so each
- * separate asset can grow under the cursor, and on [REBUILD] it freezes and
- * tears the drawing for the fake crash.
+ * separate asset can grow under the cursor; on [REBUILD] it freezes and tears
+ * the drawing for the fake crash; and toward About it folds the sculpture into
+ * the centre (and stops drawing it entirely while About is open).
  *
  * Nothing here causes a React render after mount.
  *
@@ -67,11 +72,13 @@ export function HomeStage({
   intro,
   still,
   crashing,
+  mode,
   onArrive,
 }: {
   intro: boolean;
   still: boolean;
   crashing: boolean;
+  mode: StageMode;
   onArrive: () => void;
 }) {
   const svg = useRef<SVGSVGElement>(null);
@@ -87,8 +94,15 @@ export function HomeStage({
   const [runIntro] = useState(intro && !still);
   const arrive = useRef(onArrive);
   const crash = useRef(crashing);
+  const modeRef = useRef(mode);
   useEffect(() => { arrive.current = onArrive; }, [onArrive]);
   useEffect(() => { crash.current = crashing; }, [crashing]);
+  useEffect(() => { modeRef.current = mode; }, [mode]);
+
+  // Reduced motion has no frame loop, so it swaps visibility directly.
+  useEffect(() => {
+    if (still && svg.current) svg.current.style.visibility = mode === "home" ? "" : "hidden";
+  }, [still, mode]);
 
   useEffect(() => {
     const root = svg.current;
@@ -153,9 +167,9 @@ export function HomeStage({
     let lastOpacity = -1;
     const setAttr = (el: Element | null, name: string, v: string) => el?.setAttribute(name, v);
 
-    const draw = (t: number, loop: number, glitch: number | null) => {
+    const draw = (t: number, loop: number, glitch: number | null, collapse: number) => {
       const f = evaluate({
-        t, loop, fit, hover,
+        t, loop, fit, hover, collapse,
         tiltX: tilt.x, tiltY: tilt.y, shiftX: tilt.sx, shiftY: tilt.sy,
       });
       faces = f.faces;
@@ -231,7 +245,7 @@ export function HomeStage({
     };
 
     if (still) {
-      const redraw = () => draw(XFER.end, 0, null);
+      const redraw = () => draw(XFER.end, 0, null, 0);
       redraw();
       arrive.current();
       window.addEventListener("resize", redraw);
@@ -247,7 +261,11 @@ export function HomeStage({
     let arrivedAt: number | null = runIntro ? null : start;
     if (!runIntro) arrive.current();
     let loop = 0;
+    let loops = -1;
     let crashAt: number | null = null;
+    let lastMode: StageMode = modeRef.current;
+    let modeAt = start;
+    let hidden = false;
 
     const frame = (now: number, dt: number) => {
       // The crash freezes time where it is and tears the last pose.
@@ -256,7 +274,7 @@ export function HomeStage({
           crashAt = now;
           setHovered(-1);
         }
-        draw(XFER.end, loop, (now - crashAt) / 1000);
+        draw(XFER.end, loop, (now - crashAt) / 1000, 0);
         return;
       }
 
@@ -279,15 +297,37 @@ export function HomeStage({
         arrive.current();
       }
 
+      // About: fold into the centre, and back out.
+      const m = modeRef.current;
+      if (m !== lastMode) {
+        lastMode = m;
+        modeAt = now;
+      }
+      const tm = (now - modeAt) / 1000;
+      let collapse = 0;
+      if (m === "to-about") collapse = inOut(seg(tm, ABOUT_IN.collapse[0], ABOUT_IN.collapse[1]));
+      else if (m === "about") collapse = 1;
+      else if (m === "to-home") collapse = 1 - inOut(seg(tm, ABOUT_OUT.collapse[0], ABOUT_OUT.collapse[1]));
+      const interactive = m === "home";
+
+      let e = 0;
       if (arrivedAt !== null) {
         // Idle clock, eased in so the loop starts from rest: t²/2R, then linear.
-        const e = (now - arrivedAt) / 1000;
+        e = (now - arrivedAt) / 1000;
         const tau = e < IDLE_RAMP ? (e * e) / (2 * IDLE_RAMP) : e - IDLE_RAMP / 2;
         loop = tau % IDLE_LOOP;
 
-        // Cursor influence, from the viewport centre.
-        const nx = pointer.present ? (pointer.x / window.innerWidth) * 2 - 1 : 0;
-        const ny = pointer.present ? (pointer.y / window.innerHeight) * 2 - 1 : 0;
+        const n = Math.floor(tau / IDLE_LOOP) % 100;
+        if (n !== loops) {
+          loops = n;
+          const el = stage.querySelector("[data-loop]");
+          if (el) el.textContent = String(n).padStart(2, "0");
+        }
+
+        // Cursor influence, from the viewport centre. Only in home.
+        const on = interactive && pointer.present;
+        const nx = on ? (pointer.x / window.innerWidth) * 2 - 1 : 0;
+        const ny = on ? (pointer.y / window.innerHeight) * 2 - 1 : 0;
         const a = 1 - Math.exp(-dt / 380);
         tilt.y += (nx * TILT_YAW - tilt.y) * a;
         tilt.x += (-ny * TILT_PITCH - tilt.x) * a;
@@ -296,7 +336,7 @@ export function HomeStage({
 
         // Hover: the nearest face under the pointer names its asset.
         let hit = -1;
-        if (pointer.present && !pointer.overControl) {
+        if (interactive && pointer.present && !pointer.overControl) {
           const px = pointer.x - window.innerWidth / 2;
           const py = pointer.y - window.innerHeight * 0.495;
           for (let i = faces.length - 1; i >= 0; i--) {
@@ -317,7 +357,15 @@ export function HomeStage({
         }
       }
 
-      draw(Math.min(t, XFER.end), loop, null);
+      // Fully folded away: nothing to draw while About is open.
+      const gone = collapse >= 1;
+      if (gone !== hidden) {
+        hidden = gone;
+        root.style.visibility = gone ? "hidden" : "";
+      }
+      if (gone) return;
+
+      draw(Math.min(t, XFER.end), loop, null, collapse);
     };
 
     const stop = addTick(frame);

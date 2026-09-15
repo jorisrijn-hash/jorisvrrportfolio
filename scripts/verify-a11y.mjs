@@ -85,6 +85,36 @@ const seen  = () => { try { sessionStorage.setItem("jvr.booted", "1"); } catch {
   await p.context().close();
 }
 
+// 3b. ABOUT — home -> about -> home
+{
+  const p = await (await b.newContext({ viewport:{width:1920,height:950} })).newPage();
+  await p.addInitScript(seen);
+  await p.goto(base, { waitUntil:"networkidle" });
+  await p.waitForTimeout(900);
+  pass("telemetry block shown in home", (await p.locator(".home-hud__telemetry").count()) === 1
+       && /^\d{10}$/.test((await p.textContent(".home-hud__t-unix")) ?? ""));
+  await p.getByRole("button", { name: "[About]" }).click();
+  await p.waitForTimeout(300);
+  pass("about: transition state", (await p.getAttribute(".experience","data-state")) === "to-about");
+  pass("about: nav refused mid-transition", await p.getByRole("button", { name: "[Home]" }).isDisabled());
+  await p.waitForTimeout(2600);
+  pass("about: arrives", (await p.getAttribute(".experience","data-state")) === "about");
+  pass("about: panels resolved", (await p.getAttribute(".about","data-panels")) !== null
+       && (await p.getByRole("heading", { level: 1 }).count()) === 1);
+  pass("about: globe drawn from land data", ((await p.getAttribute(".about__globe path", "d")) ?? "").length > 1000);
+  pass("about: sculpture parked", await p.evaluate(() => document.querySelector(".sculpture").style.visibility === "hidden"));
+  pass("about: rebuild hidden", await p.getByRole("button", { name: /rebuild/i }).isDisabled());
+  await p.keyboard.press("Escape");
+  await p.waitForTimeout(300);
+  pass("about: Escape returns", (await p.getAttribute(".experience","data-state")) === "to-home");
+  await p.waitForTimeout(2000);
+  pass("about: back in home", (await p.getAttribute(".experience","data-state")) === "home"
+       && (await p.locator(".about").count()) === 0
+       && (await p.locator(".sculpture").count()) === 1
+       && (await p.getAttribute(".experience","data-x-about")) === null);
+  await p.context().close();
+}
+
 // 4. REDUCED MOTION
 {
   const p = await (await b.newContext({ viewport:{width:1920,height:950}, reducedMotion:"reduce" })).newPage();

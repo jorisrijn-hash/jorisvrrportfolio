@@ -16,23 +16,28 @@
   },
   "dependencies": {
     "cuelume": "^0.2.2",
+    "d3-geo": "^3.1.1",
     "lucide-react": "^1.45.0",
     "motion": "^13.2.0",
     "next": "^16.3.5",
     "react": "^19.3.0",
-    "react-dom": "^19.3.0"
+    "react-dom": "^19.3.0",
+    "topojson-client": "^3.1.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
+    "@types/d3-geo": "^3.1.1",
     "@types/node": "^26.5.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@types/topojson-client": "^3.1.5",
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.3.5",
     "playwright": "^1.63.0",
     "postcss": "^8.5.28",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
-    "wawoff2": "^2.0.1"
+    "wawoff2": "^2.0.1",
+    "world-atlas": "^2.0.2"
   }
 }
