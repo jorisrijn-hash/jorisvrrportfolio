@@ -10,7 +10,7 @@ import { createContext, useContext, useMemo, useReducer } from "react";
  * is what makes that guarantee structural rather than a convention.
  *
  *   gate -> loading -> loading-to-home -> home
- *   home -> crash -> loading            ([REBUILD])
+ *   home -> crash -> gate               ([REBUILD] resets to the sound selection)
  */
 export type State =
   | "gate"
@@ -44,10 +44,9 @@ function reducer(m: Model, a: Action): Model {
   if (a.type === "ARRIVE") return m.state === "loading-to-home" ? { ...m, state: "home" } : m;
   if (a.type === "CRASH") return m.state === "home" ? { ...m, state: "crash" } : m;
 
-  // The reboot goes straight into the sequence: pressing [REBUILD] was itself
-  // the gesture that audio needs, so there is nothing to ask again. runId bumps
-  // so the sequence remounts cleanly.
-  if (a.type === "REBOOT") return m.state === "crash" ? { state: "loading", runId: m.runId + 1 } : m;
+  // The reboot resets the whole experience to the sound selection. runId bumps
+  // so the gate shows again and everything remounts cleanly.
+  if (a.type === "REBOOT") return m.state === "crash" ? { state: "gate", runId: m.runId + 1 } : m;
 
   // Replaying restarts at the gate. Refused mid-transition.
   if (a.type === "REPLAY") {

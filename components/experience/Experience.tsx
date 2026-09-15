@@ -38,6 +38,10 @@ function Stage() {
   }, [state, seen, reduced, runId, skipToHome]);
 
   // The crash is staged over home, so home stays mounted underneath it.
+  // Keys are namespaced per component: HomeStage and CrashSequence are
+  // siblings during the crash, and sharing a bare runId key made React lose
+  // track of HomeStage — it was never unmounted and its frozen drawing stayed
+  // on screen under the next run.
   const atHome = state === "loading-to-home" || state === "home" || state === "crash";
 
   return (
@@ -46,13 +50,13 @@ function Stage() {
           on, its centre construction is drawn by the sculpture instead. */}
       <StaticComposition resolved={state !== "gate" && state !== "loading"} centre={!atHome} />
 
-      {state === "loading" ? <BootSequence key={runId} onDone={ready} /> : null}
+      {state === "loading" ? <BootSequence key={`boot-${runId}`} onDone={ready} /> : null}
 
       {/* Same element for loading-to-home, home and crash, so the timeline
           carries straight on without remounting. */}
       {atHome ? (
         <HomeStage
-          key={runId}
+          key={`home-${runId}`}
           intro={state === "loading-to-home"}
           still={reduced && !dev("FORCE_INTRO")}
           crashing={state === "crash"}
@@ -79,7 +83,7 @@ function Stage() {
         </div>
       )}
 
-      {state === "crash" ? <CrashSequence key={runId} onDone={reboot} /> : null}
+      {state === "crash" ? <CrashSequence key={`crash-${runId}`} onDone={reboot} /> : null}
 
       {dev("SHOW_STATE") ? <div className="dev-state">{state}</div> : null}
     </div>

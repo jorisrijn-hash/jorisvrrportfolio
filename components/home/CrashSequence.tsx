@@ -9,13 +9,13 @@ import { stopBootTrack } from "@/lib/bootAudio";
 type Stage = "glitch" | "panic" | "black";
 
 /**
- * [REBUILD] — a staged, fake crash, then a real restart of the sequence.
+ * [REBUILD] — a staged, fake crash, then a full reset to the sound selection.
  *
  *   0.00  GLITCH  audio cuts, the sculpture freezes and tears (HomeStage),
  *                 tear bars flicker across the screen
  *   0.35  PANIC   a fault dump types out over the wreckage
  *   1.35  BLACK   power drops to black, REBOOTING
- *   2.15          the boot sequence starts again from zero
+ *   2.15          everything resets to the sound selection (the gate)
  *
  * The overlay takes the pointer for its whole run, so nothing underneath can
  * be clicked while the screen is "down". Reduced motion keeps the panel and the

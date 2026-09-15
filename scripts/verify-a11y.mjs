@@ -58,8 +58,16 @@ const seen  = () => { try { sessionStorage.setItem("jvr.booted", "1"); } catch {
   pass("rebuild crashes", (await p.getAttribute(".experience", "data-state")) === "crash");
   pass("crash takes the pointer", (await p.locator(".crash").count()) === 1);
   await p.waitForTimeout(2200);
-  pass("crash reboots into the sequence", (await p.getAttribute(".experience", "data-state")) === "loading"
-       && (await p.locator(".boot").count()) === 1 && (await p.locator(".gate").count()) === 0);
+  pass("crash resets to the sound selection", (await p.getAttribute(".experience", "data-state")) === "gate"
+       && (await p.locator(".gate").count()) === 1);
+  pass("nothing of home survives the reset",
+       (await p.locator(".sculpture").count()) === 0 && (await p.locator(".bloom-layer").count()) === 0
+       && (await p.locator(".crash").count()) === 0
+       && (await p.getAttribute(".experience", "data-x-bloom")) === null);
+  await p.getByRole("button", { name: /^on$/i }).click();
+  await p.waitForTimeout(600);
+  pass("sequence runs again after the reset", (await p.locator(".boot").count()) === 1
+       && (await p.locator(".sculpture").count()) === 0);
   await ctx.close();
 }
 
