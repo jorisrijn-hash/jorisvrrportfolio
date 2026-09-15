@@ -39,9 +39,18 @@ const seen  = () => { try { sessionStorage.setItem("jvr.booted", "1"); } catch {
        (await p.getAttribute(".resting", "data-resolved")) === "false");
   await p.waitForTimeout(11200);
   pass("boot completes and unmounts", (await p.locator(".boot").count()) === 0);
-  pass("state is home", (await p.getAttribute(".experience", "data-state")) === "home");
+  pass("hands over to loading-to-home", (await p.getAttribute(".experience", "data-state")) === "loading-to-home");
+  pass("the sculpture takes over the centre", (await p.locator(".sculpture").count()) === 1
+       && (await p.locator(".centre").count()) === 0);
+  pass("input refused mid-transition",
+       await p.getByRole("button", { name: /replay the boot sequence/i }).isDisabled());
   pass("resting furniture resolved",
        (await p.getAttribute(".resting", "data-resolved")) === "true");
+  await p.waitForTimeout(3000);
+  pass("transition arrives in home", (await p.getAttribute(".experience", "data-state")) === "home");
+  pass("interface resolved", (await p.getAttribute(".experience", "data-x-ui")) !== null);
+  pass("rebuild available again",
+       !(await p.getByRole("button", { name: /replay the boot sequence/i }).isDisabled()));
   await ctx.close();
 }
 
@@ -54,6 +63,8 @@ const seen  = () => { try { sessionStorage.setItem("jvr.booted", "1"); } catch {
   pass("returning in session: gate skipped", (await p.locator(".gate").count()) === 0);
   pass("returning in session: boot skipped", (await p.locator(".boot").count()) === 0);
   pass("lands straight on home", (await p.getAttribute(".experience","data-state")) === "home");
+  pass("home composition drawn", (await p.locator(".sculpture path").count()) > 100);
+  pass("home interface shown without transition", (await p.getAttribute(".experience","data-x-instant")) !== null);
   await p.context().close();
 }
 
@@ -65,7 +76,8 @@ const seen  = () => { try { sessionStorage.setItem("jvr.booted", "1"); } catch {
   await p.waitForTimeout(900);
   pass("reduced motion: gate skipped", (await p.locator(".gate").count()) === 0);
   pass("reduced motion: boot skipped", (await p.locator(".boot").count()) === 0);
-  pass("reduced motion: composition still present", (await p.locator(".centre").count()) === 1);
+  pass("reduced motion: composition still present", (await p.locator(".sculpture").count()) === 1);
+  pass("reduced motion: lands on home", (await p.getAttribute(".experience","data-state")) === "home");
   await p.context().close();
 }
 

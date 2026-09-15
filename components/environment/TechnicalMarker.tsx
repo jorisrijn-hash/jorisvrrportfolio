@@ -32,7 +32,13 @@ type Props = Anchor & {
  *   SYNC-OK     right 90  bottom 93   179 x 96
  */
 export function TechnicalMarker({ left, right, top, bottom, w, h, label, children }: Props) {
-  const style: CSSProperties = { width: w, height: h };
+  // The direction it withdraws in during the handover to home: toward its corner.
+  const style = {
+    width: w,
+    height: h,
+    "--mx": left !== undefined ? "-28px" : "28px",
+    "--my": top !== undefined ? "-28px" : "28px",
+  } as CSSProperties;
   if (left !== undefined) style.left = left;
   if (right !== undefined) style.right = right;
   if (top !== undefined) style.top = top;

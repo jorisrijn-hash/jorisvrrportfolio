@@ -46,6 +46,7 @@ export function BootSequence({ onDone }: { onDone: () => void }) {
   const { cue, enabled } = useSound();
   const settled = useRef(false);
   const startedAt = useRef<number | null>(null);
+  const handingOver = useRef(false);
 
   // The gate decides whether the sequence runs at all, so nothing is left to
   // decide here except reduced motion, which goes straight to the resting state.
@@ -82,6 +83,7 @@ export function BootSequence({ onDone }: { onDone: () => void }) {
       at(PHASES.complete.start, () => { setPhase("complete"); cue("scan"); }),
       at(PHASES.settle.start, () => { setPhase("settle"); cue("arrive"); }),
       at(BOOT_TOTAL, () => {
+        handingOver.current = true;
         setPhase("done");
         setSessionFlag(SESSION_KEY, true);
         settled.current = true;
@@ -103,7 +105,9 @@ export function BootSequence({ onDone }: { onDone: () => void }) {
     if (skip || enabled !== true) return;
     const elapsed = startedAt.current ? (performance.now() - startedAt.current) / 1000 : 0;
     startBootTrack(0.55, elapsed);
-    return () => stopBootTrack();
+    // Completing hands the score over to the home transition, so it fades out
+    // underneath it; switching sound off still cuts it short.
+    return () => stopBootTrack(handingOver.current ? 1800 : 260);
   }, [skip, enabled]);
 
   // Slow deterministic tick for the checkerboard. Only runs during AUTH.

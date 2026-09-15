@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { dev } from "@/lib/dev";
 import { useFinePointer, useReducedMotion } from "@/lib/motion";
+import { addTick, removeTick } from "@/lib/ticker";
 
 /** Interpolation factor per frame. Lower is heavier. */
 const SMOOTHING = 0.22;
@@ -15,7 +16,7 @@ const HIT = "[data-cursor], a[href], button, [role='button'], input, select, tex
  *
  *   · position fixed at 0,0; moved only by transform
  *   · coordinates live in refs, never in React state
- *   · ONE rAF loop, and it parks itself once caught up
+ *   · runs on the shared frame clock (lib/ticker), and unsubscribes once caught up
  *   · hover state written straight to the DOM, so input never causes a render
  *   · pointer-events: none, so it can never intercept a click
  *
@@ -47,7 +48,6 @@ export function CustomCursor() {
 
     const target = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
     const current = { ...target };
-    let raf = 0;
     let running = false;
     let visible = false;
     let state = "default";
@@ -59,15 +59,14 @@ export function CustomCursor() {
 
       if (Math.abs(target.x - current.x) < 0.05 && Math.abs(target.y - current.y) < 0.05) {
         running = false;
-        return;
+        removeTick(frame);
       }
-      raf = requestAnimationFrame(frame);
     };
 
     const kick = () => {
       if (running) return;
       running = true;
-      raf = requestAnimationFrame(frame);
+      addTick(frame);
     };
 
     const reveal = () => {
@@ -120,7 +119,7 @@ export function CustomCursor() {
     window.addEventListener("blur", hide);
 
     return () => {
-      cancelAnimationFrame(raf);
+      removeTick(frame);
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("pointerover", onOver);

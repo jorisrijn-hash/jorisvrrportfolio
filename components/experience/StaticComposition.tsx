@@ -20,7 +20,14 @@ import {
  * Mounted for the whole session and never unmounted: the boot sequence plays
  * over it and fades away, so handover has nothing to re-layout.
  */
-export function StaticComposition({ resolved = true }: { resolved?: boolean }) {
+export function StaticComposition({
+  resolved = true,
+  centre = true,
+}: {
+  resolved?: boolean;
+  /** false once the sculpture has taken over drawing the centre construction */
+  centre?: boolean;
+}) {
   return (
     <>
       {/* Persistent through every phase — the reference shows the grid, its
@@ -51,7 +58,7 @@ export function StaticComposition({ resolved = true }: { resolved?: boolean }) {
         <SyncOkDiagram />
       </TechnicalMarker>
 
-      <CenterDiagram />
+      {centre ? <CenterDiagram /> : null}
       </div>
     </>
   );

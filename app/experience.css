@@ -696,3 +696,157 @@ html[data-cursor-hidden="true"] * { cursor: none; }
   transition: opacity 420ms var(--ease-out);
   pointer-events: none;
 }
+
+/* =========================================================================
+   LOADING -> HOME
+   The sculpture is one SVG, redrawn per frame from lib/sculpture/scene.ts.
+   Everything else here is driven by attributes the timeline raises on
+   .experience at fixed moments — no per-frame style writes.
+     data-x-retract   corner furniture withdraws        (1.10s)
+     data-x-bloom     bloom + vignette, grid recedes    (1.55s)
+     data-x-ui        the interface resolves            (2.00s)
+     data-x-instant   arrive without transitions (returning / reduced motion)
+   ========================================================================= */
+
+/* A 1x1 origin at the viewport centre; geometry is drawn around 0,0. */
+.sculpture {
+  position: absolute;
+  left: 50%;
+  top: 49.5%;
+  width: 1px;
+  height: 1px;
+  max-width: none;
+  overflow: visible;
+  z-index: 5;
+  pointer-events: none;
+  color: var(--color-env-centre-line);
+}
+
+/* Measured from the reference home frame: centre 250, edge midpoints ~190,
+   corners ~165, over a 232 ground. */
+.bloom-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(ellipse 34% 48% at 50% 49%, rgb(255 255 255 / 0.8) 0%, rgb(255 255 255 / 0.5) 40%, rgb(255 255 255 / 0) 100%),
+    radial-gradient(farthest-corner at 50% 49%, rgb(0 0 0 / 0) 34%, rgb(0 0 0 / 0.17) 70%, rgb(0 0 0 / 0.3) 100%);
+  transition: opacity 700ms var(--ease-inout);
+}
+
+.experience[data-x-bloom] .bloom-layer { opacity: 1; }
+
+.grid-layer { transition: opacity 800ms var(--ease-inout); }
+.experience[data-x-bloom] .grid-layer { opacity: 0.3; }
+
+/* Corner furniture withdraws toward its own corner. */
+.marker { transition: opacity 520ms var(--ease-out), transform 700ms var(--ease-out); }
+.experience[data-x-retract] .marker {
+  opacity: 0;
+  transform: translate(var(--mx, 0), var(--my, 0)) scale(0.94);
+}
+
+.state-label { transition: clip-path 420ms var(--ease-inout), opacity 420ms var(--ease-out); clip-path: inset(0 0 0 0); }
+.experience[data-x-retract] .state-label { clip-path: inset(0 50% 0 50%); opacity: 0; }
+
+/* ---- the home interface -------------------------------------------------- */
+.home-hud { position: absolute; inset: 0; z-index: 60; pointer-events: none; }
+.experience[data-x-ui] .home-hud > *,
+.experience[data-x-ui] .home-hud__nav > * { pointer-events: auto; }
+
+.home-hud [data-reveal] {
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity 420ms var(--ease-out) var(--d, 0ms),
+    transform 560ms var(--ease-out) var(--d, 0ms);
+}
+
+.experience[data-x-ui] .home-hud [data-reveal] { opacity: 1; transform: none; }
+
+.home-hud__id {
+  position: absolute;
+  left: 32px;
+  top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--color-hud-dim);
+}
+
+.home-hud__rule { width: 22px; height: 1px; background: currentColor; opacity: 0.6; }
+
+.home-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-hud-dim);
+  background: rgb(255 255 255 / 0.4);
+  border: 1px solid rgb(0 0 0 / 0.12);
+  border-radius: 4px;
+  transition: background-color 180ms var(--ease-out), color 180ms var(--ease-out), border-color 180ms var(--ease-out);
+}
+
+.home-pill:hover:not(:disabled) { background: rgb(255 255 255 / 0.85); color: var(--color-hud); }
+.home-pill[aria-disabled="true"] { cursor: default; }
+
+.home-pill--sound { height: 22px; padding: 0 8px; font-size: 9px; }
+
+.home-pill--dark { color: #f2f2f2; background: #2b2b2b; border-color: #2b2b2b; }
+.home-pill--dark:hover:not(:disabled) { background: #111; color: #fff; }
+
+.home-hud__nav {
+  position: absolute;
+  right: 30px;
+  top: 7px;
+  display: flex;
+  gap: 20px;
+}
+
+.home-hud__nav .home-pill--dark { margin-right: 2px; }
+
+/* Measured: text block x 106..490, cap line ~y 470. */
+.home-hud__title {
+  position: absolute;
+  left: 106px;
+  top: 49.5%;
+  transform: translateY(-50%);
+  font-family: var(--font-mono);
+  font-size: 17px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: #3a3a3a;
+  white-space: pre;
+}
+
+.experience[data-x-ui] .home-hud__title { transform: translateY(-50%); }
+
+.home-hud__title span { display: inline-block; clip-path: inset(0 100% 0 0); }
+.experience[data-x-ui] .home-hud__title span { animation: type-in 700ms steps(26) 120ms forwards; }
+
+/* ---- arriving without a transition --------------------------------------- */
+.experience[data-x-instant] .bloom-layer,
+.experience[data-x-instant] .grid-layer,
+.experience[data-x-instant] .marker,
+.experience[data-x-instant] .state-label,
+.experience[data-x-instant] .home-hud [data-reveal] { transition: none; }
+.experience[data-x-instant] .home-hud__title span { animation: none; clip-path: none; }
+
+@media (max-width: 720px) {
+  .home-hud__title { left: 24px; font-size: 12px; letter-spacing: 0.24em; top: auto; bottom: 64px; transform: none; }
+  .experience[data-x-ui] .home-hud__title { transform: none; }
+  .home-hud__nav { right: 16px; gap: 8px; top: 46px; }
+  .home-hud__id { left: 16px; }
+}

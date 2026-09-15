@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useReducer } from "react";
+import { createContext, useContext, useMemo, useReducer } from "react";
 
 /**
  * EXPERIENCE STATE — one controlled value, no scattered booleans.
@@ -8,28 +8,42 @@ import { createContext, useCallback, useContext, useMemo, useReducer } from "rea
  * Only one state is active at a time, and navigation is refused while a
  * transition owns the screen. A transition is a STATE here, not a flag, which
  * is what makes that guarantee structural rather than a convention.
+ *
+ *   gate -> loading -> loading-to-home -> home
  */
-export type State = "gate" | "loading" | "home" | "to-work" | "work" | "to-about" | "about";
+export type State =
+  | "gate"
+  | "loading"
+  | "loading-to-home"
+  | "home"
+  | "to-work"
+  | "work"
+  | "to-about"
+  | "about";
 
 type Action =
   | { type: "BEGIN" }          // the audio choice has been made
   | { type: "SKIP_TO_HOME" }   // already seen this session
-  | { type: "READY" }
+  | { type: "READY" }          // the boot sequence finished
+  | { type: "ARRIVE" }         // the loading -> home transition finished
   | { type: "GO"; to: "home" | "work" | "about" }
   | { type: "REPLAY" };
 
-const TRANSITIONS: State[] = ["gate", "loading", "to-work", "to-about"];
+const TRANSITIONS: State[] = ["gate", "loading", "loading-to-home", "to-work", "to-about"];
 
 type Model = { state: State; runId: number };
 
 function reducer(m: Model, a: Action): Model {
   if (a.type === "BEGIN") return m.state === "gate" ? { ...m, state: "loading" } : m;
   if (a.type === "SKIP_TO_HOME") return m.state === "gate" ? { ...m, state: "home" } : m;
-  if (a.type === "READY") return m.state === "loading" ? { ...m, state: "home" } : m;
+  if (a.type === "READY") return m.state === "loading" ? { ...m, state: "loading-to-home" } : m;
+  if (a.type === "ARRIVE") return m.state === "loading-to-home" ? { ...m, state: "home" } : m;
 
   // Replaying restarts the boot. runId bumps so the sequence remounts cleanly
-  // rather than trying to resume half-finished timers.
-  if (a.type === "REPLAY") return { state: "gate", runId: m.runId + 1 };
+  // rather than trying to resume half-finished timers. Refused mid-transition.
+  if (a.type === "REPLAY") {
+    return m.state === "loading-to-home" ? m : { state: "gate", runId: m.runId + 1 };
+  }
 
   const state = m.state;
 
@@ -52,6 +66,7 @@ type Ctx = {
   begin: () => void;
   skipToHome: () => void;
   ready: () => void;
+  arrive: () => void;
   go: (to: "home" | "work" | "about") => void;
   replay: () => void;
 };
@@ -69,6 +84,7 @@ export function ExperienceProvider({ children }: { children: React.ReactNode }) 
       begin: () => dispatch({ type: "BEGIN" }),
       skipToHome: () => dispatch({ type: "SKIP_TO_HOME" }),
       ready: () => dispatch({ type: "READY" }),
+      arrive: () => dispatch({ type: "ARRIVE" }),
       go: (to) => dispatch({ type: "GO", to }),
       replay: () => dispatch({ type: "REPLAY" }),
     }),

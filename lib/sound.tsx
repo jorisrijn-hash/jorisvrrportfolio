@@ -35,7 +35,14 @@ export type Cue =
   | "state"    // the experience changes state
   | "toggle"   // sound on/off
   | "scan"     // a boot phase ticks over
-  | "arrive";  // the boot sequence resolves
+  | "arrive"   // the boot sequence resolves
+  // loading -> home. Non-musical, and quieter than the boot: effective volume
+  // (VOLUME x gain) sits between 0.15 and 0.21.
+  | "lock"     // the loading object locks
+  | "sweep"    // its geometry separates
+  | "form"     // the composition forms
+  | "resolve"  // the interface resolves
+  | "land";    // arrival in home
 
 type CueDef = {
   /** cuelume recipe name */
@@ -57,6 +64,11 @@ const CUES: Record<Cue, CueDef> = {
   toggle: { recipe: "toggle",  gain: 0.80, limit: 90 },
   scan:   { recipe: "scan",    gain: 0.42, limit: 150 },
   arrive: { recipe: "arrival", gain: 0.85, limit: 400 },
+  lock:    { recipe: "press",   gain: 0.62, limit: 1500 },
+  sweep:   { recipe: "scan",    gain: 0.72, limit: 1500 },
+  form:    { recipe: "droplet", gain: 0.6,  limit: 1500 },
+  resolve: { recipe: "tick",    gain: 0.55, limit: 1500 },
+  land:    { recipe: "arrival", gain: 0.7,  limit: 1500 },
 };
 
 /** Master. Interface feedback sits well under the content (§25). */
