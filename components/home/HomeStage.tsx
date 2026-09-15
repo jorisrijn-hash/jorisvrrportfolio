@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { IDLE_LOOP, XFER, XFER_CUES } from "@/content/transition";
 import { ABOUT_IN, ABOUT_OUT } from "@/content/about";
+import { WORK_IN, WORK_OUT } from "@/content/work";
 import { OBJECT_COUNT, createScene, type DrawFace } from "@/lib/sculpture/scene";
 import { inOut, seg } from "@/lib/sculpture/math";
 import { addTick } from "@/lib/ticker";
@@ -28,7 +29,7 @@ const CONTROL = "button, a[href], [role='button'], input, [data-cursor], .about_
 /** Glitch timing for the fake crash, seconds. */
 const CRASH_RAMP = 1.1;
 
-export type StageMode = "home" | "to-about" | "about" | "to-home";
+export type StageMode = "home" | "to-about" | "about" | "to-home" | "home-to-work" | "work" | "work-to-home";
 
 type Slot = { el: SVGPathElement; d: string; g: number; fa: number; sa: number };
 
@@ -167,9 +168,9 @@ export function HomeStage({
     let lastOpacity = -1;
     const setAttr = (el: Element | null, name: string, v: string) => el?.setAttribute(name, v);
 
-    const draw = (t: number, loop: number, glitch: number | null, collapse: number) => {
+    const draw = (t: number, loop: number, glitch: number | null, collapse: number, work: number) => {
       const f = evaluate({
-        t, loop, fit, hover, collapse,
+        t, loop, fit, hover, collapse, work,
         tiltX: tilt.x, tiltY: tilt.y, shiftX: tilt.sx, shiftY: tilt.sy,
       });
       faces = f.faces;
@@ -245,7 +246,7 @@ export function HomeStage({
     };
 
     if (still) {
-      const redraw = () => draw(XFER.end, 0, null, 0);
+      const redraw = () => draw(XFER.end, 0, null, 0, 0);
       redraw();
       arrive.current();
       window.addEventListener("resize", redraw);
@@ -274,7 +275,7 @@ export function HomeStage({
           crashAt = now;
           setHovered(-1);
         }
-        draw(XFER.end, loop, (now - crashAt) / 1000, 0);
+        draw(XFER.end, loop, (now - crashAt) / 1000, 0, 0);
         return;
       }
 
@@ -308,6 +309,12 @@ export function HomeStage({
       if (m === "to-about") collapse = inOut(seg(tm, ABOUT_IN.collapse[0], ABOUT_IN.collapse[1]));
       else if (m === "about") collapse = 1;
       else if (m === "to-home") collapse = 1 - inOut(seg(tm, ABOUT_OUT.collapse[0], ABOUT_OUT.collapse[1]));
+
+      // Featured work: the formation clock, and the same clock run backward.
+      let work = 0;
+      if (m === "home-to-work") work = Math.min(WORK_IN.end, tm);
+      else if (m === "work") work = WORK_IN.end;
+      else if (m === "work-to-home") work = Math.max(0, WORK_OUT.from - tm * WORK_OUT.rate);
       const interactive = m === "home";
 
       let e = 0;
@@ -365,7 +372,7 @@ export function HomeStage({
       }
       if (gone) return;
 
-      draw(Math.min(t, XFER.end), loop, null, collapse);
+      draw(Math.min(t, XFER.end), loop, null, collapse, work);
     };
 
     const stop = addTick(frame);

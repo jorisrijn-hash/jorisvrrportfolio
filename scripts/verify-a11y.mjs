@@ -115,6 +115,40 @@ const seen  = () => { try { sessionStorage.setItem("jvr.booted", "1"); } catch {
   await p.context().close();
 }
 
+// 3c. FEATURED WORK — home -> work -> home
+{
+  const p = await (await b.newContext({ viewport:{width:1920,height:950} })).newPage();
+  await p.addInitScript(seen);
+  await p.goto(base, { waitUntil:"networkidle" });
+  await p.waitForTimeout(900);
+  await p.getByRole("button", { name: "[Work]" }).click();
+  await p.waitForTimeout(300);
+  pass("work: transition state", (await p.getAttribute(".experience","data-state")) === "home-to-work");
+  pass("work: about refused mid-transition", await p.getByRole("button", { name: "[About]" }).isDisabled());
+  pass("work: surface assembling from 216 cells", (await p.locator(".work-cell").count()) === 216
+       && (await p.getAttribute(".work","data-form")) !== null);
+  pass("work: not yet settled", (await p.getAttribute(".work","data-solid")) === null);
+  await p.waitForTimeout(3100);
+  pass("work: arrives only once resolved", (await p.getAttribute(".experience","data-state")) === "work"
+       && (await p.getAttribute(".work","data-solid")) !== null && (await p.getAttribute(".work","data-ui")) !== null);
+  pass("work: media inside the surface", await p.locator(".work-media img").isVisible());
+  pass("work: project heading", (await p.getByRole("heading", { level: 1 }).count()) === 1);
+  const box = await p.locator(".work-media").boundingBox();
+  await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 4 });
+  await p.waitForTimeout(300);
+  pass("work: cursor turns to VIEW over media", (await p.getAttribute(".cursor","data-state")) === "view");
+  pass("work: about refused in work", await p.getByRole("button", { name: "[About]" }).isDisabled());
+  await p.getByRole("button", { name: "[Home]" }).click();
+  await p.waitForTimeout(300);
+  pass("work: return transition", (await p.getAttribute(".experience","data-state")) === "work-to-home");
+  await p.waitForTimeout(1700);
+  pass("work: back in home", (await p.getAttribute(".experience","data-state")) === "home"
+       && (await p.locator(".work").count()) === 0
+       && (await p.locator(".sculpture").count()) === 1
+       && (await p.getAttribute(".experience","data-x-work")) === null);
+  await p.context().close();
+}
+
 // 4. REDUCED MOTION
 {
   const p = await (await b.newContext({ viewport:{width:1920,height:950}, reducedMotion:"reduce" })).newPage();

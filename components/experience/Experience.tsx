@@ -14,6 +14,7 @@ import { HomeStage, type StageMode } from "@/components/home/HomeStage";
 import { HomeHud } from "@/components/home/HomeHud";
 import { CrashSequence } from "@/components/home/CrashSequence";
 import { AboutStage } from "@/components/about/AboutStage";
+import { WorkStage } from "@/components/work/WorkStage";
 
 const SESSION_KEY = "jvr.booted";
 
@@ -39,15 +40,16 @@ function Stage() {
     if (shouldSkip) skipToHome();
   }, [state, seen, reduced, runId, skipToHome]);
 
-  // Home, and everything staged over it (the crash, About), keep HomeStage
-  // mounted so its clock carries straight through.
+  // Home, and everything staged over it (the crash, About, Work), keep
+  // HomeStage mounted so its clock carries straight through.
   // Keys are namespaced per component: HomeStage and CrashSequence are
   // siblings during the crash, and sharing a bare runId key made React lose
   // track of HomeStage — it was never unmounted and its frozen drawing stayed
   // on screen under the next run.
   const inAbout = state === "to-about" || state === "about" || state === "to-home";
-  const atHome = state === "loading-to-home" || state === "home" || state === "crash" || inAbout;
-  const mode: StageMode = inAbout ? (state as StageMode) : "home";
+  const inWork = state === "home-to-work" || state === "work" || state === "work-to-home";
+  const atHome = state === "loading-to-home" || state === "home" || state === "crash" || inAbout || inWork;
+  const mode: StageMode = inAbout || inWork ? (state as StageMode) : "home";
 
   return (
     <div className="experience" data-state={state}>
@@ -57,7 +59,7 @@ function Stage() {
 
       {state === "loading" ? <BootSequence key={`boot-${runId}`} onDone={ready} /> : null}
 
-      {/* Same element for loading-to-home, home, crash and About, so the
+      {/* Same element across home and everything staged over it, so the
           timeline carries straight on without remounting. */}
       {atHome ? (
         <HomeStage
@@ -77,6 +79,15 @@ function Stage() {
           still={still}
           onArrive={arrive}
           onClose={() => go("home")}
+        />
+      ) : null}
+
+      {inWork ? (
+        <WorkStage
+          key={`work-${runId}`}
+          leaving={state === "work-to-home"}
+          still={still}
+          onArrive={arrive}
         />
       ) : null}
 

@@ -1,4 +1,5 @@
 import { IDLE_LOOP, XFER } from "@/content/transition";
+import { PLANE, WORK_CLUSTER, WORK_CORE, WORK_CORE_SCALE, WORK_IN, lockTime } from "@/content/work";
 import {
   type M3, type Q, type V3,
   Q_ID, clamp01, deg, inOut, lerp, m3Apply, qAxis, qEuler, qFromAxes, qMul, qSlerp, qToM3,
@@ -133,6 +134,19 @@ const ORBIT_R = 1000;
 const ORBIT_C: V3 = [40, -20, 500];
 const ORBIT_Q = qMul(qAxis(0, 0, 1, deg(8)), qAxis(1, 0, 0, deg(-72)));
 const ORBIT_CUBE = 16;
+
+/* ------------------------------------------------------ the work surface */
+
+// The featured-work media plane in scene space. Ring cube i lands in cell i and
+// orbit cube j in cell 68 + j (row-major), which WorkStage mirrors exactly.
+const PLANE_YAW = deg(PLANE.yaw);
+const PLANE_Q = qAxis(0, 1, 0, -PLANE_YAW);   // local x -> (cos, 0, sin): right edge away
+const CELL_W = PLANE.w / PLANE.cols;
+const CELL_H = PLANE.h / PLANE.rows;
+const CELL_CENTRES: V3[] = Array.from({ length: PLANE.cols * PLANE.rows }, (_, k) => {
+  const u = (k % PLANE.cols + 0.5) * CELL_W;
+  return [PLANE.x + Math.cos(PLANE_YAW) * u, PLANE.y + (Math.floor(k / PLANE.cols) + 0.5) * CELL_H, Math.sin(PLANE_YAW) * u];
+});
 
 /* ------------------------------------------------------ object identities */
 
@@ -314,6 +328,8 @@ export type Pose = {
   fit: number;
   /** 0 = home, 1 = folded into the centre (About is open) */
   collapse: number;
+  /** seconds along the home -> work formation; 0 = home */
+  work: number;
 };
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
@@ -331,6 +347,37 @@ export function createScene() {
 
   return function evaluate(pose: Pose): Frame {
     const { t, loop, hover } = pose;
+
+    // ---- featured work ------------------------------------------------------
+    // The cluster releases and gathers top-right; ring and orbit cubes fly to
+    // their cells, flatten into tiles, and hand over at their lock times.
+    const wt = pose.work;
+    const cm = inOut(seg(wt, WORK_IN.release[0], WORK_IN.release[1]));
+    const gather = (p: V3, s: V3) => {
+      if (cm <= 0) return;
+      p[0] = lerp(p[0], p[0] * WORK_CLUSTER.spread + WORK_CLUSTER.x, cm);
+      p[1] = lerp(p[1], p[1] * WORK_CLUSTER.spread + WORK_CLUSTER.y, cm);
+      p[2] = lerp(p[2], p[2] * WORK_CLUSTER.spread + WORK_CLUSTER.z, cm);
+      const k2 = lerp(1, WORK_CLUSTER.size, cm);
+      s[0] *= k2; s[1] *= k2; s[2] *= k2;
+    };
+    const toCell = (cell: number, p: V3, q: Q, s: V3, depart: number) => {
+      if (wt <= 0) return { p, q, s, ink: 0, fade: 1 };
+      const lock = lockTime(Math.floor(cell / PLANE.cols), cell % PLANE.cols);
+      const fade = 1 - seg(wt, lock + 0.02, lock + 0.14);
+      if (fade <= 0) return null;
+      const u = inOut(seg(wt, depart, lock));
+      const target = CELL_CENTRES[cell];
+      const lift = -140 * Math.sin(Math.PI * u);           // arcs toward the camera
+      const flat = smooth(seg(u, 0.55, 1));                // cube -> thin tile
+      return {
+        p: [lerp(p[0], target[0], u), lerp(p[1], target[1], u), lerp(p[2], target[2], u) + lift] as V3,
+        q: qSlerp(q, PLANE_Q, u),
+        s: [lerp(s[0], CELL_W * 0.92, flat), lerp(s[1], CELL_H * 0.92, flat), lerp(s[2], 12, flat)] as V3,
+        ink: smooth(seg(u, 0.35, 1)) * 0.9,
+        fade,
+      };
+    };
     const faces: DrawFace[] = [];
 
     // ---- phases -----------------------------------------------------------
@@ -364,7 +411,7 @@ export function createScene() {
     /** Transform, cull, shade and emit one convex mesh. */
     const emit = (
       id: number, mesh: Mesh, p: V3, q: Q, s: V3, group: M3,
-      style: { g0: number; m: number; fa: number; sa: number; strokeFace: number; bias?: number },
+      style: { g0: number; m: number; fa: number; sa: number; strokeFace: number; bias?: number; ink?: number },
     ) => {
       const h = id >= 0 ? hover[id] : 1;
       // Hover scales about the body's centre, not the mesh origin.
@@ -389,6 +436,7 @@ export function createScene() {
 
         let g = lerp(style.g0, shade(n), style.m);
         g = lerp(g, FOG_TONE, fog);
+        if (style.ink) g = lerp(g, 30, style.ink);
         let d = "";
         const pts: number[] = [];
         f.forEach((vi, j) => {
@@ -411,8 +459,9 @@ export function createScene() {
     // ---- core: ring r119 -> octagon ---------------------------------------
     {
       const breathe = 1 + 0.03 * Math.sin(2 * w);
-      const radius = lerp(R_RING, 88, expand) * breathe * hover[ID_CORE];
-      const centre = m3Apply(cluster, [0, 0, lerp(0, 30, expand)]);
+      const radius = lerp(R_RING, 88, expand) * breathe * hover[ID_CORE] * lerp(1, WORK_CORE_SCALE, cm);
+      const c0 = m3Apply(cluster, [0, 0, lerp(0, 30, expand)]);
+      const centre = cm > 0 ? vLerp(c0, WORK_CORE, cm) : c0;
       const [cx, cy] = project(centre);
       const scale = (F / Math.max(80, F + centre[2])) * k;
       let d = "";
@@ -472,6 +521,7 @@ export function createScene() {
       );
       const hs = part.home.s;
       const s: V3 = [lerp(part.start.s[0], hs, c), lerp(part.start.s[1], hs, c), lerp(part.start.s[2], hs, c)];
+      gather(p, s);
 
       emit(ID_TETRA + idx, TETRA, p, q, s, cluster, {
         g0: part.g0,
@@ -491,6 +541,7 @@ export function createScene() {
       const p = vLerp(part.start.p, part.home.p, c);
       // offset so the bob is exactly zero at loop = 0 — no jump on arrival
       p[1] += 5 * (Math.sin(w + part.delay * 20) - Math.sin(part.delay * 20));
+      gather(p, s);
       emit(ID_MEDIUM + idx, CUBE, p, qSlerp(Q_ID, part.home.q, c), s, cluster, {
         g0: 216, m: c, fa: 1, sa: 0, strokeFace: -2,
       });
@@ -510,7 +561,11 @@ export function createScene() {
       const p: V3 = [local[0] + centre[0], local[1] + centre[1], local[2] + centre[2]];
       const q = qMul(plane, qAxis(0, 0, 1, angle + Math.PI / 2));
       const s: V3 = [lerp(5, RING_CUBE, c), lerp(1, RING_CUBE, c), lerp(1, RING_CUBE, c)];
-      emit(ID_RING + i, CUBE, p, q, s, secondary, { g0: 216, m: c, fa: 1, sa: 0, strokeFace: -2 });
+      const to = toCell(i, p, q, s, 0.2 + 0.28 * (i / RING_COUNT));
+      if (!to) continue;
+      emit(ID_RING + i, CUBE, to.p, to.q, to.s, secondary, {
+        g0: 216, m: c, fa: to.fade, sa: 0, strokeFace: -2, ink: to.ink,
+      });
     }
 
     // ---- outer ring -> far orbit ------------------------------------------
@@ -532,8 +587,10 @@ export function createScene() {
       const p: V3 = [local[0] + centre[0], local[1] + centre[1], local[2] + centre[2]];
       const q = qMul(plane, qAxis(0, 0, 1, angle));
       const sz = lerp(0.01, ORBIT_CUBE, c);
-      emit(ID_ORBIT + j, CUBE, p, q, [sz, sz, sz], secondary, {
-        g0: 221, m: c, fa: lerp(0.28, 1, c), sa: 0, strokeFace: -2,
+      const to = toCell(RING_COUNT + j, p, q, [sz, sz, sz], 0.12 + 0.3 * (j / ORBIT_COUNT));
+      if (!to) continue;
+      emit(ID_ORBIT + j, CUBE, to.p, to.q, to.s, secondary, {
+        g0: 221, m: c, fa: lerp(0.28, 1, c) * to.fade, sa: 0, strokeFace: -2, ink: to.ink,
       });
     }
     const orbitC = inOut(seg(t, 1.2, 2.1));
@@ -581,7 +638,7 @@ export function createScene() {
       faces,
       orbit, orbitA: 0.28 * (1 - orbitC) * fade,
       stem, stemA: (1 - seg(t, 1.3, 2.1)) * fade,
-      links: linkPath, dots, linkA: linkA * fade,
+      links: linkPath, dots, linkA: linkA * fade * (1 - 0.5 * cm),
     };
   };
 }

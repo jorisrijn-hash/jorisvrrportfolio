@@ -6,6 +6,7 @@ import { useExperience } from "@/lib/experience";
 import { useSound } from "@/lib/sound";
 import { stopBootTrack } from "@/lib/bootAudio";
 import { preloadGlobe } from "@/components/about/AboutStage";
+import { preloadWork } from "@/components/work/WorkStage";
 
 /** "[USER]: 0X92-MAC_OS_X_10_15_7" — the visitor's own OS token, plus a byte of hash. */
 function userToken(ua: string) {
@@ -24,14 +25,17 @@ const pad = (n: number) => String(n).padStart(2, "0");
  * on and resolves from CSS when the timeline raises [data-x-ui] on the stage,
  * so revealing it costs no React render. The live values (clock, loop count)
  * are written straight to their text nodes.
- *
- * WORK is present but inert until its checkpoint.
  */
 export function HomeHud() {
   const { state, busy, crash, go } = useExperience();
   const { enabled, setEnabled, cue } = useSound();
   const on = enabled === true;
-  const at = state === "to-about" || state === "about" ? "about" : "home";
+  const at =
+    state === "to-about" || state === "about"
+      ? "about"
+      : state === "home-to-work" || state === "work"
+        ? "work"
+        : "home";
 
   const user = useRef<HTMLSpanElement>(null);
   const unix = useRef<HTMLParagraphElement>(null);
@@ -52,6 +56,12 @@ export function HomeHud() {
     const id = window.setInterval(tick, 1000);
     return () => window.clearInterval(id);
   }, []);
+
+  const goTo = (to: "home" | "work" | "about") => {
+    if (at === to) return;
+    cue("select");
+    go(to);
+  };
 
   return (
     <div className="home-hud">
@@ -124,11 +134,7 @@ export function HomeHud() {
           aria-current={at === "home" ? "page" : undefined}
           disabled={busy}
           onPointerEnter={() => cue("hover")}
-          onClick={() => {
-            if (at === "home") return;
-            cue("select");
-            go("home");
-          }}
+          onClick={() => goTo("home")}
         >
           [Home]
         </button>
@@ -137,8 +143,14 @@ export function HomeHud() {
           className="home-pill"
           data-reveal
           style={{ ["--d" as string]: "200ms" }}
-          aria-disabled="true"
-          onPointerEnter={() => cue("hover")}
+          aria-current={at === "work" ? "page" : undefined}
+          disabled={busy || at === "about"}
+          onPointerEnter={() => {
+            cue("hover");
+            preloadWork();
+          }}
+          onFocus={preloadWork}
+          onClick={() => goTo("work")}
         >
           [Work]
         </button>
@@ -148,17 +160,13 @@ export function HomeHud() {
           data-reveal
           style={{ ["--d" as string]: "240ms" }}
           aria-current={at === "about" ? "page" : undefined}
-          disabled={busy}
+          disabled={busy || at === "work"}
           onPointerEnter={() => {
             cue("hover");
             void preloadGlobe();
           }}
           onFocus={() => void preloadGlobe()}
-          onClick={() => {
-            if (at === "about") return;
-            cue("select");
-            go("about");
-          }}
+          onClick={() => goTo("about")}
         >
           [About]
         </button>

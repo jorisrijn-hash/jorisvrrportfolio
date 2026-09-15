@@ -99,4 +99,24 @@ async function page(init) {
   await ctx.close();
 }
 
+// 4. home -> featured work, then the settled Work state
+{
+  const { ctx, p, cdp } = await page(() => {
+    try { sessionStorage.setItem("jvr.booted", "1"); } catch {}
+  });
+  await p.goto(base, { waitUntil: "networkidle" });
+  await p.waitForTimeout(2000);
+  await p.getByRole("button", { name: "[Work]" }).hover();
+  await p.waitForTimeout(400);
+  await p.getByRole("button", { name: "[Work]" }).click();
+  let m0 = await metrics(cdp);
+  let f = await sample(p, 185);
+  report("HOME-TO-WORK", f, m0, await metrics(cdp));
+  await p.waitForTimeout(600);
+  m0 = await metrics(cdp);
+  f = await sample(p, 400);
+  report("WORK", f, m0, await metrics(cdp));
+  await ctx.close();
+}
+
 await b.close();

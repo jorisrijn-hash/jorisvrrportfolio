@@ -43,7 +43,14 @@ export type Cue =
   | "form"     // the composition forms
   | "resolve"  // the interface resolves
   | "land"     // arrival in home
-  | "crash";   // [REBUILD] — the fake crash
+  | "crash"    // [REBUILD] — the fake crash
+  // home -> featured work
+  | "release"  // geometry unlocks
+  | "align"    // planes align
+  | "row"      // first row of the surface locks
+  | "snap"     // the media frame locks
+  | "bloom"    // media resolves
+  | "settle";  // work state settles
 
 type CueDef = {
   /** cuelume recipe name */
@@ -71,6 +78,12 @@ const CUES: Record<Cue, CueDef> = {
   resolve: { recipe: "tick",    gain: 0.55, limit: 1500 },
   land:    { recipe: "arrival", gain: 0.7,  limit: 1500 },
   crash:   { recipe: "error",   gain: 0.8,  limit: 1500 },
+  release: { recipe: "release", gain: 0.55, limit: 1200 },
+  align:   { recipe: "whisper", gain: 0.7,  limit: 1200 },
+  row:     { recipe: "tick",    gain: 0.3,  limit: 1200 },
+  snap:    { recipe: "toggle",  gain: 0.78, limit: 1200 },
+  bloom:   { recipe: "bloom",   gain: 0.5,  limit: 1200 },
+  settle:  { recipe: "tick",    gain: 0.48, limit: 1200 },
 };
 
 /** Master. Interface feedback sits well under the content (§25). */

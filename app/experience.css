@@ -1220,3 +1220,305 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
 @media (prefers-reduced-motion: reduce) {
   .about__panel, .about__inner > *, .about__label { transition: none; }
 }
+
+/* =========================================================================
+   FEATURED WORK — the media surface (maintofeaturedwork.mp4)
+   One CSS-3D plane under the sculpture's camera: perspective 1600px from the
+   viewport centre, scaled by the same --fit. 840x537 turned 20.1deg away,
+   divided into the 18x12 cells the sculpture's cubes fly into.
+   ========================================================================= */
+
+.experience[data-x-work] .home-hud [data-home-only] { opacity: 0 !important; pointer-events: none !important; }
+
+.work { position: absolute; inset: 0; z-index: 6; pointer-events: none; --fit: 1; }
+
+.work-3d {
+  position: absolute;
+  inset: 0;
+  perspective: 1600px;
+  perspective-origin: 50% 49.5%;
+  transform: scale(var(--fit));
+  transform-origin: 50% 49.5%;
+}
+
+.work-origin { position: absolute; left: 50%; top: 49.5%; width: 0; height: 0; transform-style: preserve-3d; }
+
+.work-plane {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 840px;
+  height: 537px;
+  transform-origin: 0 0;
+  transform: translate3d(-739px, -347px, 0) rotateY(20.1deg);
+  transform-style: preserve-3d;
+}
+
+/* Idle: a barely-there drift in depth once the surface is one plane. */
+.work[data-solid] .work-plane { animation: work-plane-drift 10s var(--ease-inout) infinite alternate; }
+@keyframes work-plane-drift {
+  from { transform: translate3d(-739px, -347px, 0) rotateY(20.1deg); }
+  to   { transform: translate3d(-739px, -349px, -10px) rotateY(20.7deg); }
+}
+
+/* ---- wireframe the cells assemble over ---------------------------------- */
+.work-wire {
+  position: absolute;
+  left: -120px;
+  top: -90px;
+  width: 1080px;
+  height: 717px;
+  max-width: none;
+  overflow: visible;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 500ms var(--ease-out);
+}
+.work[data-wire] .work-wire { opacity: 1; }
+
+/* Glass the cells land on: the reference's unlocked rows read as pale,
+   translucent tiles with the media faintly behind them, not empty wireframe.
+   One layer for the whole surface. */
+.work-ghost {
+  position: absolute;
+  inset: 0;
+  background-image: var(--media);
+  background-size: 100% 100%;
+  opacity: 0;
+  transition: opacity 650ms var(--ease-out);
+}
+.work-ghost::after { content: ""; position: absolute; inset: 0; background: rgb(236 236 238 / 0.74); }
+.work[data-wire] .work-ghost { opacity: 0.6; }
+.work[data-seal] .work-ghost { opacity: 0; transition-duration: 400ms; }
+.work[data-solid] .work-ghost { display: none; }
+.work[data-seal] .work-wire { opacity: 0; transition-duration: 450ms; }
+
+/* ---- the cells ------------------------------------------------------------
+   Each is its slice of the media. It starts edge-on (a hinged tile seen as a
+   dark bar), locks at its --d, starts dark and turns translucent, then seals
+   with its neighbours. Cells fed by a cube start already flat: the cube IS
+   their edge-on phase. */
+.work-cells {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: repeat(18, 1fr);
+  grid-template-rows: repeat(12, 1fr);
+  transform-style: preserve-3d;
+}
+
+.work-cell {
+  position: relative;
+  display: block;
+  background-image: var(--media);
+  background-size: 840px 537px;
+  background-position: calc(var(--c) * -46.6667px) calc(var(--r) * -44.75px);
+  transform-origin: 50% 0;
+  transform: rotateX(-35deg) scale(0.955);
+  opacity: 0;
+  backface-visibility: hidden;
+  transition:
+    transform 460ms var(--ease-out) var(--d),
+    opacity 140ms linear var(--d);
+}
+.work-cell[data-fed] { transform: scale(0.955); }
+
+.work-cell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border: 1px solid rgb(255 255 255 / 0.065);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.18);
+  background: linear-gradient(to top right, transparent calc(50% - 0.6px), rgb(255 255 255 / 0.06) 50%, transparent calc(50% + 0.6px));
+  transition: opacity 360ms var(--ease-out);
+}
+
+.work-cell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #141416;
+  opacity: 0.94;
+  transition: opacity 760ms var(--ease-inout) calc(var(--d) + 200ms);
+}
+
+.work[data-form] .work-cell { transform: scale(0.955); opacity: 1; }
+.work[data-form] .work-cell::after { opacity: 0.22; }
+
+/* The frame locks: seams close, lines and tint go. */
+.work[data-seal] .work-cell { transform: scale(1.002); transition: transform 300ms var(--ease-out) 0ms, opacity 0ms; }
+.work[data-seal] .work-cell::before { opacity: 0; }
+.work[data-seal] .work-cell::after { opacity: 0; transition: opacity 420ms var(--ease-out) 0ms; }
+.work[data-glitch] .work-cell[data-g] { transform: translateX(-9px) scale(1.002); transition: none; }
+
+/* Hand over to one plane (identical pixels) so idle costs one layer, not 216. */
+.work[data-solid] .work-cells,
+.work[data-solid] .work-wire { display: none; }
+
+.work-media { position: absolute; inset: 0; margin: 0; pointer-events: auto; opacity: 0; }
+.work-media img,
+.work-media video { width: 100%; height: 100%; display: block; max-width: none; object-fit: cover; user-select: none; -webkit-user-drag: none; }
+.work[data-solid] .work-media { opacity: 1; }
+
+/* Leaving: tint returns and the surface folds away, bottom rows first, each
+   cell just before its cube reappears. */
+.work[data-leaving] .work-cell {
+  transform: rotateX(-35deg) scale(0.955);
+  opacity: 0;
+  transition:
+    transform 380ms var(--ease-in) var(--o),
+    opacity 160ms linear calc(var(--o) + 220ms);
+}
+.work[data-leaving] .work-cell::before { opacity: 0.8; transition-delay: 0ms; }
+.work[data-leaving] .work-cell::after { opacity: 0.9; transition: opacity 220ms var(--ease-out) 0ms; }
+
+/* ---- echo tiles: the media, tilted in the environment -------------------- */
+.work-echo { position: absolute; left: 0; top: 0; transform-style: preserve-3d; opacity: 0; transition: opacity 900ms var(--ease-out); }
+.work-echo > i {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background-image: var(--media);
+  background-size: cover;
+  background-position: center;
+  animation: work-echo-float 9s var(--ease-inout) infinite alternate;
+}
+.work-echo[data-e="a"] { width: 210px; height: 250px; transform: translate3d(-975px, 185px, -40px) rotateY(-26deg) rotateZ(-5deg); }
+.work-echo[data-e="b"] { width: 104px; height: 136px; transform: translate3d(208px, -462px, 60px) rotateY(34deg) rotateZ(3deg); }
+.work-echo[data-e="b"] > i { animation-duration: 7s; animation-direction: alternate-reverse; background-position: 70% 30%; }
+@keyframes work-echo-float { to { transform: translate3d(0, -8px, 0); } }
+.work[data-echo] .work-echo { opacity: 0.42; }
+.work[data-leaving] .work-echo { opacity: 0; transition-duration: 300ms; }
+
+/* ---- labels ---------------------------------------------------------------- */
+.work-labels { position: absolute; left: 50%; top: 49.5%; width: 0; height: 0; transform: scale(var(--fit)); transform-origin: 0 0; }
+.work-label {
+  position: absolute;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #9a9a9a;
+  opacity: 0;
+  transition: opacity 300ms var(--ease-out);
+}
+.work-label[data-l="link"] { left: 20px; top: -254px; }
+.work-label[data-l="drv"] { left: -157px; top: 256px; }
+.work[data-link] .work-label[data-l="link"] { opacity: 1; }
+.work[data-seal] .work-label[data-l="link"] { opacity: 0; }
+.work[data-echo] .work-label[data-l="drv"] { opacity: 0.8; }
+.work[data-leaving] .work-label { opacity: 0; }
+
+/* ---- rest-state information -------------------------------------------------
+   Measured column: x 1420..1858, eyebrow at y252. Sparse on purpose: index,
+   title, discipline/year/status, the project index, and the foot. */
+.work-info {
+  position: absolute;
+  right: 62px;
+  top: calc(49.5% - 218px);
+  width: 438px;
+  pointer-events: auto;
+}
+
+.work-info > *,
+.work-foot > * {
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 460ms var(--ease-out) var(--d, 0ms),
+    transform 620ms var(--ease-out) var(--d, 0ms);
+}
+.work[data-ui] .work-info > *,
+.work[data-ui] .work-foot > * { opacity: 1; transform: none; }
+.work[data-leaving] .work-info > *,
+.work[data-leaving] .work-foot > * { opacity: 0; transition-duration: 220ms; transition-delay: 0ms; }
+
+.work-info__eyebrow {
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #9a9a9a;
+}
+
+.work-info__heading { margin-top: 18px; display: flex; align-items: baseline; gap: 14px; font-weight: inherit; }
+.work-info__index { font-family: var(--font-mono); font-size: 22px; letter-spacing: 0.08em; color: #8d8d8d; }
+.work-info__slash { font-family: var(--font-mono); font-size: 20px; color: #a6a6a6; }
+.work-info__title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 34px;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  color: #333333;
+}
+
+.work-info__meta { margin: 26px 0 0; display: grid; gap: 9px; }
+.work-info__meta > div { display: grid; grid-template-columns: 96px 1fr; align-items: baseline; }
+.work-info__meta dt { font-family: var(--font-mono); font-size: 8.5px; letter-spacing: 0.24em; text-transform: uppercase; color: #a0a0a0; }
+.work-info__meta dd { margin: 0; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: #585858; }
+
+.work-info__indexlabel {
+  margin-top: 104px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: #a8a8a8;
+}
+
+.work-info__thumbs { margin: 10px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.work-info__thumbs li { position: relative; aspect-ratio: 1.564; overflow: hidden; border-radius: 3px; opacity: 0.5; }
+.work-info__thumbs li[data-current] { opacity: 1; outline: 1px solid rgb(0 0 0 / 0.32); outline-offset: 3px; }
+.work-info__thumbs img { width: 100%; height: 100%; display: block; object-fit: cover; }
+
+.work-foot { position: absolute; right: 54px; bottom: 25px; width: 440px; pointer-events: auto; }
+.work-foot__row { display: flex; justify-content: space-between; align-items: center; }
+.work-foot__row + .work-foot__segments { margin-top: 10px; }
+.work-foot__segments + .work-foot__row { margin-top: 16px; }
+.work-foot__label,
+.work-foot__name { font-family: var(--font-mono); font-size: 8.5px; letter-spacing: 0.28em; text-transform: uppercase; color: #9c9c9c; }
+.work-foot__count { font-family: var(--font-mono); font-size: 14px; letter-spacing: 0.12em; color: #7a7a7a; }
+
+.work-foot__segments { display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 6px; }
+.work-foot__segments i { position: relative; height: 3px; border-radius: 2px; background: rgb(0 0 0 / 0.1); overflow: hidden; }
+.work-foot__segments i[data-current]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 0.45);
+  transform-origin: 0 50%;
+  animation: work-seg 2.8s var(--ease-inout) infinite alternate;
+}
+@keyframes work-seg { from { transform: scaleX(0.4); } to { transform: scaleX(1); } }
+
+.work-foot__ctl { display: flex; gap: 10px; }
+.work-ctl {
+  width: 36px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgb(0 0 0 / 0.1);
+  background: rgb(255 255 255 / 0.35);
+  border-radius: 4px;
+  color: #8a8a8a;
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+.work-ctl[aria-disabled="true"] { cursor: default; opacity: 0.6; }
+
+/* ---- cursor: VIEW over media, NEXT / PREV on the controls ---------------- */
+.cursor[data-state="view"] .cursor__mark { transform: scale(0.5); opacity: 0.65; }
+.cursor[data-state="view"] .cursor__ring { opacity: 0.8; transform: scale(4.6); }
+.cursor[data-state="next"] .cursor__mark { transform: translate(4px, 0) scale(0.8); }
+.cursor[data-state="prev"] .cursor__mark { transform: rotate(180deg) scale(0.8); transform-origin: 6px 6px; }
+.cursor[data-state="next"] .cursor__ring,
+.cursor[data-state="prev"] .cursor__ring { opacity: 0.7; transform: scale(3.2); }
+
+@media (prefers-reduced-motion: reduce) {
+  .work-cell, .work-cell::before, .work-cell::after, .work-info > *, .work-foot > *, .work-echo, .work-label { transition: none; }
+  .work[data-solid] .work-plane, .work-echo > i, .work-foot__segments i[data-current]::after { animation: none; }
+}
