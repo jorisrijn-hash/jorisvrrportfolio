@@ -71,8 +71,6 @@ const TETRA: Mesh = (() => {
   return { verts, faces: orient(verts, [[0, 1, 2], [0, 1, 3], [1, 2, 3], [2, 0, 3]]) };
 })();
 const TETRA_BASE = TETRA.faces.findIndex((f) => !f.includes(3));
-// Scale z so that sz = edge gives a regular tetrahedron.
-TETRA.verts[3] = [0, 0, 1 * TETRA_H];
 
 const CUBE: Mesh = (() => {
   const verts: V3[] = [];
@@ -135,6 +133,16 @@ const ORBIT_R = 1000;
 const ORBIT_C: V3 = [40, -20, 500];
 const ORBIT_Q = qMul(qAxis(0, 0, 1, deg(8)), qAxis(1, 0, 0, deg(-72)));
 const ORBIT_CUBE = 16;
+
+/* ------------------------------------------------------ object identities */
+
+// Every separate asset has a stable id, so it can be hovered and scaled.
+const ID_CORE = 0;
+const ID_TETRA = 1;                                    // 10 tetrahedra
+const ID_MEDIUM = ID_TETRA + TETRA_HOMES.length + 2;   // 6 medium cubes
+const ID_RING = ID_MEDIUM + MEDIUM_HOMES.length;       // 68 ring cubes
+const ID_ORBIT = ID_RING + RING_COUNT;                 // 48 orbit cubes
+export const OBJECT_COUNT = ID_ORBIT + ORBIT_COUNT;
 
 /* ---------------------------------------------------------------- the build */
 
@@ -269,7 +277,17 @@ function buildLinks(): Links {
 
 /* ------------------------------------------------------------ frame output */
 
-export type DrawFace = { z: number; d: string; g: number; fa: number; sa: number };
+export type DrawFace = {
+  /** object id, or -1 for parts that cannot be hovered */
+  id: number;
+  z: number;
+  d: string;
+  /** projected polygon, flat [x0, y0, x1, y1, ...] relative to the origin */
+  pts: number[];
+  g: number;
+  fa: number;
+  sa: number;
+};
 
 export type Frame = {
   opacity: number;
@@ -287,6 +305,11 @@ export type Pose = {
   /** cursor influence, radians */
   tiltX: number;
   tiltY: number;
+  /** cursor parallax, world units — nearer geometry travels further */
+  shiftX: number;
+  shiftY: number;
+  /** per-object hover scale, indexed by id */
+  hover: Float32Array;
   /** viewport fit — 1 at the 1920x950 reference */
   fit: number;
 };
@@ -305,7 +328,7 @@ export function createScene() {
   const objM = new Float64Array(9) as M3;
 
   return function evaluate(pose: Pose): Frame {
-    const { t, loop } = pose;
+    const { t, loop, hover } = pose;
     const faces: DrawFace[] = [];
 
     // ---- phases -----------------------------------------------------------
@@ -323,7 +346,7 @@ export function createScene() {
 
     const project = (p: V3): [number, number] => {
       const s = (F / Math.max(80, F + p[2])) * k;
-      return [p[0] * s, p[1] * s];
+      return [(p[0] + pose.shiftX) * s, (p[1] + pose.shiftY) * s];
     };
 
     const shade = (n: V3) => {
@@ -334,12 +357,15 @@ export function createScene() {
 
     /** Transform, cull, shade and emit one convex mesh. */
     const emit = (
-      mesh: Mesh, p: V3, q: Q, s: V3, group: M3,
+      id: number, mesh: Mesh, p: V3, q: Q, s: V3, group: M3,
       style: { g0: number; m: number; fa: number; sa: number; strokeFace: number; bias?: number },
     ) => {
+      const h = id >= 0 ? hover[id] : 1;
+      // Hover scales about the body's centre, not the mesh origin.
+      const cz = mesh === TETRA ? (TETRA_H * s[2]) / 4 : 0;
       qToM3(q, objM);
       const W = mesh.verts.map((v) => {
-        const r = m3Apply(objM, [v[0] * s[0], v[1] * s[1], v[2] * s[2]]);
+        const r = m3Apply(objM, [v[0] * s[0] * h, v[1] * s[1] * h, (v[2] * s[2] - cz) * h + cz]);
         return m3Apply(group, [r[0] + p[0], r[1] + p[1], r[2] + p[2]]);
       });
       let zc = 0;
@@ -358,13 +384,17 @@ export function createScene() {
         let g = lerp(style.g0, shade(n), style.m);
         g = lerp(g, FOG_TONE, fog);
         let d = "";
+        const pts: number[] = [];
         f.forEach((vi, j) => {
           const [x, y] = project(W[vi]);
+          pts.push(x, y);
           d += (j ? "L" : "M") + r1(x) + " " + r1(y);
         });
         faces.push({
+          id,
           z: zc + (style.bias ?? 0),
           d: d + "Z",
+          pts,
           g,
           fa: style.fa * (1 - fog * 0.55) * (1 - near),
           sa: style.strokeFace === -1 || style.strokeFace === i ? style.sa : 0,
@@ -375,26 +405,30 @@ export function createScene() {
     // ---- core: ring r119 -> octagon ---------------------------------------
     {
       const breathe = 1 + 0.03 * Math.sin(2 * w);
-      const radius = lerp(R_RING, 88, expand) * breathe;
+      const radius = lerp(R_RING, 88, expand) * breathe * hover[ID_CORE];
       const centre = m3Apply(cluster, [0, 0, lerp(0, 30, expand)]);
       const [cx, cy] = project(centre);
       const scale = (F / Math.max(80, F + centre[2])) * k;
       let d = "";
+      const pts: number[] = [];
       for (let i = 0; i < 64; i++) {
         const th = (TAU * i) / 64;
         // octagon with flat edges top and bottom
         const local = (((th + Math.PI / 8) % (Math.PI / 4)) + Math.PI / 4) % (Math.PI / 4);
         const oct = Math.cos(Math.PI / 8) / Math.cos(local - Math.PI / 8);
         const r = radius * lerp(1, oct, transform) * scale;
-        d += (i ? "L" : "M") + r1(cx + r * Math.cos(th)) + " " + r1(cy + r * Math.sin(th));
+        const x = cx + r * Math.cos(th);
+        const y = cy + r * Math.sin(th);
+        pts.push(x, y);
+        d += (i ? "L" : "M") + r1(x) + " " + r1(y);
       }
-      faces.push({ z: centre[2] + 4, d: d + "Z", g: 251, fa: expand * 0.96, sa: 1 - expand });
+      faces.push({ id: ID_CORE, z: centre[2] + 4, d: d + "Z", pts, g: 251, fa: expand * 0.96, sa: 1 - expand });
     }
 
     // ---- diamond -> octahedron -> tetrahedra -------------------------------
     if (t < XFER.split) {
       const q = qSlerp(Q_ID, OCTA_TILT, transform);
-      emit({ verts: octaVerts(transform), faces: OCTA_FACES }, [0, 0, 0], q, [1, 1, 1], cluster, {
+      emit(-1, { verts: octaVerts(transform), faces: OCTA_FACES }, [0, 0, 0], q, [1, 1, 1], cluster, {
         g0: 216, m: transform, fa: transform, sa: 0, strokeFace: -2,
       });
       // The equator of the octahedron is the diamond — drawn as its outline
@@ -405,7 +439,7 @@ export function createScene() {
         const [x, y] = project(m3Apply(cluster, m3Apply(tmpM, v)));
         d += (i ? "L" : "M") + r1(x) + " " + r1(y);
       });
-      faces.push({ z: -200, d: d + "Z", g: 216, fa: 0, sa: 1 - transform });
+      faces.push({ id: -1, z: -200, d: d + "Z", pts: [], g: 216, fa: 0, sa: 1 - transform });
     }
 
     tetras.forEach((part, idx) => {
@@ -433,7 +467,7 @@ export function createScene() {
       const hs = part.home.s;
       const s: V3 = [lerp(part.start.s[0], hs, c), lerp(part.start.s[1], hs, c), lerp(part.start.s[2], hs, c)];
 
-      emit(TETRA, p, q, s, cluster, {
+      emit(ID_TETRA + idx, TETRA, p, q, s, cluster, {
         g0: part.g0,
         m: c,
         fa: lerp(part.fa0, 1, smooth(clamp01(c * 1.6))),
@@ -444,14 +478,16 @@ export function createScene() {
     });
 
     // ---- ticks -> medium cubes --------------------------------------------
-    medium.forEach((part) => {
+    medium.forEach((part, idx) => {
       const c = inOut(seg(t, XFER.expand[0] + part.delay, XFER.expand[1] + part.delay));
       const hs = part.home.s;
       const s: V3 = [lerp(part.start.s[0], hs, c), lerp(part.start.s[1], hs, c), lerp(part.start.s[2], hs, c)];
       const p = vLerp(part.start.p, part.home.p, c);
       // offset so the bob is exactly zero at loop = 0 — no jump on arrival
       p[1] += 5 * (Math.sin(w + part.delay * 20) - Math.sin(part.delay * 20));
-      emit(CUBE, p, qSlerp(Q_ID, part.home.q, c), s, cluster, { g0: 216, m: c, fa: 1, sa: 0, strokeFace: -2 });
+      emit(ID_MEDIUM + idx, CUBE, p, qSlerp(Q_ID, part.home.q, c), s, cluster, {
+        g0: 216, m: c, fa: 1, sa: 0, strokeFace: -2,
+      });
     });
 
     // ---- dashed ring -> cube ring -----------------------------------------
@@ -468,7 +504,7 @@ export function createScene() {
       const p: V3 = [local[0] + centre[0], local[1] + centre[1], local[2] + centre[2]];
       const q = qMul(plane, qAxis(0, 0, 1, angle + Math.PI / 2));
       const s: V3 = [lerp(5, RING_CUBE, c), lerp(1, RING_CUBE, c), lerp(1, RING_CUBE, c)];
-      emit(CUBE, p, q, s, secondary, { g0: 216, m: c, fa: 1, sa: 0, strokeFace: -2 });
+      emit(ID_RING + i, CUBE, p, q, s, secondary, { g0: 216, m: c, fa: 1, sa: 0, strokeFace: -2 });
     }
 
     // ---- outer ring -> far orbit ------------------------------------------
@@ -490,7 +526,9 @@ export function createScene() {
       const p: V3 = [local[0] + centre[0], local[1] + centre[1], local[2] + centre[2]];
       const q = qMul(plane, qAxis(0, 0, 1, angle));
       const sz = lerp(0.01, ORBIT_CUBE, c);
-      emit(CUBE, p, q, [sz, sz, sz], secondary, { g0: 221, m: c, fa: lerp(0.28, 1, c), sa: 0, strokeFace: -2 });
+      emit(ID_ORBIT + j, CUBE, p, q, [sz, sz, sz], secondary, {
+        g0: 221, m: c, fa: lerp(0.28, 1, c), sa: 0, strokeFace: -2,
+      });
     }
     const orbitC = inOut(seg(t, 1.2, 2.1));
     let orbit = "";

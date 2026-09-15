@@ -2,21 +2,46 @@
 
 import { useEffect, useRef, useState } from "react";
 import { IDLE_LOOP, XFER, XFER_CUES } from "@/content/transition";
-import { createScene } from "@/lib/sculpture/scene";
+import { OBJECT_COUNT, createScene, type DrawFace } from "@/lib/sculpture/scene";
 import { addTick } from "@/lib/ticker";
 import { useSound } from "@/lib/sound";
 
 const SVG = "http://www.w3.org/2000/svg";
 const GRAY = Array.from({ length: 256 }, (_, g) => `rgb(${g},${g},${g})`);
 const q50 = (v: number) => Math.round(v * 50) / 50;
+const r1 = (n: number) => Math.round(n * 10) / 10;
 
 /** Seconds over which the idle loop eases in from the transition's stillness. */
 const IDLE_RAMP = 2;
-/** Cursor influence: at most ±3° yaw, ±2° pitch. */
-const TILT_YAW = (3 * Math.PI) / 180;
-const TILT_PITCH = (2 * Math.PI) / 180;
+/** Cursor influence: rotation, and a depth parallax that moves near geometry most. */
+const TILT_YAW = (8 * Math.PI) / 180;
+const TILT_PITCH = (5 * Math.PI) / 180;
+const SHIFT_X = 26;
+const SHIFT_Y = 14;
+/** How far a hovered asset grows. */
+const HOVER_SCALE = 1.12;
+/** Controls take the pointer; the sculpture only reacts over open space. */
+const CONTROL = "button, a[href], [role='button'], input, [data-cursor]";
+
+/** Glitch timing for the fake crash, seconds. */
+const CRASH_RAMP = 1.1;
 
 type Slot = { el: SVGPathElement; d: string; g: number; fa: number; sa: number };
+
+const hash = (n: number) => {
+  const x = Math.sin(n) * 43758.5453;
+  return x - Math.floor(x);
+};
+
+function inside(pts: number[], x: number, y: number) {
+  let hit = false;
+  for (let i = 0, j = pts.length - 2; i < pts.length; j = i, i += 2) {
+    const yi = pts[i + 1];
+    const yj = pts[j + 1];
+    if (yi > y !== yj > y && x < ((pts[j] - pts[i]) * (y - yi)) / (yj - yi) + pts[i]) hit = !hit;
+  }
+  return hit;
+}
 
 /**
  * LOADING -> HOME, and the home it lands in.
@@ -28,6 +53,10 @@ type Slot = { el: SVGPathElement; d: string; g: number; fa: number; sa: number }
  *   · fires each sound event exactly once
  *   · reports arrival, which moves the state machine to `home`
  *
+ * In home it also hit-tests the pointer against the projected faces, so each
+ * separate asset can grow under the cursor, and on [REBUILD] it freezes and
+ * tears the drawing for the fake crash.
+ *
  * Nothing here causes a React render after mount.
  *
  *   intro = true   the full transition, then the idle loop
@@ -37,10 +66,12 @@ type Slot = { el: SVGPathElement; d: string; g: number; fa: number; sa: number }
 export function HomeStage({
   intro,
   still,
+  crashing,
   onArrive,
 }: {
   intro: boolean;
   still: boolean;
+  crashing: boolean;
   onArrive: () => void;
 }) {
   const svg = useRef<SVGSVGElement>(null);
@@ -55,13 +86,16 @@ export function HomeStage({
   // that must not restart the timeline.
   const [runIntro] = useState(intro && !still);
   const arrive = useRef(onArrive);
+  const crash = useRef(crashing);
   useEffect(() => { arrive.current = onArrive; }, [onArrive]);
+  useEffect(() => { crash.current = crashing; }, [crashing]);
 
   useEffect(() => {
     const root = svg.current;
     const group = faceGroup.current;
     const stage = root?.closest<HTMLElement>(".experience");
     if (!root || !group || !stage) return;
+    const html = document.documentElement;
 
     const evaluate = createScene();
     const slots: Slot[] = [];
@@ -86,19 +120,45 @@ export function HomeStage({
     measure();
     window.addEventListener("resize", measure);
 
-    // Cursor influence — targets only; the frame interpolates toward them.
-    const tilt = { x: 0, y: 0, tx: 0, ty: 0 };
+    // Pointer — targets only; the frame interpolates toward them.
+    const pointer = { x: 0, y: 0, present: false, overControl: false };
+    const tilt = { x: 0, y: 0, sx: 0, sy: 0 };
     const onMove = (e: PointerEvent) => {
-      tilt.ty = ((e.clientX / window.innerWidth) * 2 - 1) * TILT_YAW;
-      tilt.tx = -((e.clientY / window.innerHeight) * 2 - 1) * TILT_PITCH;
+      pointer.x = e.clientX;
+      pointer.y = e.clientY;
+      pointer.present = e.pointerType === "mouse" || e.pointerType === "pen";
+      pointer.overControl = !!(e.target as Element | null)?.closest?.(CONTROL);
     };
-    if (!still) window.addEventListener("pointermove", onMove, { passive: true });
+    const onLeave = () => { pointer.present = false; };
+    if (!still) {
+      window.addEventListener("pointermove", onMove, { passive: true });
+      html.addEventListener("mouseleave", onLeave);
+    }
+
+    const hover = new Float32Array(OBJECT_COUNT).fill(1);
+    let hovered = -1;
+    let faces: DrawFace[] = [];
+
+    const setHovered = (id: number) => {
+      if (id === hovered) return;
+      hovered = id;
+      if (id >= 0) {
+        cue("hover");
+        html.setAttribute("data-sculpt-hover", "");
+      } else {
+        html.removeAttribute("data-sculpt-hover");
+      }
+    };
 
     let lastOpacity = -1;
     const setAttr = (el: Element | null, name: string, v: string) => el?.setAttribute(name, v);
 
-    const draw = (t: number, loop: number) => {
-      const f = evaluate({ t, loop, tiltX: tilt.x, tiltY: tilt.y, fit });
+    const draw = (t: number, loop: number, glitch: number | null) => {
+      const f = evaluate({
+        t, loop, fit, hover,
+        tiltX: tilt.x, tiltY: tilt.y, shiftX: tilt.sx, shiftY: tilt.sy,
+      });
+      faces = f.faces;
 
       if (f.opacity !== lastOpacity) {
         lastOpacity = f.opacity;
@@ -112,6 +172,11 @@ export function HomeStage({
         slots.push({ el, d: "", g: -1, fa: -1, sa: 0 });
       }
 
+      // Crash tear: faces are sheared sideways in horizontal bands that change
+      // every 60ms, a few go dark, and the whole thing escalates.
+      const step = glitch === null ? 0 : Math.floor(glitch / 0.06);
+      const heat = glitch === null ? 0 : Math.min(1, glitch / CRASH_RAMP);
+
       for (let i = 0; i < slots.length; i++) {
         const s = slots[i];
         const face = f.faces[i];
@@ -119,13 +184,38 @@ export function HomeStage({
           if (s.d) { s.d = ""; s.el.setAttribute("d", ""); }
           continue;
         }
-        if (face.d !== s.d) { s.d = face.d; s.el.setAttribute("d", face.d); }
-        const g = Math.round(face.g);
+
+        let d = face.d;
+        let g = Math.round(face.g);
+        if (glitch !== null && face.pts.length) {
+          let cy = 0;
+          for (let j = 1; j < face.pts.length; j += 2) cy += face.pts[j];
+          cy /= face.pts.length / 2;
+          const band = Math.floor((cy + 2000) / 34);
+          const r = hash(band * 131.7 + step * 977.3);
+          if (r > 0.78 - 0.4 * heat) {
+            const dx = (hash(band * 7.1 + step * 13.9) - 0.5) * (30 + 220 * heat);
+            d = "";
+            for (let j = 0; j < face.pts.length; j += 2) {
+              d += (j ? "L" : "M") + r1(face.pts[j] + dx) + " " + r1(face.pts[j + 1]);
+            }
+            d += "Z";
+          }
+          if (hash(i * 3.3 + step * 51.1) > 0.97 - 0.05 * heat) g = 28;
+        }
+
+        if (d !== s.d) { s.d = d; s.el.setAttribute("d", d); }
         if (g !== s.g) { s.g = g; s.el.setAttribute("fill", GRAY[g]); }
         const fa = q50(face.fa);
         if (fa !== s.fa) { s.fa = fa; s.el.setAttribute("fill-opacity", String(fa)); }
         const sa = q50(face.sa);
         if (sa !== s.sa) { s.sa = sa; s.el.setAttribute("stroke-opacity", String(sa)); }
+      }
+
+      if (glitch !== null) {
+        const jx = (hash(step * 1.7) - 0.5) * 24 * heat;
+        const jy = (hash(step * 2.9) - 0.5) * 8 * heat;
+        root.style.transform = `translate(${r1(jx)}px, ${r1(jy)}px)`;
       }
 
       setAttr(orbitPath.current, "d", f.orbit);
@@ -141,7 +231,7 @@ export function HomeStage({
     };
 
     if (still) {
-      const redraw = () => draw(XFER.end, 0);
+      const redraw = () => draw(XFER.end, 0, null);
       redraw();
       arrive.current();
       window.addEventListener("resize", redraw);
@@ -156,8 +246,20 @@ export function HomeStage({
     let cueIndex = runIntro ? 0 : XFER_CUES.length;
     let arrivedAt: number | null = runIntro ? null : start;
     if (!runIntro) arrive.current();
+    let loop = 0;
+    let crashAt: number | null = null;
 
     const frame = (now: number, dt: number) => {
+      // The crash freezes time where it is and tears the last pose.
+      if (crash.current) {
+        if (crashAt === null) {
+          crashAt = now;
+          setHovered(-1);
+        }
+        draw(XFER.end, loop, (now - crashAt) / 1000);
+        return;
+      }
+
       const t = runIntro ? (now - start) / 1000 : XFER.end;
 
       // Stage attributes at their moments.
@@ -177,19 +279,45 @@ export function HomeStage({
         arrive.current();
       }
 
-      // Idle clock, eased in so the loop starts from rest: t²/2R, then linear.
-      let loop = 0;
       if (arrivedAt !== null) {
+        // Idle clock, eased in so the loop starts from rest: t²/2R, then linear.
         const e = (now - arrivedAt) / 1000;
         const tau = e < IDLE_RAMP ? (e * e) / (2 * IDLE_RAMP) : e - IDLE_RAMP / 2;
         loop = tau % IDLE_LOOP;
 
-        const a = 1 - Math.exp(-dt / 260);
-        tilt.x += (tilt.tx - tilt.x) * a;
-        tilt.y += (tilt.ty - tilt.y) * a;
+        // Cursor influence, from the viewport centre.
+        const nx = pointer.present ? (pointer.x / window.innerWidth) * 2 - 1 : 0;
+        const ny = pointer.present ? (pointer.y / window.innerHeight) * 2 - 1 : 0;
+        const a = 1 - Math.exp(-dt / 380);
+        tilt.y += (nx * TILT_YAW - tilt.y) * a;
+        tilt.x += (-ny * TILT_PITCH - tilt.x) * a;
+        tilt.sx += (nx * SHIFT_X - tilt.sx) * a;
+        tilt.sy += (ny * SHIFT_Y - tilt.sy) * a;
+
+        // Hover: the nearest face under the pointer names its asset.
+        let hit = -1;
+        if (pointer.present && !pointer.overControl) {
+          const px = pointer.x - window.innerWidth / 2;
+          const py = pointer.y - window.innerHeight * 0.495;
+          for (let i = faces.length - 1; i >= 0; i--) {
+            const fc = faces[i];
+            if (fc.id < 0 || fc.fa < 0.3 || !fc.pts.length) continue;
+            if (inside(fc.pts, px, py)) { hit = fc.id; break; }
+          }
+        }
+        setHovered(hit);
+
+        const h = 1 - Math.exp(-dt / 140);
+        for (let i = 0; i < OBJECT_COUNT; i++) {
+          const target = i === hovered ? HOVER_SCALE : 1;
+          if (hover[i] !== target) {
+            hover[i] += (target - hover[i]) * h;
+            if (Math.abs(target - hover[i]) < 0.001) hover[i] = target;
+          }
+        }
       }
 
-      draw(Math.min(t, XFER.end), loop);
+      draw(Math.min(t, XFER.end), loop, null);
     };
 
     const stop = addTick(frame);
@@ -197,6 +325,8 @@ export function HomeStage({
       stop();
       window.removeEventListener("resize", measure);
       window.removeEventListener("pointermove", onMove);
+      html.removeEventListener("mouseleave", onLeave);
+      html.removeAttribute("data-sculpt-hover");
       flags.forEach((n) => stage.removeAttribute(n));
     };
   }, [runIntro, still, cue]);

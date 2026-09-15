@@ -3,6 +3,7 @@
 import { RotateCw, Volume2, VolumeX } from "lucide-react";
 import { useExperience } from "@/lib/experience";
 import { useSound } from "@/lib/sound";
+import { stopBootTrack } from "@/lib/bootAudio";
 
 /**
  * The home interface — deliberately restrained: name, sound, rebuild, and the
@@ -10,10 +11,11 @@ import { useSound } from "@/lib/sound";
  * from CSS when the timeline raises [data-x-ui] on the stage, so revealing it
  * costs no React render.
  *
- * WORK and ABOUT are present but inert until their checkpoints.
+ * [REBUILD] fakes a crash and restarts the sequence. WORK and ABOUT are present
+ * but inert until their checkpoints.
  */
 export function HomeHud() {
-  const { busy, replay } = useExperience();
+  const { busy, crash } = useExperience();
   const { enabled, setEnabled, cue } = useSound();
   const on = enabled === true;
 
@@ -30,7 +32,10 @@ export function HomeHud() {
           onPointerEnter={() => cue("hover")}
           onClick={() => {
             setEnabled(!on);
-            if (!on) window.setTimeout(() => cue("toggle"), 60);
+            // The intro score plays on past the handover, so switching sound
+            // off here has to reach it too.
+            if (on) stopBootTrack();
+            else window.setTimeout(() => cue("toggle"), 60);
           }}
         >
           {on ? (
@@ -53,12 +58,9 @@ export function HomeHud() {
           data-reveal
           style={{ ["--d" as string]: "120ms" }}
           disabled={busy}
-          aria-label="Replay the boot sequence"
+          aria-label="Rebuild: restart the experience"
           onPointerEnter={() => cue("hover")}
-          onClick={() => {
-            cue("select");
-            replay();
-          }}
+          onClick={crash}
         >
           <RotateCw size={10} strokeWidth={1.8} aria-hidden="true" />
           <span>[Rebuild]</span>

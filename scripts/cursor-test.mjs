@@ -33,7 +33,7 @@ pass("moves by transform", /translate3d/.test(t1) && t1!==t2, t2);
 pass("becomes visible on move", (await p.getAttribute(".cursor","data-visible"))==="true");
 
 // hover state
-const btn = p.getByRole("button",{name:/replay the boot/i});
+const btn = p.getByRole("button",{name:/rebuild/i});
 const box = await btn.boundingBox();
 await p.mouse.move(box.x+box.width/2, box.y+box.height/2);
 await p.waitForTimeout(300);
@@ -56,7 +56,7 @@ console.log(`frame interval while idle: p50 ${s[Math.floor(s.length*0.5)].toFixe
 // transform while the <svg> was clamped to 0px wide and painted nothing.
 for (const [label, x, y] of [["off controls", 500, 300], ["over a control", null, null]]) {
   if (x === null) {
-    const bb = await p.getByRole("button", { name: /replay the boot/i }).boundingBox();
+    const bb = await p.getByRole("button", { name: /rebuild/i }).boundingBox();
     await p.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2, { steps: 5 });
   } else {
     await p.mouse.move(x, y, { steps: 5 });

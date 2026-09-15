@@ -105,9 +105,12 @@ export function BootSequence({ onDone }: { onDone: () => void }) {
     if (skip || enabled !== true) return;
     const elapsed = startedAt.current ? (performance.now() - startedAt.current) / 1000 : 0;
     startBootTrack(0.55, elapsed);
-    // Completing hands the score over to the home transition, so it fades out
-    // underneath it; switching sound off still cuts it short.
-    return () => stopBootTrack(handingOver.current ? 1800 : 260);
+    // Completing hands the score over to the home transition: it plays on to
+    // its natural end (the "welcome" voice lands during the handover). Sound
+    // off and [REBUILD] stop it from home; any other unmount cuts it here.
+    return () => {
+      if (!handingOver.current) stopBootTrack(260);
+    };
   }, [skip, enabled]);
 
   // Slow deterministic tick for the checkerboard. Only runs during AUTH.

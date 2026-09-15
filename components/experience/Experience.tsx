@@ -12,6 +12,7 @@ import { BootControls } from "@/components/hud/BootControls";
 import { CustomCursor } from "@/components/cursor/CustomCursor";
 import { HomeStage } from "@/components/home/HomeStage";
 import { HomeHud } from "@/components/home/HomeHud";
+import { CrashSequence } from "@/components/home/CrashSequence";
 
 const SESSION_KEY = "jvr.booted";
 
@@ -24,7 +25,7 @@ export function Experience() {
 }
 
 function Stage() {
-  const { state, runId, begin, skipToHome, ready, arrive } = useExperience();
+  const { state, runId, begin, skipToHome, ready, arrive, reboot } = useExperience();
   const seen = useSessionFlag(SESSION_KEY);
   const reduced = useReducedMotion();
 
@@ -36,7 +37,8 @@ function Stage() {
     if (shouldSkip) skipToHome();
   }, [state, seen, reduced, runId, skipToHome]);
 
-  const atHome = state === "loading-to-home" || state === "home";
+  // The crash is staged over home, so home stays mounted underneath it.
+  const atHome = state === "loading-to-home" || state === "home" || state === "crash";
 
   return (
     <div className="experience" data-state={state}>
@@ -46,13 +48,14 @@ function Stage() {
 
       {state === "loading" ? <BootSequence key={runId} onDone={ready} /> : null}
 
-      {/* Same element for loading-to-home and home, so the timeline carries
-          straight on into the idle loop without remounting. */}
+      {/* Same element for loading-to-home, home and crash, so the timeline
+          carries straight on without remounting. */}
       {atHome ? (
         <HomeStage
           key={runId}
           intro={state === "loading-to-home"}
           still={reduced && !dev("FORCE_INTRO")}
+          crashing={state === "crash"}
           onArrive={arrive}
         />
       ) : null}
@@ -75,6 +78,8 @@ function Stage() {
           <BootControls />
         </div>
       )}
+
+      {state === "crash" ? <CrashSequence key={runId} onDone={reboot} /> : null}
 
       {dev("SHOW_STATE") ? <div className="dev-state">{state}</div> : null}
     </div>

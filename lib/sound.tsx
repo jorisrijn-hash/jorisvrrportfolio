@@ -42,7 +42,8 @@ export type Cue =
   | "sweep"    // its geometry separates
   | "form"     // the composition forms
   | "resolve"  // the interface resolves
-  | "land";    // arrival in home
+  | "land"     // arrival in home
+  | "crash";   // [REBUILD] — the fake crash
 
 type CueDef = {
   /** cuelume recipe name */
@@ -69,6 +70,7 @@ const CUES: Record<Cue, CueDef> = {
   form:    { recipe: "droplet", gain: 0.6,  limit: 1500 },
   resolve: { recipe: "tick",    gain: 0.55, limit: 1500 },
   land:    { recipe: "arrival", gain: 0.7,  limit: 1500 },
+  crash:   { recipe: "error",   gain: 0.8,  limit: 1500 },
 };
 
 /** Master. Interface feedback sits well under the content (§25). */

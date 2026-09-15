@@ -43,14 +43,23 @@ const seen  = () => { try { sessionStorage.setItem("jvr.booted", "1"); } catch {
   pass("the sculpture takes over the centre", (await p.locator(".sculpture").count()) === 1
        && (await p.locator(".centre").count()) === 0);
   pass("input refused mid-transition",
-       await p.getByRole("button", { name: /replay the boot sequence/i }).isDisabled());
+       await p.getByRole("button", { name: /rebuild/i }).isDisabled());
   pass("resting furniture resolved",
        (await p.getAttribute(".resting", "data-resolved")) === "true");
   await p.waitForTimeout(3000);
   pass("transition arrives in home", (await p.getAttribute(".experience", "data-state")) === "home");
   pass("interface resolved", (await p.getAttribute(".experience", "data-x-ui")) !== null);
   pass("rebuild available again",
-       !(await p.getByRole("button", { name: /replay the boot sequence/i }).isDisabled()));
+       !(await p.getByRole("button", { name: /rebuild/i }).isDisabled()));
+
+  // [REBUILD] fakes a crash, then restarts the sequence without the gate
+  await p.getByRole("button", { name: /rebuild/i }).click();
+  await p.waitForTimeout(400);
+  pass("rebuild crashes", (await p.getAttribute(".experience", "data-state")) === "crash");
+  pass("crash takes the pointer", (await p.locator(".crash").count()) === 1);
+  await p.waitForTimeout(2200);
+  pass("crash reboots into the sequence", (await p.getAttribute(".experience", "data-state")) === "loading"
+       && (await p.locator(".boot").count()) === 1 && (await p.locator(".gate").count()) === 0);
   await ctx.close();
 }
 
@@ -78,6 +87,27 @@ const seen  = () => { try { sessionStorage.setItem("jvr.booted", "1"); } catch {
   pass("reduced motion: boot skipped", (await p.locator(".boot").count()) === 0);
   pass("reduced motion: composition still present", (await p.locator(".sculpture").count()) === 1);
   pass("reduced motion: lands on home", (await p.getAttribute(".experience","data-state")) === "home");
+  await p.context().close();
+}
+
+// 4b. METADATA
+{
+  const p = await (await b.newContext({ viewport:{width:1920,height:950} })).newPage();
+  await p.goto(base, { waitUntil:"domcontentloaded" });
+  const meta = await p.evaluate(() => ({
+    title: document.title,
+    og: document.querySelector('meta[property="og:image"]')?.getAttribute("content"),
+    tw: document.querySelector('meta[name="twitter:card"]')?.getAttribute("content"),
+    canonical: document.querySelector('link[rel="canonical"]')?.getAttribute("href"),
+    icon: [...document.querySelectorAll('link[rel~="icon"]')].map(l => l.getAttribute("href")),
+  }));
+  pass("title set", meta.title === "Joris van Rijn — ICT, Business & Digital Product", meta.title);
+  pass("og:image points at the social preview", /og-image\.jpg/.test(meta.og ?? ""), meta.og);
+  pass("twitter large card", meta.tw === "summary_large_image");
+  pass("canonical", /jorisvrr\.com/.test(meta.canonical ?? ""), meta.canonical);
+  pass("favicon linked", meta.icon.length > 0, meta.icon.join(" "));
+  const og = await p.request.get(base + "/og-image.jpg");
+  pass("social preview served", og.ok() && og.headers()["content-type"]?.includes("image"));
   await p.context().close();
 }
 

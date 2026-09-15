@@ -10,12 +10,14 @@ import { createContext, useContext, useMemo, useReducer } from "react";
  * is what makes that guarantee structural rather than a convention.
  *
  *   gate -> loading -> loading-to-home -> home
+ *   home -> crash -> loading            ([REBUILD])
  */
 export type State =
   | "gate"
   | "loading"
   | "loading-to-home"
   | "home"
+  | "crash"
   | "to-work"
   | "work"
   | "to-about"
@@ -26,10 +28,12 @@ type Action =
   | { type: "SKIP_TO_HOME" }   // already seen this session
   | { type: "READY" }          // the boot sequence finished
   | { type: "ARRIVE" }         // the loading -> home transition finished
+  | { type: "CRASH" }          // [REBUILD] pressed in home
+  | { type: "REBOOT" }         // the fake crash finished
   | { type: "GO"; to: "home" | "work" | "about" }
   | { type: "REPLAY" };
 
-const TRANSITIONS: State[] = ["gate", "loading", "loading-to-home", "to-work", "to-about"];
+const TRANSITIONS: State[] = ["gate", "loading", "loading-to-home", "crash", "to-work", "to-about"];
 
 type Model = { state: State; runId: number };
 
@@ -38,11 +42,16 @@ function reducer(m: Model, a: Action): Model {
   if (a.type === "SKIP_TO_HOME") return m.state === "gate" ? { ...m, state: "home" } : m;
   if (a.type === "READY") return m.state === "loading" ? { ...m, state: "loading-to-home" } : m;
   if (a.type === "ARRIVE") return m.state === "loading-to-home" ? { ...m, state: "home" } : m;
+  if (a.type === "CRASH") return m.state === "home" ? { ...m, state: "crash" } : m;
 
-  // Replaying restarts the boot. runId bumps so the sequence remounts cleanly
-  // rather than trying to resume half-finished timers. Refused mid-transition.
+  // The reboot goes straight into the sequence: pressing [REBUILD] was itself
+  // the gesture that audio needs, so there is nothing to ask again. runId bumps
+  // so the sequence remounts cleanly.
+  if (a.type === "REBOOT") return m.state === "crash" ? { state: "loading", runId: m.runId + 1 } : m;
+
+  // Replaying restarts at the gate. Refused mid-transition.
   if (a.type === "REPLAY") {
-    return m.state === "loading-to-home" ? m : { state: "gate", runId: m.runId + 1 };
+    return m.state === "loading-to-home" || m.state === "crash" ? m : { state: "gate", runId: m.runId + 1 };
   }
 
   const state = m.state;
@@ -67,6 +76,8 @@ type Ctx = {
   skipToHome: () => void;
   ready: () => void;
   arrive: () => void;
+  crash: () => void;
+  reboot: () => void;
   go: (to: "home" | "work" | "about") => void;
   replay: () => void;
 };
@@ -85,6 +96,8 @@ export function ExperienceProvider({ children }: { children: React.ReactNode }) 
       skipToHome: () => dispatch({ type: "SKIP_TO_HOME" }),
       ready: () => dispatch({ type: "READY" }),
       arrive: () => dispatch({ type: "ARRIVE" }),
+      crash: () => dispatch({ type: "CRASH" }),
+      reboot: () => dispatch({ type: "REBOOT" }),
       go: (to) => dispatch({ type: "GO", to }),
       replay: () => dispatch({ type: "REPLAY" }),
     }),

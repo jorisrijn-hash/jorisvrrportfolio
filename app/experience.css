@@ -766,10 +766,12 @@ html[data-cursor-hidden="true"] * { cursor: none; }
 
 .experience[data-x-ui] .home-hud [data-reveal] { opacity: 1; transform: none; }
 
+/* Clear of the corner registration brackets (20px arms at 24px / 15px). */
 .home-hud__id {
   position: absolute;
-  left: 32px;
-  top: 10px;
+  left: 60px;
+  top: 20px;
+  height: 28px;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -809,8 +811,8 @@ html[data-cursor-hidden="true"] * { cursor: none; }
 
 .home-hud__nav {
   position: absolute;
-  right: 30px;
-  top: 7px;
+  right: 60px;
+  top: 20px;
   display: flex;
   gap: 20px;
 }
@@ -821,7 +823,7 @@ html[data-cursor-hidden="true"] * { cursor: none; }
 .home-hud__title {
   position: absolute;
   left: 106px;
-  top: 49.5%;
+  top: 38%;
   transform: translateY(-50%);
   font-family: var(--font-mono);
   font-size: 17px;
@@ -847,6 +849,116 @@ html[data-cursor-hidden="true"] * { cursor: none; }
 @media (max-width: 720px) {
   .home-hud__title { left: 24px; font-size: 12px; letter-spacing: 0.24em; top: auto; bottom: 64px; transform: none; }
   .experience[data-x-ui] .home-hud__title { transform: none; }
-  .home-hud__nav { right: 16px; gap: 8px; top: 46px; }
-  .home-hud__id { left: 16px; }
+  .home-hud__nav { right: 52px; gap: 8px; top: 54px; }
+  .home-hud__id { left: 52px; }
 }
+
+/* The pointer over a sculpture asset: the cursor opens a small ring. */
+html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0.55; transform: scale(2.4); }
+
+/* =========================================================================
+   [REBUILD] — the fake crash
+   ========================================================================= */
+.crash {
+  position: absolute;
+  inset: 0;
+  z-index: 80;
+  pointer-events: auto;   /* the screen is "down": nothing underneath is clickable */
+}
+
+.crash__bars i {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--y);
+  height: var(--h);
+  background: rgb(18 18 18 / var(--a));
+  opacity: 0;
+  animation: crash-bar var(--dur) steps(1) var(--delay) infinite;
+}
+
+@keyframes crash-bar {
+  0%   { opacity: 0; transform: translateX(0); }
+  25%  { opacity: 1; transform: translateX(var(--x)); }
+  50%  { opacity: 0; }
+  75%  { opacity: 1; transform: translateX(calc(var(--x) * -1)); }
+}
+
+.experience[data-state="crash"] .home-hud,
+.experience[data-state="crash"] .bloom-layer { animation: crash-jitter 160ms steps(2) infinite; }
+
+@keyframes crash-jitter {
+  0%   { transform: translate(0, 0); }
+  50%  { transform: translate(-7px, 2px); }
+  100% { transform: translate(5px, -1px); }
+}
+
+.crash__panicwrap {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  visibility: hidden;
+}
+
+.crash[data-stage="panic"] .crash__panicwrap { visibility: visible; }
+
+.crash__panic {
+  width: min(560px, calc(100vw - 48px));
+  background: #0e0e0e;
+  color: #cfcfcf;
+  padding: 18px 22px 20px;
+  font-family: var(--font-mono);
+  animation: crash-jitter 220ms steps(2) infinite;
+}
+
+.crash__title {
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #f4f4f4;
+  margin-bottom: 12px;
+}
+
+.crash__line {
+  font-size: 10px;
+  line-height: 18px;
+  letter-spacing: 0.04em;
+  white-space: pre;
+  overflow: hidden;
+  clip-path: inset(0 100% 0 0);
+  animation: type-in 240ms steps(var(--steps, 40)) var(--delay, 0ms) forwards;
+}
+
+.crash__black {
+  position: absolute;
+  inset: 0;
+  background: #0b0b0a;
+  place-items: center;
+  display: none;
+}
+
+.crash[data-stage="black"] .crash__black { display: grid; }
+
+.crash__reboot {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: #9a9a9a;
+}
+
+.crash__reboot::after { content: "_"; animation: crash-blink 0.5s steps(1) infinite; }
+
+@keyframes crash-blink { 50% { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .crash__bars { display: none; }
+  .crash__panic,
+  .experience[data-state="crash"] .home-hud,
+  .experience[data-state="crash"] .bloom-layer { animation: none; }
+  .crash__line { animation: none; clip-path: none; }
+}
+
+/* The cursor stays findable on the black reboot screen. */
+.experience:has(.crash[data-stage="black"]) .cursor { color: #cfcfcf; }
