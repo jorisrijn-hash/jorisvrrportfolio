@@ -21,7 +21,7 @@ export const DUR = {
 
 /** The signature curve: decisive deceleration, no overshoot. */
 export const EASE = {
-  signature: [0.16, 1, 0.3, 1],
+  signature: [0.25, 0.8, 0.3, 1],
   mask: [0.65, 0, 0.35, 1],
   exit: [0.4, 0, 1, 1],
 } as const;

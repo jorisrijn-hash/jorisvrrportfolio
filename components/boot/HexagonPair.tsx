@@ -29,7 +29,7 @@ export function HexagonPair({ visible }: { visible: boolean }) {
         strokeWidth="1"
         initial={{ scale: 0.72, opacity: 0 }}
         animate={{ scale: visible ? 1 : 0.82, opacity: visible ? 1 : 0 }}
-        transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
+        transition={{ duration: 1.1, ease: [0.25, 0.8, 0.3, 1] }}
         style={{ transformOrigin: "310px 310px" }}
       />
       <motion.polygon
@@ -39,7 +39,7 @@ export function HexagonPair({ visible }: { visible: boolean }) {
         strokeDasharray="9 7"
         initial={{ scale: 0.6, opacity: 0 }}
         animate={{ scale: visible ? 1 : 0.7, opacity: visible ? 1 : 0 }}
-        transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1], delay: visible ? 0.12 : 0 }}
+        transition={{ duration: 1.4, ease: [0.25, 0.8, 0.3, 1], delay: visible ? 0.12 : 0 }}
         style={{ transformOrigin: "310px 310px" }}
       />
     </svg>

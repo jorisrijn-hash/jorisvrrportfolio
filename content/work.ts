@@ -83,7 +83,26 @@ export const lockTime = (row: number, col: number) =>
  * runs from `from` down to 0 at `rate`, and each cell folds away just before
  * its cube reappears.
  */
-export const WORK_OUT = { from: 2.12, rate: 1.5, hud: 0.9, end: 1.55 } as const;
+export const WORK_OUT = { from: 1.62, rate: 1.5, hud: 0.7, end: 1.3 } as const;
+
+/**
+ * work <-> about. The surface decomposes into three blocks of cells that
+ * re-grid into the About panels' exact rectangles (content/about.ts PANELS)
+ * on a plane turned to face the camera, frost over, and hand over to the glass.
+ * The same move runs backward coming from About.
+ */
+export const WORK_ABOUT = {
+  /** plane origin once it faces the camera, so it spans the panels' bounds */
+  flat: { x: -420, y: -280 },
+  // work -> about (AboutStage owns the globe, the panels and arrival)
+  dissolve: 1.45,          // cells hand over to the glass panels
+  // about -> work (WorkStage owns arrival)
+  seal: 1.3,
+  ui: 1.45,
+  echo: 1.5,
+  solid: 1.6,
+  end: 1.95,
+} as const;
 
 /** Where the released cluster gathers, and how the core sinks (scene units). */
 export const WORK_CLUSTER = { x: 290, y: -215, z: 160, spread: 0.72, size: 0.82 } as const;
@@ -97,6 +116,18 @@ export const WORK_CUES_IN = [
   { at: 1.98, cue: "snap" },      // the frame locks — the physical moment
   { at: 2.08, cue: "bloom" },     // media resolves
   { at: 2.9, cue: "settle" },     // work state settles
+] as const;
+
+export const WORK_CUES_TO_ABOUT = [
+  { at: 0.02, cue: "release" },   // surface unlocks into blocks
+  { at: 0.4, cue: "align" },      // blocks re-grid toward the panels
+] as const;
+
+export const WORK_CUES_FROM_ABOUT = [
+  { at: 0.3, cue: "align" },      // panels break back into cells
+  { at: 1.3, cue: "snap" },       // the frame locks
+  { at: 1.38, cue: "bloom" },
+  { at: 1.9, cue: "settle" },
 ] as const;
 
 export const WORK_CUES_OUT = [

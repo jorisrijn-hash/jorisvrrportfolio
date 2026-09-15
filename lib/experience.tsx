@@ -12,6 +12,7 @@ import { createContext, useContext, useMemo, useReducer } from "react";
  *   gate -> loading -> loading-to-home -> home
  *   home -> to-about -> about -> to-home -> home
  *   home -> home-to-work -> work -> work-to-home -> home
+ *   work -> work-to-about -> about -> about-to-work -> work
  *   home -> crash -> gate               ([REBUILD] resets to the sound selection)
  */
 export type State =
@@ -25,7 +26,9 @@ export type State =
   | "to-home"
   | "home-to-work"
   | "work"
-  | "work-to-home";
+  | "work-to-home"
+  | "work-to-about"
+  | "about-to-work";
 
 type Action =
   | { type: "BEGIN" }          // the audio choice has been made
@@ -39,6 +42,7 @@ type Action =
 
 const TRANSITIONS: State[] = [
   "gate", "loading", "loading-to-home", "crash", "to-about", "to-home", "home-to-work", "work-to-home",
+  "work-to-about", "about-to-work",
 ];
 
 type Model = { state: State; runId: number };
@@ -49,8 +53,8 @@ function reducer(m: Model, a: Action): Model {
   if (a.type === "READY") return m.state === "loading" ? { ...m, state: "loading-to-home" } : m;
   if (a.type === "ARRIVE") {
     if (m.state === "loading-to-home" || m.state === "to-home" || m.state === "work-to-home") return { ...m, state: "home" };
-    if (m.state === "to-about") return { ...m, state: "about" };
-    if (m.state === "home-to-work") return { ...m, state: "work" };
+    if (m.state === "to-about" || m.state === "work-to-about") return { ...m, state: "about" };
+    if (m.state === "home-to-work" || m.state === "about-to-work") return { ...m, state: "work" };
     return m;
   }
   if (a.type === "CRASH") return m.state === "home" ? { ...m, state: "crash" } : m;
@@ -75,6 +79,8 @@ function reducer(m: Model, a: Action): Model {
     if (a.to === "work" && state === "home") return { ...m, state: "home-to-work" };
     if (a.to === "home" && state === "about") return { ...m, state: "to-home" };
     if (a.to === "home" && state === "work") return { ...m, state: "work-to-home" };
+    if (a.to === "about" && state === "work") return { ...m, state: "work-to-about" };
+    if (a.to === "work" && state === "about") return { ...m, state: "about-to-work" };
   }
   return m;
 }

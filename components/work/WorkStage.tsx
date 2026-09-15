@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  FED_CELLS, PLANE, PROJECTS, WORK_CUES_IN, WORK_CUES_OUT, WORK_IN, WORK_OUT, lockTime, mediaStill,
+  FED_CELLS, PLANE, PROJECTS, WORK_ABOUT, WORK_CUES_FROM_ABOUT, WORK_CUES_IN, WORK_CUES_OUT,
+  WORK_CUES_TO_ABOUT, WORK_IN, WORK_OUT, lockTime, mediaStill,
 } from "@/content/work";
+import { PANELS } from "@/content/about";
 import { addTick } from "@/lib/ticker";
 import { useSound } from "@/lib/sound";
 
@@ -23,20 +25,43 @@ const CELL_W = PLANE.w / PLANE.cols;
 const CELL_H = PLANE.h / PLANE.rows;
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
+/** Which About panel a cell belongs to, and that block's origin and size in cells. */
+function panelBlock(r: number, c: number) {
+  const half = PLANE.rows / 2;
+  const mid = PLANE.cols / 2;
+  if (r < half) return { rect: PANELS.top, r0: 0, c0: 0, rows: half, cols: PLANE.cols };
+  if (c < mid) return { rect: PANELS.meta, r0: half, c0: 0, rows: half, cols: mid };
+  return { rect: PANELS.body, r0: half, c0: mid, rows: half, cols: mid };
+}
+
 /**
- * One cell per sculpture cube and beyond. Each carries its lock time (when it
- * appears, matching its cube's arrival) and its fold-out time on the way back.
+ * One cell per sculpture cube and beyond. Each carries:
+ *   lock      when it appears on the way in, matching its cube's arrival
+ *   out       when it folds away on the way home, just as its cube returns
+ *   ax/ay/as  where it re-grids to inside its About panel (flat plane, px)
+ *   ad/bd     its stagger toward About, and back
  */
 const CELLS = Array.from({ length: PLANE.cols * PLANE.rows }, (_, k) => {
   const r = Math.floor(k / PLANE.cols);
   const c = k % PLANE.cols;
   const lock = lockTime(r, c);
+  const b = panelBlock(r, c);
+  const [px, py, pw, ph] = b.rect;
+  const tw = pw / b.cols;
+  const th = ph / b.rows;
+  const ad = r2((r + c * 0.5) * 0.012);
   return {
     k, r, c,
     lock: r2(lock),
     out: r2(Math.max(0, (WORK_OUT.from - (lock + 0.08)) / WORK_OUT.rate)),
     fed: k < FED_CELLS,
     glitch: r === 3 || r === 8,
+    ax: r2(px - WORK_ABOUT.flat.x + (c - b.c0) * tw - c * CELL_W),
+    ay: r2(py - WORK_ABOUT.flat.y + (r - b.r0) * th - r * CELL_H),
+    asx: r2(tw / CELL_W * 1000) / 1000,
+    asy: r2(th / CELL_H * 1000) / 1000,
+    ad,
+    bd: r2(0.23 - ad),
   };
 });
 
@@ -57,7 +82,8 @@ const WIRE = (() => {
   return d;
 })();
 
-const IN_FLAGS = ["data-form", "data-wire", "data-link", "data-glitch", "data-seal", "data-ui", "data-echo", "data-solid"];
+type Origin = "home" | "about";
+type Target = "home" | "about";
 
 /**
  * FEATURED WORK — the media surface, rebuilt natively from maintofeaturedwork.mp4.
@@ -66,25 +92,30 @@ const IN_FLAGS = ["data-form", "data-wire", "data-link", "data-glitch", "data-se
  * the sculpture (1600px perspective, same centre, same fit), divided into the
  * same 18x12 cells the sculpture's cubes fly into. At each cell's lock time
  * the arriving cube hands over to that cell, which carries its slice of the
- * image: rows lock top to bottom as dark tiles, turn translucent, then seal
- * into one plane — the moment the frame locks.
+ * image: rows lock top to bottom as dark tiles over pale glass, turn
+ * translucent, then seal into one plane — the moment the frame locks.
+ *
+ * The same cells carry every other move:
+ *   -> home    the seal opens and cells fold away as their cubes return
+ *   -> about   the plane turns to face the camera and the cells re-grid into
+ *              the three About panels, frost, and hand over to the glass
+ *   about ->   the reverse: panels become frosted cells, clear, re-grid into
+ *              the surface and seal
  *
  * One subscription to the shared frame clock raises stage attributes at their
- * moments; every visual change after that is a CSS transition keyed to them,
- * so nothing here renders per frame.
- *
- *   leaving = false   home -> work, then holds
- *   leaving = true    work -> home: the surface folds away as the cubes return
- *
- * Project switching (later) is the same two halves on one surface: open the
- * seal and fold the cells, swap the project, form again.
+ * moments; every visual change is a CSS transition keyed to them, so nothing
+ * here renders per frame.
  */
 export function WorkStage({
+  from = "home",
   leaving,
+  leavingTo = "home",
   still,
   onArrive,
 }: {
+  from?: Origin;
   leaving: boolean;
+  leavingTo?: Target;
   still: boolean;
   onArrive: () => void;
 }) {
@@ -97,11 +128,14 @@ export function WorkStage({
   const project = PROJECTS[index];
   const still_ = mediaStill(project);
 
+  const [origin] = useState<Origin>(from);
+  const [stillAtMount] = useState(still);
   const leavingRef = useRef(leaving);
+  const leavingToRef = useRef(leavingTo);
   const arrive = useRef(onArrive);
   useEffect(() => { leavingRef.current = leaving; }, [leaving]);
+  useEffect(() => { leavingToRef.current = leavingTo; }, [leavingTo]);
   useEffect(() => { arrive.current = onArrive; }, [onArrive]);
-  const [stillAtMount] = useState(still);
 
   useEffect(() => {
     const el = root.current;
@@ -138,22 +172,36 @@ export function WorkStage({
       });
     };
 
-    const beginLeaving = () => {
+    /** Step 1 of leaving: the single plane hands back to its sealed cells —
+     *  identical pixels — so there is something to move on the next frame. */
+    const unseat = () => {
       ["data-solid", "data-ui", "data-echo", "data-link", "data-glitch"].forEach((n) => set(el, n, false));
-      set(el, "data-leaving");
+    };
+    /** Step 2: the move itself. */
+    const depart = (to: Target) => {
+      if (to === "about") {
+        set(el, "data-drift", false);
+        set(el, "data-to-about");
+      } else {
+        set(el, "data-leaving");
+      }
     };
 
-    // Reduced motion: the settled surface at once, no frame loop.
+    // Reduced motion: settled states at once, no frame loop.
     if (stillAtMount) {
       ["data-form", "data-seal", "data-ui", "data-echo", "data-solid"].forEach((n) => set(el, n));
+      if (origin === "about") set(el, "data-regroup");
       arrive.current();
       let left = false;
       const id = window.setInterval(() => {
         if (leavingRef.current && !left) {
           left = true;
-          beginLeaving();
+          const to = leavingToRef.current;
+          unseat();
+          depart(to);
           set(stage, "data-x-work", false);
-          arrive.current();
+          if (to === "about") set(el, "data-dissolve");
+          else arrive.current();
         }
       }, 50);
       return () => {
@@ -165,21 +213,65 @@ export function WorkStage({
     const start = performance.now();
     let arrived = false;
     let leftAt: number | null = null;
+    let departed = false;
     let leftArrived = false;
     let cueIn = 0;
     let cueOut = 0;
+    const cuesIn = origin === "about" ? WORK_CUES_FROM_ABOUT : WORK_CUES_IN;
+    const end = origin === "about" ? WORK_ABOUT.end : WORK_IN.end;
 
     const frame = (now: number) => {
+      // ---- leaving ------------------------------------------------------------
       if (leavingRef.current && leftAt === null) {
         leftAt = now;
-        beginLeaving();
+        unseat();
+        return;
+      }
+      if (leftAt !== null) {
+        const to = leavingToRef.current;
+        if (!departed) {
+          departed = true;
+          depart(to);
+        }
+        const u = (now - leftAt) / 1000;
+        const cues = to === "about" ? WORK_CUES_TO_ABOUT : WORK_CUES_OUT;
+        while (cueOut < cues.length && u >= cues[cueOut].at) {
+          if (u - cues[cueOut].at < 0.25) cue(cues[cueOut].cue);
+          cueOut++;
+        }
+        if (to === "about") {
+          // About reports arrival; Work only hands its cells to the glass.
+          if (u >= WORK_ABOUT.dissolve) {
+            set(el, "data-dissolve");
+            set(stage, "data-x-work", false);
+          }
+        } else {
+          if (u >= WORK_OUT.hud) set(stage, "data-x-work", false);
+          if (!leftArrived && u >= WORK_OUT.end) {
+            leftArrived = true;
+            arrive.current();
+          }
+        }
+        return;
       }
 
-      if (leftAt === null) {
-        if (arrived) return;
-        const t = (now - start) / 1000;
+      // ---- arriving -----------------------------------------------------------
+      if (arrived) return;
+      const t = (now - start) / 1000;
+
+      if (origin === "about") {
+        // Raised on the first frame, after the panel-shaped cells have painted.
+        set(el, "data-regroup");
+        if (t >= WORK_ABOUT.seal) set(el, "data-seal");
+        if (t >= WORK_ABOUT.ui) set(el, "data-ui");
+        if (t >= WORK_ABOUT.echo) set(el, "data-echo");
+        if (t >= WORK_ABOUT.solid) {
+          set(el, "data-solid");
+          set(el, "data-drift");
+        }
+      } else {
         // Raised on the first frame, after the initial styles have painted, so
-        // every cell transition runs from its edge-on start.
+        // every cell transition runs from its start.
         set(el, "data-form");
         if (t >= WORK_IN.wire[0]) set(el, "data-wire");
         if (t >= WORK_IN.link) set(el, "data-link");
@@ -187,26 +279,18 @@ export function WorkStage({
         if (t >= WORK_IN.seal) set(el, "data-seal");
         if (t >= WORK_IN.ui) set(el, "data-ui");
         if (t >= WORK_IN.echo) set(el, "data-echo");
-        if (t >= WORK_IN.solid) set(el, "data-solid");
-        while (cueIn < WORK_CUES_IN.length && t >= WORK_CUES_IN[cueIn].at) {
-          if (t - WORK_CUES_IN[cueIn].at < 0.25) cue(WORK_CUES_IN[cueIn].cue);
-          cueIn++;
+        if (t >= WORK_IN.solid) {
+          set(el, "data-solid");
+          set(el, "data-drift");
         }
-        if (t >= WORK_IN.end) {
-          arrived = true;
-          arrive.current();
-        }
-        return;
       }
 
-      const u = (now - leftAt) / 1000;
-      while (cueOut < WORK_CUES_OUT.length && u >= WORK_CUES_OUT[cueOut].at) {
-        if (u - WORK_CUES_OUT[cueOut].at < 0.25) cue(WORK_CUES_OUT[cueOut].cue);
-        cueOut++;
+      while (cueIn < cuesIn.length && t >= cuesIn[cueIn].at) {
+        if (t - cuesIn[cueIn].at < 0.25) cue(cuesIn[cueIn].cue);
+        cueIn++;
       }
-      if (u >= WORK_OUT.hud) set(stage, "data-x-work", false);
-      if (!leftArrived && u >= WORK_OUT.end) {
-        leftArrived = true;
+      if (t >= end) {
+        arrived = true;
         arrive.current();
       }
     };
@@ -216,12 +300,12 @@ export function WorkStage({
       stop();
       cleanup();
     };
-  }, [cue, stillAtMount]);
+  }, [cue, stillAtMount, origin]);
 
   const total = String(PROJECTS.length).padStart(2, "0");
 
   return (
-    <div ref={root} className="work" style={{ ["--media" as string]: `url(${still_})` }}>
+    <div ref={root} className="work" data-origin={origin} style={{ ["--media" as string]: `url(${still_})` }}>
       <div className="work-3d">
         <div className="work-origin">
           <div className="work-plane">
@@ -243,6 +327,12 @@ export function WorkStage({
                     ["--r" as string]: cell.r,
                     ["--d" as string]: `${cell.lock}s`,
                     ["--o" as string]: `${cell.out}s`,
+                    ["--ax" as string]: `${cell.ax}px`,
+                    ["--ay" as string]: `${cell.ay}px`,
+                    ["--asx" as string]: cell.asx,
+                    ["--asy" as string]: cell.asy,
+                    ["--ad" as string]: `${cell.ad}s`,
+                    ["--bd" as string]: `${cell.bd}s`,
                   }}
                 />
               ))}

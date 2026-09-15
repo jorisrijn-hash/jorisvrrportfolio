@@ -18,6 +18,9 @@ import { WorkStage } from "@/components/work/WorkStage";
 
 const SESSION_KEY = "jvr.booted";
 
+const ABOUT_STATES = ["to-about", "about", "to-home", "work-to-about", "about-to-work"];
+const WORK_STATES = ["home-to-work", "work", "work-to-home", "work-to-about", "about-to-work"];
+
 export function Experience() {
   return (
     <ExperienceProvider>
@@ -41,13 +44,14 @@ function Stage() {
   }, [state, seen, reduced, runId, skipToHome]);
 
   // Home, and everything staged over it (the crash, About, Work), keep
-  // HomeStage mounted so its clock carries straight through.
+  // HomeStage mounted so its clock carries straight through. Between Work and
+  // About both stages are mounted at once: one hands its surface to the other.
   // Keys are namespaced per component: HomeStage and CrashSequence are
   // siblings during the crash, and sharing a bare runId key made React lose
   // track of HomeStage — it was never unmounted and its frozen drawing stayed
   // on screen under the next run.
-  const inAbout = state === "to-about" || state === "about" || state === "to-home";
-  const inWork = state === "home-to-work" || state === "work" || state === "work-to-home";
+  const inAbout = ABOUT_STATES.includes(state);
+  const inWork = WORK_STATES.includes(state);
   const atHome = state === "loading-to-home" || state === "home" || state === "crash" || inAbout || inWork;
   const mode: StageMode = inAbout || inWork ? (state as StageMode) : "home";
 
@@ -75,17 +79,23 @@ function Stage() {
       {inAbout ? (
         <AboutStage
           key={`about-${runId}`}
-          leaving={state === "to-home"}
+          leaving={state === "to-home" || state === "about-to-work"}
+          leavingTo={state === "about-to-work" ? "work" : "home"}
+          fromWork={state === "work-to-about"}
           still={still}
           onArrive={arrive}
           onClose={() => go("home")}
         />
       ) : null}
 
+      {/* After About in the DOM, so Work's cells sit over the glass panels
+          while one hands over to the other. */}
       {inWork ? (
         <WorkStage
           key={`work-${runId}`}
-          leaving={state === "work-to-home"}
+          from={state === "about-to-work" ? "about" : "home"}
+          leaving={state === "work-to-home" || state === "work-to-about"}
+          leavingTo={state === "work-to-about" ? "about" : "home"}
           still={still}
           onArrive={arrive}
         />

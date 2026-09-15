@@ -56,6 +56,17 @@ export const GLOBE = {
   drift: 0.8,
 } as const;
 
+/**
+ * The glass panels' rectangles [x, y, w, h] around the viewport centre, in
+ * reference px. Mirrored in app/experience.css (.about__panel[data-panel]);
+ * Work re-grids its cells into exactly these when it becomes About.
+ */
+export const PANELS = {
+  top: [-405, -279, 814, 233],
+  meta: [-405, -3, 394, 200],
+  body: [15, -3, 394, 283],
+} as const;
+
 export const ABOUT_LABELS = {
   route: "Route:// /about requested",
   handshake: "Module:// Profile_core handshake...",

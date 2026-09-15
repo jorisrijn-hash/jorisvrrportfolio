@@ -13,7 +13,7 @@ export function CompleteBadge({ visible }: { visible: boolean }) {
       className="complete"
       initial={{ opacity: 0 }}
       animate={{ opacity: visible ? 1 : 0 }}
-      transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.45, ease: [0.25, 0.8, 0.3, 1] }}
       aria-hidden="true"
     >
       <svg viewBox="0 0 260 260" fill="none">
@@ -25,7 +25,7 @@ export function CompleteBadge({ visible }: { visible: boolean }) {
           strokeWidth="1"
           initial={{ scale: 1.35, opacity: 0 }}
           animate={{ scale: visible ? 1 : 1.2, opacity: visible ? 1 : 0 }}
-          transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 1.1, ease: [0.25, 0.8, 0.3, 1] }}
           style={{ transformOrigin: "130px 130px" }}
         />
       </svg>

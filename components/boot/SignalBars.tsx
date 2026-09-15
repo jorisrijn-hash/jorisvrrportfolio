@@ -23,7 +23,7 @@ export function SignalBars({ visible }: { visible: boolean }) {
           style={{ height: h }}
           initial={{ scaleY: 0 }}
           animate={{ scaleY: visible ? 1 : 0 }}
-          transition={{ duration: 0.3, delay: visible ? 0.5 + i * 0.03 : 0, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.3, delay: visible ? 0.5 + i * 0.03 : 0, ease: [0.25, 0.8, 0.3, 1] }}
         />
       ))}
     </motion.div>

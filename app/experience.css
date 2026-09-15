@@ -1166,6 +1166,20 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
   color: #3d3d3d;
 }
 
+/* Contact rows: same type as the other values, with a hairline that draws
+   in on hover. */
+.about__meta-link {
+  color: inherit;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-size: 0% 1px;
+  background-position: 0 100%;
+  background-repeat: no-repeat;
+  padding-bottom: 1px;
+  transition: color 240ms var(--ease-out), background-size 360ms var(--ease-out);
+}
+.about__meta-link:hover,
+.about__meta-link:focus-visible { color: #1c1c1c; background-size: 100% 1px; outline: none; }
+
 .about__body {
   flex: 1;
   min-height: 0;
@@ -1255,10 +1269,10 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
 }
 
 /* Idle: a barely-there drift in depth once the surface is one plane. */
-.work[data-solid] .work-plane { animation: work-plane-drift 10s var(--ease-inout) infinite alternate; }
+.work[data-drift] .work-plane { animation: work-plane-drift 10s var(--ease-inout) infinite alternate; }
 @keyframes work-plane-drift {
   from { transform: translate3d(-739px, -347px, 0) rotateY(20.1deg); }
-  to   { transform: translate3d(-739px, -349px, -10px) rotateY(20.7deg); }
+  to   { transform: translate3d(-739px, -348px, -6px) rotateY(20.45deg); }
 }
 
 /* ---- wireframe the cells assemble over ---------------------------------- */
@@ -1361,17 +1375,7 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
 .work-media video { width: 100%; height: 100%; display: block; max-width: none; object-fit: cover; user-select: none; -webkit-user-drag: none; }
 .work[data-solid] .work-media { opacity: 1; }
 
-/* Leaving: tint returns and the surface folds away, bottom rows first, each
-   cell just before its cube reappears. */
-.work[data-leaving] .work-cell {
-  transform: rotateX(-35deg) scale(0.955);
-  opacity: 0;
-  transition:
-    transform 380ms var(--ease-in) var(--o),
-    opacity 160ms linear calc(var(--o) + 220ms);
-}
-.work[data-leaving] .work-cell::before { opacity: 0.8; transition-delay: 0ms; }
-.work[data-leaving] .work-cell::after { opacity: 0.9; transition: opacity 220ms var(--ease-out) 0ms; }
+
 
 /* ---- echo tiles: the media, tilted in the environment -------------------- */
 .work-echo { position: absolute; left: 0; top: 0; transform-style: preserve-3d; opacity: 0; transition: opacity 900ms var(--ease-out); }
@@ -1521,4 +1525,82 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
 @media (prefers-reduced-motion: reduce) {
   .work-cell, .work-cell::before, .work-cell::after, .work-info > *, .work-foot > *, .work-echo, .work-label { transition: none; }
   .work[data-solid] .work-plane, .work-echo > i, .work-foot__segments i[data-current]::after { animation: none; }
+}
+
+/* =========================================================================
+   WORK <-> ABOUT and WORK -> HOME
+   Declared last so these win over the formation rules above.
+   ========================================================================= */
+
+/* The plane can turn to face the camera: it then spans the About panels'
+   bounds exactly, so cells re-grid into panel rectangles in plain px. */
+.work-plane { transition: transform 950ms var(--ease-inout) 120ms; }
+
+/* ---- work -> about: the surface decomposes into the three panels -------- */
+.work[data-to-about] .work-plane { transform: translate3d(-420px, -280px, 0) rotateY(0deg); }
+.work[data-to-about] .work-wire,
+.work[data-to-about] .work-ghost { display: none; }
+
+.work[data-to-about] .work-cell {
+  transform-origin: 0 0;
+  transform: translate(var(--ax), var(--ay)) scale(var(--asx), var(--asy));
+  opacity: 1;
+  transition: transform 820ms var(--ease-inout) calc(var(--ad) + 120ms), opacity 0ms;
+}
+.work[data-to-about] .work-cell::before { opacity: 0.5; transition: opacity 260ms var(--ease-out) 0ms; }
+.work[data-to-about] .work-cell::after {
+  background: #eeeef0;
+  opacity: 0.86;
+  transition: opacity 520ms var(--ease-out) calc(var(--ad) + 520ms);
+}
+/* The glass has taken over. */
+.work[data-to-about][data-dissolve] .work-cell { opacity: 0; transition: transform 0ms, opacity 280ms var(--ease-out) 0ms; }
+
+/* ---- about -> work: panel-shaped frosted cells, re-gridding back -------- */
+.work[data-origin="about"]:not([data-regroup]) .work-plane { transform: translate3d(-420px, -280px, 0) rotateY(0deg); transition: none; }
+.work[data-origin="about"] .work-wire,
+.work[data-origin="about"] .work-ghost { display: none; }
+.work[data-origin="about"]:not([data-regroup]) .work-cell {
+  transform-origin: 0 0;
+  transform: translate(var(--ax), var(--ay)) scale(var(--asx), var(--asy));
+  opacity: 1;
+  transition: none;
+}
+.work[data-origin="about"]:not([data-regroup]) .work-cell::before { opacity: 0.5; transition: none; }
+.work[data-origin="about"]:not([data-regroup]) .work-cell::after { background: #eeeef0; opacity: 0.86; transition: none; }
+
+.work[data-regroup] .work-cell {
+  transform-origin: 0 0;
+  transform: scale(0.955);
+  opacity: 1;
+  transition: transform 820ms var(--ease-inout) calc(var(--bd) + 80ms), opacity 0ms;
+}
+.work[data-regroup] .work-cell::before { opacity: 0.7; }
+.work[data-regroup] .work-cell::after { background: #eeeef0; opacity: 0; transition: opacity 620ms var(--ease-out) calc(var(--bd) + 380ms); }
+.work[data-regroup][data-seal] .work-cell { transform: scale(1.002); transition: transform 300ms var(--ease-out) 0ms, opacity 0ms; }
+.work[data-regroup][data-seal] .work-cell::before { opacity: 0; transition: opacity 300ms var(--ease-out) 0ms; }
+
+/* ---- work -> home: tint returns and the surface folds away, bottom rows
+   first, each cell just before its cube reappears. The sealed cells were
+   shown a frame earlier, so the fold starts from the full image. -------- */
+.work[data-leaving] .work-cell {
+  transform-origin: 50% 0;
+  transform: rotateX(-35deg) scale(0.955);
+  opacity: 0;
+  transition:
+    transform 380ms var(--ease-in) var(--o),
+    opacity 160ms linear calc(var(--o) + 220ms);
+}
+.work[data-leaving] .work-cell::before { opacity: 0.8; transition: opacity 220ms var(--ease-out) 0ms; }
+.work[data-leaving] .work-cell::after { background: #141416; opacity: 0.9; transition: opacity 220ms var(--ease-out) 0ms; }
+
+/* ---- About's side of the handover ----------------------------------------- */
+.about[data-from-work] .about__panel { transform: none; transition: opacity 280ms var(--ease-out) 0ms; }
+.about[data-from-work] .about__inner > * { transition-delay: 160ms; }
+.about[data-leaving-work] .about__panel { opacity: 0; transform: none; transition: opacity 160ms linear 0ms; }
+.about[data-leaving-work] .about__inner > * { opacity: 0; transition: opacity 120ms linear 0ms; }
+.about[data-leaving-work] .about__label { opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .work-plane, .work[data-to-about] .work-cell, .work[data-regroup] .work-cell { transition: none; }
 }

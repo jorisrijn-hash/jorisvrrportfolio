@@ -12,8 +12,14 @@ export const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 export const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 export const seg = (t: number, a: number, b: number) => clamp01((t - a) / (b - a));
 export const smooth = (t: number) => t * t * (3 - 2 * t);
-export const inOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
-export const outQuart = (t: number) => 1 - Math.pow(1 - t, 4);
+/** Smootherstep: zero velocity AND zero acceleration at both ends, and a
+ *  gentler peak speed than a cubic in-out — no jerk as a move starts or lands. */
+export const inOut = (t: number) => t * t * t * (t * (t * 6 - 15) + 10);
+/** Ease-out with a soft landing (quintic tail, eased start). */
+export const outQuart = (t: number) => {
+  const s = t * t * (3 - 2 * t);
+  return 1 - Math.pow(1 - s, 3);
+};
 export const deg = (d: number) => (d * Math.PI) / 180;
 
 export const vLerp = (a: V3, b: V3, t: number): V3 => [

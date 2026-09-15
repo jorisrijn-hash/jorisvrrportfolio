@@ -38,7 +38,7 @@ export function AuthBlock({ visible }: { visible: boolean }) {
       className="authblock"
       initial={{ opacity: 0 }}
       animate={{ opacity: visible ? 1 : 0 }}
-      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.4, ease: [0.25, 0.8, 0.3, 1] }}
       aria-hidden="true"
     >
       <p className="authblock__title">{AUTH_BLOCK.title}</p>

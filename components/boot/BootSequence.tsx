@@ -130,7 +130,7 @@ export function BootSequence({ onDone }: { onDone: () => void }) {
     <motion.div
       className="boot"
       animate={{ opacity: phase === "settle" ? 0 : 1 }}
-      transition={{ duration: 0.55, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.55, ease: [0.25, 0.8, 0.3, 1] }}
       role="status"
       aria-label="System boot"
     >

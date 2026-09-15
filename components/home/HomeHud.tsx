@@ -31,9 +31,9 @@ export function HomeHud() {
   const { enabled, setEnabled, cue } = useSound();
   const on = enabled === true;
   const at =
-    state === "to-about" || state === "about"
+    state === "to-about" || state === "about" || state === "work-to-about"
       ? "about"
-      : state === "home-to-work" || state === "work"
+      : state === "home-to-work" || state === "work" || state === "about-to-work"
         ? "work"
         : "home";
 
@@ -121,7 +121,10 @@ export function HomeHud() {
           disabled={busy || at !== "home"}
           aria-label="Rebuild: restart the experience"
           onPointerEnter={() => cue("hover")}
-          onClick={crash}
+          onClick={() => {
+            cue("select");
+            crash();
+          }}
         >
           <RotateCw size={10} strokeWidth={1.8} aria-hidden="true" />
           <span>[Rebuild]</span>
@@ -144,7 +147,7 @@ export function HomeHud() {
           data-reveal
           style={{ ["--d" as string]: "200ms" }}
           aria-current={at === "work" ? "page" : undefined}
-          disabled={busy || at === "about"}
+          disabled={busy}
           onPointerEnter={() => {
             cue("hover");
             preloadWork();
@@ -160,7 +163,7 @@ export function HomeHud() {
           data-reveal
           style={{ ["--d" as string]: "240ms" }}
           aria-current={at === "about" ? "page" : undefined}
-          disabled={busy || at === "work"}
+          disabled={busy}
           onPointerEnter={() => {
             cue("hover");
             void preloadGlobe();

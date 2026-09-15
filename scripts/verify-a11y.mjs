@@ -104,6 +104,11 @@ const seen  = () => { try { sessionStorage.setItem("jvr.booted", "1"); } catch {
   pass("about: globe drawn from land data", ((await p.getAttribute(".about__globe path", "d")) ?? "").length > 1000);
   pass("about: sculpture parked", await p.evaluate(() => document.querySelector(".sculpture").style.visibility === "hidden"));
   pass("about: rebuild hidden", await p.getByRole("button", { name: /rebuild/i }).isDisabled());
+  const links = await p.evaluate(() => [...document.querySelectorAll(".about__meta a")].map((a) => [a.textContent, a.getAttribute("href"), a.getAttribute("target")]));
+  pass("about: email is a mailto link", links.some(([t, h]) => t === "jorisvrr@gmail.com" && h === "mailto:jorisvrr@gmail.com"));
+  pass("about: phone is a tel link", links.some(([t, h]) => t === "0638032065" && h?.startsWith("tel:")));
+  pass("about: website opens jorisvrr.com", links.some(([t, h, tg]) => t === "jorisvrr.com" && h === "https://jorisvrr.com" && tg === "_blank"));
+  pass("about: meta rows are the contact rows", (await p.$$eval(".about__meta dt", (d) => d.map((x) => x.textContent).join("|"))) === "Name|Email|Phone|Location|Website");
   await p.keyboard.press("Escape");
   await p.waitForTimeout(300);
   pass("about: Escape returns", (await p.getAttribute(".experience","data-state")) === "to-home");
@@ -137,7 +142,7 @@ const seen  = () => { try { sessionStorage.setItem("jvr.booted", "1"); } catch {
   await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 4 });
   await p.waitForTimeout(300);
   pass("work: cursor turns to VIEW over media", (await p.getAttribute(".cursor","data-state")) === "view");
-  pass("work: about refused in work", await p.getByRole("button", { name: "[About]" }).isDisabled());
+  pass("work: about reachable from work", !(await p.getByRole("button", { name: "[About]" }).isDisabled()));
   await p.getByRole("button", { name: "[Home]" }).click();
   await p.waitForTimeout(300);
   pass("work: return transition", (await p.getAttribute(".experience","data-state")) === "work-to-home");
@@ -146,6 +151,52 @@ const seen  = () => { try { sessionStorage.setItem("jvr.booted", "1"); } catch {
        && (await p.locator(".work").count()) === 0
        && (await p.locator(".sculpture").count()) === 1
        && (await p.getAttribute(".experience","data-x-work")) === null);
+  await p.context().close();
+}
+
+// 3d. CONNECTED — work -> home continuity, and work <-> about
+{
+  const p = await (await b.newContext({ viewport:{width:1920,height:950} })).newPage();
+  await p.addInitScript(seen);
+  await p.goto(base, { waitUntil:"networkidle" });
+  await p.waitForTimeout(900);
+  const state = () => p.getAttribute(".experience","data-state");
+  const visibleCells = () => p.evaluate(() => {
+    const host = document.querySelector(".work-cells");
+    if (!host || getComputedStyle(host).display === "none") return 0;
+    return [...document.querySelectorAll(".work-cell")].filter((c) => +getComputedStyle(c).opacity > 0.5).length;
+  });
+
+  await p.getByRole("button", { name: "[Work]" }).click();
+  await p.waitForTimeout(3300);
+  await p.getByRole("button", { name: "[Home]" }).click();
+  await p.waitForTimeout(90);
+  pass("work->home: the surface is still there right after the press", (await visibleCells()) > 150);
+  await p.waitForTimeout(1500);
+  pass("work->home: arrives home", (await state()) === "home");
+
+  await p.getByRole("button", { name: "[Work]" }).click();
+  await p.waitForTimeout(3300);
+  await p.getByRole("button", { name: "[About]" }).click();
+  await p.waitForTimeout(700);
+  pass("work->about: one transition state", (await state()) === "work-to-about");
+  pass("work->about: both stages mounted mid-handover",
+       (await p.locator(".work").count()) === 1 && (await p.locator(".about").count()) === 1);
+  pass("work->about: cells re-gridding, not vanished", (await visibleCells()) > 150);
+  pass("work->about: nav refused mid-transition", await p.getByRole("button", { name: "[Home]" }).isDisabled());
+  await p.waitForTimeout(2000);
+  pass("work->about: arrives in about", (await state()) === "about"
+       && (await p.locator(".work").count()) === 0 && (await p.getAttribute(".about","data-panels")) !== null);
+
+  await p.getByRole("button", { name: "[Work]" }).click();
+  await p.waitForTimeout(120);
+  pass("about->work: panels hand over to cells", (await state()) === "about-to-work" && (await visibleCells()) > 150);
+  await p.waitForTimeout(1000);
+  pass("about->work: not settled early", (await state()) === "about-to-work");
+  await p.waitForTimeout(1200);
+  pass("about->work: arrives in work, resolved", (await state()) === "work"
+       && (await p.getAttribute(".work","data-solid")) !== null
+       && (await p.locator(".about").count()) === 0);
   await p.context().close();
 }
 

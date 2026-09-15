@@ -29,7 +29,9 @@ const CONTROL = "button, a[href], [role='button'], input, [data-cursor], .about_
 /** Glitch timing for the fake crash, seconds. */
 const CRASH_RAMP = 1.1;
 
-export type StageMode = "home" | "to-about" | "about" | "to-home" | "home-to-work" | "work" | "work-to-home";
+export type StageMode =
+  | "home" | "to-about" | "about" | "to-home"
+  | "home-to-work" | "work" | "work-to-home" | "work-to-about" | "about-to-work";
 
 type Slot = { el: SVGPathElement; d: string; g: number; fa: number; sa: number };
 
@@ -306,14 +308,14 @@ export function HomeStage({
       }
       const tm = (now - modeAt) / 1000;
       let collapse = 0;
-      if (m === "to-about") collapse = inOut(seg(tm, ABOUT_IN.collapse[0], ABOUT_IN.collapse[1]));
+      if (m === "to-about" || m === "work-to-about") collapse = inOut(seg(tm, ABOUT_IN.collapse[0], ABOUT_IN.collapse[1]));
       else if (m === "about") collapse = 1;
-      else if (m === "to-home") collapse = 1 - inOut(seg(tm, ABOUT_OUT.collapse[0], ABOUT_OUT.collapse[1]));
+      else if (m === "to-home" || m === "about-to-work") collapse = 1 - inOut(seg(tm, ABOUT_OUT.collapse[0], ABOUT_OUT.collapse[1]));
 
       // Featured work: the formation clock, and the same clock run backward.
       let work = 0;
       if (m === "home-to-work") work = Math.min(WORK_IN.end, tm);
-      else if (m === "work") work = WORK_IN.end;
+      else if (m === "work" || m === "work-to-about" || m === "about-to-work") work = WORK_IN.end;
       else if (m === "work-to-home") work = Math.max(0, WORK_OUT.from - tm * WORK_OUT.rate);
       const interactive = m === "home";
 

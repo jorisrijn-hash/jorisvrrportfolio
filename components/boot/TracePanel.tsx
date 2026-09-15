@@ -42,7 +42,7 @@ export function TracePanel({
       data-typing={visible}
       initial={{ opacity: 0 }}
       animate={{ opacity: visible ? 1 : 0 }}
-      transition={{ duration: visible ? 0.16 : 0.45, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: visible ? 0.16 : 0.45, ease: [0.25, 0.8, 0.3, 1] }}
       aria-hidden="true"
     >
       <p className="trace__title">{title}</p>

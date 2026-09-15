@@ -50,7 +50,10 @@ export type Cue =
   | "row"      // first row of the surface locks
   | "snap"     // the media frame locks
   | "bloom"    // media resolves
-  | "settle";  // work state settles
+  | "settle"   // work state settles
+  // [REBUILD]
+  | "glitch"   // a burst of the tear
+  | "power";   // the screen drops to black
 
 type CueDef = {
   /** cuelume recipe name */
@@ -84,6 +87,8 @@ const CUES: Record<Cue, CueDef> = {
   snap:    { recipe: "toggle",  gain: 0.78, limit: 1200 },
   bloom:   { recipe: "bloom",   gain: 0.5,  limit: 1200 },
   settle:  { recipe: "tick",    gain: 0.48, limit: 1200 },
+  glitch:  { recipe: "tick",    gain: 0.42, limit: 45 },
+  power:   { recipe: "release", gain: 0.85, limit: 1200 },
 };
 
 /** Master. Interface feedback sits well under the content (§25). */
@@ -228,11 +233,24 @@ export function SoundProvider({ children }: { children: React.ReactNode }) {
     // which is exactly the confirmation beep you most want to hear.
     if (getSnapshot() !== true) return;
 
-    const mod = engine.current;
-    if (!mod) return;
-
     const def = CUES[name];
     if (!def) return;
+
+    const mod = engine.current;
+    if (!mod) {
+      // A returning visitor skips the gate, so nothing has loaded the engine
+      // yet. Load it now (a click is usually what asked) and play once ready.
+      void load().then((m) => {
+        if (!m || getSnapshot() !== true) return;
+        m.setEnabled(true);
+        try {
+          m.play(def.recipe as Parameters<typeof m.play>[0], { volume: VOLUME * def.gain });
+        } catch {
+          /* a failed cue must never break an interaction */
+        }
+      });
+      return;
+    }
 
     // Rate limit per cue. Without this, a pointer crossing a row of controls
     // machine-guns the hover tick.
@@ -248,7 +266,7 @@ export function SoundProvider({ children }: { children: React.ReactNode }) {
     } catch {
       /* a failed cue must never break an interaction */
     }
-  }, []);
+  }, [load]);
 
   const value = useMemo<SoundApi>(
     () => ({ enabled, setEnabled, cue }),

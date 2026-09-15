@@ -32,12 +32,12 @@ export const ABOUT = {
     "Long term, I want to be able to connect business, design and technology rather than seeing them as separate disciplines.",
   ],
 
-  /** Mono metadata shown beside the About panels. */
+  /** Contact details shown in the About META panel. `href` makes a row a link. */
   meta: [
-    ["Module", "Profile_Node"],
-    ["Study", "HBO-ICT Business & Data Management"],
-    ["Focus", "Business · Technology · Data · UX"],
-    ["Origin", "Visual design / Filmmaking"],
-    ["Location", "The Netherlands"],
-  ] as const,
+    { label: "Name", value: "Joris van Rijn" },
+    { label: "Email", value: "jorisvrr@gmail.com", href: "mailto:jorisvrr@gmail.com" },
+    { label: "Phone", value: "0638032065", href: "tel:+31638032065" },
+    { label: "Location", value: "The Netherlands" },
+    { label: "Website", value: "jorisvrr.com", href: "https://jorisvrr.com", external: true },
+  ] as { label: string; value: string; href?: string; external?: boolean }[],
 } as const;

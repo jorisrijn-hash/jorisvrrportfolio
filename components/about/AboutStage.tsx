@@ -64,11 +64,18 @@ const r1 = (n: number) => Math.round(n * 10) / 10;
  */
 export function AboutStage({
   leaving,
+  leavingTo = "home",
+  fromWork = false,
   still,
   onArrive,
   onClose,
 }: {
   leaving: boolean;
+  /** where About is going: home spins away and reports arrival; work hands
+   *  its panels straight to Work's cells, and Work reports arrival */
+  leavingTo?: "home" | "work";
+  /** entered from Work: the panels take over from cells already in place */
+  fromWork?: boolean;
   still: boolean;
   onArrive: () => void;
   onClose: () => void;
@@ -84,6 +91,9 @@ export function AboutStage({
   const { cue } = useSound();
 
   const leavingRef = useRef(leaving);
+  const leavingToRef = useRef(leavingTo);
+  useEffect(() => { leavingToRef.current = leavingTo; }, [leavingTo]);
+  const [fromWorkAtMount] = useState(fromWork);
   const arrive = useRef(onArrive);
   const close = useRef(onClose);
   useEffect(() => { leavingRef.current = leaving; }, [leaving]);
@@ -132,7 +142,7 @@ export function AboutStage({
 
     /** One pose of the whole stage. p* are 0..1 progress values. */
     const pose = (o: {
-      rings: number; wire: number; globe: number; spin: number; scale: number; seconds: number; fast?: boolean;
+      rings: number; wire: number; globe: number; spin: number; scale: number; seconds: number; orbit: number; fast?: boolean;
     }) => {
       const lon = -(GLOBE.lon + GLOBE.drift * o.seconds + o.spin);
       projection.rotate([lon, -GLOBE.lat, 0]);
@@ -143,7 +153,9 @@ export function AboutStage({
 
       // The fine coastline is re-projected only when the view has actually
       // turned by LAND_STEP; the coarse one follows a fast spin every frame.
-      if (o.globe > 0 && land) {
+      // Projected once as soon as the land data is in (even while invisible),
+      // so the first visible frame never pays for it.
+      if (land && (o.globe > 0 || !lastLand)) {
         const key = o.fast ? `c${lon}` : `f${Math.round(lon / LAND_STEP)}`;
         if (key !== landKey) {
           landKey = key;
@@ -169,7 +181,7 @@ export function AboutStage({
       ringInner.current?.setAttribute("stroke-opacity", ringA);
 
       // The orbit dot travels counter-clockwise, ~10°/s, as in the reference.
-      const a = ((-37 - 10 * o.seconds) * Math.PI) / 180;
+      const a = ((-37 - 10 * o.orbit) * Math.PI) / 180;
       dotOuter.current?.setAttribute("cx", String(r1(Math.cos(a) * ro)));
       dotOuter.current?.setAttribute("cy", String(r1(Math.sin(a) * ro)));
       dotOuter.current?.setAttribute("fill-opacity", ringA);
@@ -198,17 +210,18 @@ export function AboutStage({
       raise(el, "data-panels");
       void preloadGlobe().then((l) => {
         land = l;
-        pose({ rings: 1, wire: 0, globe: 1, spin: 0, scale: 1, seconds: 0 });
+        pose({ rings: 1, wire: 0, globe: 1, spin: 0, scale: 1, seconds: 0, orbit: 0 });
       });
-      pose({ rings: 1, wire: 0, globe: 1, spin: 0, scale: 1, seconds: 0 });
+      pose({ rings: 1, wire: 0, globe: 1, spin: 0, scale: 1, seconds: 0, orbit: 0 });
       arrive.current();
       let left = false;
       const id = window.setInterval(() => {
         if (leavingRef.current && !left) {
           left = true;
-          raise(el, "data-leaving");
+          const toWork = leavingToRef.current === "work";
+          raise(el, toWork ? "data-leaving-work" : "data-leaving");
           raise(stage, "data-x-about", false);
-          arrive.current();
+          if (!toWork) arrive.current();
         }
       }, 50);
       return () => {
@@ -224,14 +237,16 @@ export function AboutStage({
     let cueIn = 0;
     let cueOut = 0;
     let spinAtLeave = 0;
+    let orbitAtLeave = 0;
 
     const frame = (now: number) => {
       const t = (now - start) / 1000;
 
       if (leavingRef.current && leftAt === null) {
         leftAt = now;
-        spinAtLeave = t;
-        raise(el, "data-leaving");
+        spinAtLeave = Math.max(0, t - ABOUT_IN.end);
+        orbitAtLeave = t;
+        raise(el, leavingToRef.current === "work" ? "data-leaving-work" : "data-leaving");
       }
 
       if (leftAt === null) {
@@ -257,19 +272,25 @@ export function AboutStage({
           globe: inOut(seg(t, ABOUT_IN.globe[0], ABOUT_IN.globe[1])),
           spin: 0,
           scale: lerp(0.82, 1, outQuart(seg(t, ABOUT_IN.wire[0], ABOUT_IN.globe[1]))),
-          seconds: t,
+          // The globe only starts to drift once About has arrived: mid-transition
+          // the fine coastline is projected once, not every LAND_STEP.
+          seconds: Math.max(0, t - ABOUT_IN.end),
+          orbit: t,
         });
         return;
       }
 
       // ---- about -> home --------------------------------------------------
       const u = (now - leftAt) / 1000;
-      while (cueOut < ABOUT_CUES_OUT.length && u >= ABOUT_CUES_OUT[cueOut].at) {
-        if (u - ABOUT_CUES_OUT[cueOut].at < 0.25) cue(ABOUT_CUES_OUT[cueOut].cue);
+      const toWork = leavingToRef.current === "work";
+      // Toward Work, Work scores the formation; About only marks the release.
+      const outCues = toWork ? ABOUT_CUES_OUT.slice(0, 1) : ABOUT_CUES_OUT;
+      while (cueOut < outCues.length && u >= outCues[cueOut].at) {
+        if (u - outCues[cueOut].at < 0.25) cue(outCues[cueOut].cue);
         cueOut++;
       }
       if (u >= ABOUT_OUT.ui) raise(stage, "data-x-about", false);
-      if (!leftArrived && u >= ABOUT_OUT.end) {
+      if (!toWork && !leftArrived && u >= ABOUT_OUT.end) {
         leftArrived = true;
         arrive.current();
       }
@@ -283,6 +304,7 @@ export function AboutStage({
         spin: 200 * g * g,
         scale: lerp(1, 0.55, g),
         seconds: spinAtLeave,
+        orbit: orbitAtLeave + u,
         fast: g > 0,
       });
     };
@@ -295,7 +317,7 @@ export function AboutStage({
   }, [cue, stillAtMount]);
 
   return (
-    <div ref={root} className="about">
+    <div ref={root} className="about" data-from-work={fromWorkAtMount || undefined}>
       <svg className="about__globe" aria-hidden="true">
         <defs>
           <radialGradient id="about-ocean" cx="0.62" cy="0.64" r="0.78">
@@ -354,10 +376,23 @@ export function AboutStage({
           <div className="about__inner">
             <p className="about__eyebrow">{"// Meta"}</p>
             <dl className="about__meta">
-              {ABOUT.meta.map(([k, v]) => (
-                <div key={k}>
-                  <dt>{k}</dt>
-                  <dd>{v}</dd>
+              {ABOUT.meta.map((row) => (
+                <div key={row.label}>
+                  <dt>{row.label}</dt>
+                  <dd>
+                    {row.href ? (
+                      <a
+                        className="about__meta-link"
+                        href={row.href}
+                        {...(row.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                        onPointerEnter={() => cue("hover")}
+                      >
+                        {row.value}
+                      </a>
+                    ) : (
+                      row.value
+                    )}
+                  </dd>
                 </div>
               ))}
             </dl>

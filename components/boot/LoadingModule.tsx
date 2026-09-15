@@ -18,7 +18,7 @@ export function LoadingModule({ visible }: { visible: boolean }) {
       className="loadmod"
       initial={{ opacity: 0 }}
       animate={{ opacity: visible ? 1 : 0 }}
-      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.5, ease: [0.25, 0.8, 0.3, 1] }}
       aria-hidden="true"
     >
       <svg viewBox="0 0 240 240" fill="none" className="loadmod__svg">

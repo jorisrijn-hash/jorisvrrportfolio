@@ -30,11 +30,21 @@ export function CrashSequence({ onDone }: { onDone: () => void }) {
   useEffect(() => {
     stopBootTrack(0);
     cue("crash");
+
+    // The tear, heard: irregular glitch ticks that thicken as it escalates.
+    const rand = rng(1337);
+    const bursts: number[] = [];
+    for (let at = 60; at < CRASH.black - 80; ) {
+      bursts.push(at);
+      at += 40 + rand() * (190 - (at / CRASH.black) * 140);
+    }
+
     const timers = [
+      ...bursts.map((at) => window.setTimeout(() => cue("glitch"), at)),
       window.setTimeout(() => setStage("panic"), CRASH.panic),
       window.setTimeout(() => {
         setStage("black");
-        cue("toggle");
+        cue("power");
       }, CRASH.black),
       window.setTimeout(() => done.current(), CRASH.total),
     ];
