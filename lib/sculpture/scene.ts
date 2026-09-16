@@ -1,5 +1,6 @@
 import { IDLE_LOOP, XFER } from "@/content/transition";
 import { PLANE, WORK_CLUSTER, WORK_CORE, WORK_CORE_SCALE, WORK_IN, lockTime } from "@/content/work";
+import type { Layout, PlaneSpec } from "@/lib/layout";
 import {
   type M3, type Q, type V3,
   Q_ID, clamp01, deg, inOut, lerp, m3Apply, qAxis, qEuler, qFromAxes, qMul, qSlerp, qToM3,
@@ -139,14 +140,23 @@ const ORBIT_CUBE = 16;
 
 // The featured-work media plane in scene space. Ring cube i lands in cell i and
 // orbit cube j in cell 68 + j (row-major), which WorkStage mirrors exactly.
-const PLANE_YAW = deg(PLANE.yaw);
-const PLANE_Q = qAxis(0, 1, 0, -PLANE_YAW);   // local x -> (cos, 0, sin): right edge away
-const CELL_W = PLANE.w / PLANE.cols;
-const CELL_H = PLANE.h / PLANE.rows;
-const CELL_CENTRES: V3[] = Array.from({ length: PLANE.cols * PLANE.rows }, (_, k) => {
-  const u = (k % PLANE.cols + 0.5) * CELL_W;
-  return [PLANE.x + Math.cos(PLANE_YAW) * u, PLANE.y + (Math.floor(k / PLANE.cols) + 0.5) * CELL_H, Math.sin(PLANE_YAW) * u];
-});
+// The plane comes from the layout (desktop: the measured reference plane;
+// compact: a flatter plane sized to the screen), so its geometry is derived.
+type PlaneGeo = { q: Q; cw: number; ch: number; centres: V3[] };
+function planeGeometry(p: PlaneSpec): PlaneGeo {
+  const yaw = deg(p.yaw);
+  const cw = p.w / PLANE.cols;
+  const ch = p.h / PLANE.rows;
+  return {
+    q: qAxis(0, 1, 0, -yaw),   // local x -> (cos, 0, sin): right edge away
+    cw,
+    ch,
+    centres: Array.from({ length: PLANE.cols * PLANE.rows }, (_, k) => {
+      const u = ((k % PLANE.cols) + 0.5) * cw;
+      return [p.x + Math.cos(yaw) * u, p.y + (Math.floor(k / PLANE.cols) + 0.5) * ch, Math.sin(yaw) * u] as V3;
+    }),
+  };
+}
 
 /* ------------------------------------------------------ object identities */
 
@@ -330,6 +340,8 @@ export type Pose = {
   collapse: number;
   /** seconds along the home -> work formation; 0 = home */
   work: number;
+  /** screen composition: desktop or compact, and the media plane */
+  layout: Pick<Layout, "compact" | "lite" | "plane">;
 };
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
@@ -342,17 +354,30 @@ export function createScene() {
   const ringStart = Array.from({ length: RING_COUNT }, (_, i) => (2.5 + 14 * i) / R_DASH);
   const ringHome = ringStart.map((_, i) => ringStart[0] + (TAU * i) / RING_COUNT);
 
+  let geoKey = "";
+  let geo: PlaneGeo = planeGeometry(PLANE);
+
   const tmpM = new Float64Array(9) as M3;
   const objM = new Float64Array(9) as M3;
 
   return function evaluate(pose: Pose): Frame {
     const { t, loop, hover } = pose;
+    const { compact, lite } = pose.layout;
+    const pl = pose.layout.plane;
+    const key = `${pl.x}|${pl.y}|${pl.yaw}|${pl.w}|${pl.h}`;
+    if (key !== geoKey) {
+      geoKey = key;
+      geo = planeGeometry(pl);
+    }
 
     // ---- featured work ------------------------------------------------------
     // The cluster releases and gathers top-right; ring and orbit cubes fly to
     // their cells, flatten into tiles, and hand over at their lock times.
     const wt = pose.work;
     const cm = inOut(seg(wt, WORK_IN.release[0], WORK_IN.release[1]));
+    // On compact screens the released cluster would sit over the project
+    // text, so it dissolves instead of gathering.
+    const clusterFade = compact ? 1 - cm : 1;
     const gather = (p: V3, s: V3) => {
       if (cm <= 0) return;
       p[0] = lerp(p[0], p[0] * WORK_CLUSTER.spread + WORK_CLUSTER.x, cm);
@@ -367,13 +392,13 @@ export function createScene() {
       const fade = 1 - seg(wt, lock + 0.02, lock + 0.14);
       if (fade <= 0) return null;
       const u = inOut(seg(wt, depart, lock));
-      const target = CELL_CENTRES[cell];
+      const target = geo.centres[cell];
       const lift = -140 * Math.sin(Math.PI * u);           // arcs toward the camera
       const flat = smooth(seg(u, 0.55, 1));                // cube -> thin tile
       return {
         p: [lerp(p[0], target[0], u), lerp(p[1], target[1], u), lerp(p[2], target[2], u) + lift] as V3,
-        q: qSlerp(q, PLANE_Q, u),
-        s: [lerp(s[0], CELL_W * 0.92, flat), lerp(s[1], CELL_H * 0.92, flat), lerp(s[2], 12, flat)] as V3,
+        q: qSlerp(q, geo.q, u),
+        s: [lerp(s[0], geo.cw * 0.92, flat), lerp(s[1], geo.ch * 0.92, flat), lerp(s[2], 12, flat)] as V3,
         ink: smooth(seg(u, 0.35, 1)) * 0.9,
         fade,
       };
@@ -477,7 +502,7 @@ export function createScene() {
         pts.push(x, y);
         d += (i ? "L" : "M") + r1(x) + " " + r1(y);
       }
-      faces.push({ id: ID_CORE, z: centre[2] + 4, d: d + "Z", pts, g: 251, fa: expand * 0.96, sa: 1 - expand });
+      faces.push({ id: ID_CORE, z: centre[2] + 4, d: d + "Z", pts, g: 251, fa: expand * 0.96 * clusterFade, sa: 1 - expand });
     }
 
     // ---- diamond -> octahedron -> tetrahedra -------------------------------
@@ -526,7 +551,7 @@ export function createScene() {
       emit(ID_TETRA + idx, TETRA, p, q, s, cluster, {
         g0: part.g0,
         m: c,
-        fa: lerp(part.fa0, 1, smooth(clamp01(c * 1.6))),
+        fa: lerp(part.fa0, 1, smooth(clamp01(c * 1.6))) * clusterFade,
         sa: part.sa0 * (1 - c),
         strokeFace: TETRA_BASE,
         bias: idx === TETRA_HOMES.length + 1 ? -2 : 0,
@@ -543,7 +568,7 @@ export function createScene() {
       p[1] += 5 * (Math.sin(w + part.delay * 20) - Math.sin(part.delay * 20));
       gather(p, s);
       emit(ID_MEDIUM + idx, CUBE, p, qSlerp(Q_ID, part.home.q, c), s, cluster, {
-        g0: 216, m: c, fa: 1, sa: 0, strokeFace: -2,
+        g0: 216, m: c, fa: clusterFade, sa: 0, strokeFace: -2,
       });
     });
 
@@ -576,7 +601,8 @@ export function createScene() {
       const centre = vLerp([0, 0, 0], ORBIT_C, c);
       return m3Apply(secondary, [local[0] + centre[0], local[1] + centre[1], local[2] + centre[2]]);
     };
-    for (let j = 0; j < ORBIT_COUNT; j++) {
+    // The far orbit is the lowest-priority geometry: dropped on compact screens.
+    for (let j = 0; j < (lite ? 0 : ORBIT_COUNT); j++) {
       const c = inOut(seg(t, 1.2 + 0.15 * (j / ORBIT_COUNT), 2.1 + 0.15 * (j / ORBIT_COUNT)));
       if (c <= 0) continue;
       const angle = (TAU * j) / ORBIT_COUNT + orbitDrift;
@@ -595,7 +621,7 @@ export function createScene() {
     }
     const orbitC = inOut(seg(t, 1.2, 2.1));
     let orbit = "";
-    if (orbitC < 1) {
+    if (orbitC < 1 && !lite) {
       for (let i = 0; i <= 96; i++) {
         const [x, y] = project(orbitAt(orbitC, (TAU * i) / 96));
         orbit += (i ? "L" : "M") + r1(x) + " " + r1(y);
@@ -638,7 +664,7 @@ export function createScene() {
       faces,
       orbit, orbitA: 0.28 * (1 - orbitC) * fade,
       stem, stemA: (1 - seg(t, 1.3, 2.1)) * fade,
-      links: linkPath, dots, linkA: linkA * fade * (1 - 0.5 * cm),
+      links: linkPath, dots, linkA: linkA * fade * (1 - (compact ? 1 : 0.5) * cm),
     };
   };
 }

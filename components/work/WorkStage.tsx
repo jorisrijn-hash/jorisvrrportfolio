@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   FED_CELLS, PLANE, PROJECTS, WORK_ABOUT, WORK_CUES_FROM_ABOUT, WORK_CUES_IN, WORK_CUES_OUT,
   WORK_CUES_TO_ABOUT, WORK_IN, WORK_OUT, lockTime, mediaStill,
@@ -8,6 +8,7 @@ import {
 import { PANELS } from "@/content/about";
 import { addTick } from "@/lib/ticker";
 import { useSound } from "@/lib/sound";
+import { computeLayout, type Layout } from "@/lib/layout";
 
 let preloaded = false;
 
@@ -24,29 +25,36 @@ export function preloadWork() {
 const CELL_W = PLANE.w / PLANE.cols;
 const CELL_H = PLANE.h / PLANE.rows;
 const r2 = (n: number) => Math.round(n * 100) / 100;
+const hash = (n: number) => {
+  const x = Math.sin(n * 91.345 + 7.13) * 43758.5453;
+  return x - Math.floor(x);
+};
 
-/** Which About panel a cell belongs to, and that block's origin and size in cells. */
-function panelBlock(r: number, c: number) {
+/** Which About panel a cell belongs to: rows 0-5 the statement, the lower
+ *  half split between META (left) and LOG (right). */
+function block(r: number, c: number) {
   const half = PLANE.rows / 2;
   const mid = PLANE.cols / 2;
-  if (r < half) return { rect: PANELS.top, r0: 0, c0: 0, rows: half, cols: PLANE.cols };
-  if (c < mid) return { rect: PANELS.meta, r0: half, c0: 0, rows: half, cols: mid };
-  return { rect: PANELS.body, r0: half, c0: mid, rows: half, cols: mid };
+  if (r < half) return { i: 0, r0: 0, c0: 0, rows: half, cols: PLANE.cols };
+  if (c < mid) return { i: 1, r0: half, c0: 0, rows: half, cols: mid };
+  return { i: 2, r0: half, c0: mid, rows: half, cols: mid };
 }
 
 /**
  * One cell per sculpture cube and beyond. Each carries:
  *   lock      when it appears on the way in, matching its cube's arrival
  *   out       when it folds away on the way home, just as its cube returns
- *   ax/ay/as  where it re-grids to inside its About panel (flat plane, px)
+ *   ax..asy   where it re-grids inside its About panel (desktop defaults;
+ *             re-measured from the live panels whenever the move runs)
+ *   sx..ry    its own scatter — the decompose beat between surface and panel
  *   ad/bd     its stagger toward About, and back
  */
 const CELLS = Array.from({ length: PLANE.cols * PLANE.rows }, (_, k) => {
   const r = Math.floor(k / PLANE.cols);
   const c = k % PLANE.cols;
   const lock = lockTime(r, c);
-  const b = panelBlock(r, c);
-  const [px, py, pw, ph] = b.rect;
+  const b = block(r, c);
+  const [px, py, pw, ph] = [PANELS.top, PANELS.meta, PANELS.body][b.i];
   const tw = pw / b.cols;
   const th = ph / b.rows;
   const ad = r2((r + c * 0.5) * 0.012);
@@ -58,8 +66,13 @@ const CELLS = Array.from({ length: PLANE.cols * PLANE.rows }, (_, k) => {
     glitch: r === 3 || r === 8,
     ax: r2(px - WORK_ABOUT.flat.x + (c - b.c0) * tw - c * CELL_W),
     ay: r2(py - WORK_ABOUT.flat.y + (r - b.r0) * th - r * CELL_H),
-    asx: r2(tw / CELL_W * 1000) / 1000,
-    asy: r2(th / CELL_H * 1000) / 1000,
+    asx: r2((tw / CELL_W) * 1000) / 1000,
+    asy: r2((th / CELL_H) * 1000) / 1000,
+    sx: r2((hash(k) - 0.5) * 120),
+    sy: r2((hash(k + 31) - 0.5) * 80),
+    sz: r2(40 + hash(k + 67) * 180),
+    rx: r2((hash(k + 101) - 0.5) * 60),
+    ry: r2((hash(k + 149) - 0.5) * 60),
     ad,
     bd: r2(0.23 - ad),
   };
@@ -82,6 +95,107 @@ const WIRE = (() => {
   return d;
 })();
 
+/** Write the layout the CSS surface needs (desktop values are the CSS defaults). */
+function applyLayout(el: HTMLElement, L: Layout) {
+  const s = el.style;
+  s.setProperty("--fit", String(L.fit));
+  s.setProperty("--stage-y", `${L.stageY * 100}%`);
+  s.setProperty("--plane-x", `${r2(L.plane.x)}px`);
+  s.setProperty("--plane-y", `${r2(L.plane.y)}px`);
+  s.setProperty("--plane-yaw", `${L.plane.yaw}deg`);
+  s.setProperty("--plane-w", `${r2(L.plane.w)}px`);
+  s.setProperty("--plane-h", `${r2(L.plane.h)}px`);
+  s.setProperty("--flat-x", `${r2(L.flat.x)}px`);
+  s.setProperty("--flat-y", `${r2(L.flat.y)}px`);
+  s.setProperty("--media-bottom", `${Math.round(L.mediaBottom)}px`);
+}
+
+/**
+ * Re-grid every cell into its About panel, measured from the live panels.
+ * On compact screens the panels scroll, so each rectangle is clipped to the
+ * viewport; a panel entirely off-screen takes its cells down to the edge,
+ * where they fade instead of travelling out of view.
+ */
+type CellTarget = { ax: number; ay: number; asx: number; asy: number; visible: boolean };
+
+function mapToPanels(el: HTMLElement, L: Layout): CellTarget[] {
+  const out: CellTarget[] = [];
+  const panels = [...document.querySelectorAll<HTMLElement>(".about__panel")].slice(0, 3);
+  if (panels.length < 3) return out;
+  const cx = L.vw / 2;
+  const cy = L.vh * L.stageY;
+  const cw = L.plane.w / PLANE.cols;
+  const ch = L.plane.h / PLANE.rows;
+  const rects = panels.map((p) => {
+    const r = p.getBoundingClientRect();
+    const top = Math.max(r.top, 0);
+    const bottom = Math.min(r.bottom, L.vh);
+    const visible = bottom - top > 8;
+    return {
+      x: (r.left - cx) / L.fit - L.flat.x,
+      y: ((visible ? top : Math.min(Math.max(r.top, 0), L.vh - 2)) - cy) / L.fit - L.flat.y,
+      w: r.width / L.fit,
+      h: Math.max(visible ? bottom - top : 2, 2) / L.fit,
+      visible,
+    };
+  });
+  el.querySelectorAll<HTMLElement>(".work-cell").forEach((cell, k) => {
+    const r = Math.floor(k / PLANE.cols);
+    const c = k % PLANE.cols;
+    const b = block(r, c);
+    const rect = rects[b.i];
+    const tw = rect.w / b.cols;
+    const th = rect.h / b.rows;
+    const t: CellTarget = {
+      ax: r2(rect.x + (c - b.c0) * tw - c * cw),
+      ay: r2(rect.y + (r - b.r0) * th - r * ch),
+      asx: r2((tw / cw) * 1000) / 1000,
+      asy: r2((th / ch) * 1000) / 1000,
+      visible: rect.visible,
+    };
+    out.push(t);
+    cell.style.setProperty("--pv", t.visible ? "1" : "0");
+  });
+  return out;
+}
+
+const SEALED = "translate3d(0px, 0px, 0px) rotateX(0deg) rotateY(0deg) scale(1.002, 1.002)";
+const panelPose = (t: CellTarget) =>
+  `translate3d(${t.ax}px, ${t.ay}px, 0px) rotateX(0deg) rotateY(0deg) scale(${t.asx}, ${t.asy})`;
+const scatterPose = (t: CellTarget, c: (typeof CELLS)[number]) =>
+  `translate3d(${r2(t.ax * 0.35 + c.sx)}px, ${r2(t.ay * 0.35 + c.sy)}px, ${c.sz}px) ` +
+  `rotateX(${c.rx}deg) rotateY(${c.ry}deg) scale(0.84, 0.84)`;
+
+/**
+ * The decompose -> align move, driven by the Web Animations API.
+ *
+ * These were CSS keyframes reading per-cell custom properties, which cannot be
+ * composited: 216 cells then re-resolved their transforms on the main thread
+ * every frame (~3ms of style per frame, and dropped frames). Concrete numeric
+ * keyframes hand the same motion to the compositor.
+ */
+function runCellMove(el: HTMLElement, targets: CellTarget[], dir: "to" | "from") {
+  if (!targets.length) return;
+  const cells = el.querySelectorAll<HTMLElement>(".work-cell");
+  cells.forEach((cell, k) => {
+    const t = targets[k];
+    const c = CELLS[k];
+    if (!t || !c) return;
+    const panel = panelPose(t);
+    const mid = scatterPose(t, c);
+    const frames =
+      dir === "to"
+        ? [{ transform: SEALED }, { transform: mid, offset: 0.42 }, { transform: panel }]
+        : [{ transform: panel }, { transform: mid, offset: 0.58 }, { transform: SEALED }];
+    cell.animate(frames, {
+      duration: dir === "to" ? 1150 : 1100,
+      delay: (dir === "to" ? c.ad + 0.06 : c.bd) * 1000,
+      easing: "cubic-bezier(0.42, 0, 0.3, 1)",
+      fill: "forwards",
+    });
+  });
+}
+
 type Origin = "home" | "about";
 type Target = "home" | "about";
 
@@ -97,14 +211,16 @@ type Target = "home" | "about";
  *
  * The same cells carry every other move:
  *   -> home    the seal opens and cells fold away as their cubes return
- *   -> about   the plane turns to face the camera and the cells re-grid into
- *              the three About panels, frost, and hand over to the glass
- *   about ->   the reverse: panels become frosted cells, clear, re-grid into
- *              the surface and seal
+ *   -> about   the plane turns to the camera; every cell lifts off toward the
+ *              viewer with its own tilt (decompose), then gathers into its
+ *              About panel's live rectangle (align), frosting as it travels,
+ *              and dissolves tile by tile into the glass
+ *   about ->   the reverse: panels become frosted cells in place, which lift,
+ *              gather back into the surface, clear, and seal
  *
- * One subscription to the shared frame clock raises stage attributes at their
- * moments; every visual change is a CSS transition keyed to them, so nothing
- * here renders per frame.
+ * Geometry comes from lib/layout (desktop reference or compact), written to
+ * CSS variables. One subscription to the shared frame clock raises stage
+ * attributes at their moments; the motion itself is CSS keyed to them.
  */
 export function WorkStage({
   from = "home",
@@ -129,6 +245,7 @@ export function WorkStage({
   const still_ = mediaStill(project);
 
   const [origin] = useState<Origin>(from);
+  const targets = useRef<CellTarget[]>([]);
   const [stillAtMount] = useState(still);
   const leavingRef = useRef(leaving);
   const leavingToRef = useRef(leavingTo);
@@ -136,6 +253,23 @@ export function WorkStage({
   useEffect(() => { leavingRef.current = leaving; }, [leaving]);
   useEffect(() => { leavingToRef.current = leavingTo; }, [leavingTo]);
   useEffect(() => { arrive.current = onArrive; }, [onArrive]);
+
+  // Before the first paint: the surface's geometry, and — arriving from
+  // About — cells already sitting exactly on the panels they replace.
+  useLayoutEffect(() => {
+    const el = root.current;
+    if (!el) return;
+    const L = computeLayout();
+    applyLayout(el, L);
+    if (origin === "about") {
+      // Arriving from About: the cells start as the panels they replace.
+      targets.current = mapToPanels(el, L);
+      el.querySelectorAll<HTMLElement>(".work-cell").forEach((cell, k) => {
+        const t = targets.current[k];
+        if (t) cell.style.transform = panelPose(t);
+      });
+    }
+  }, [origin]);
 
   useEffect(() => {
     const el = root.current;
@@ -156,9 +290,10 @@ export function WorkStage({
     };
     set(stage, "data-x-work");
 
+    let layout = computeLayout();
     const measure = () => {
-      const fit = Math.min(1.25, Math.max(0.5, Math.min(window.innerWidth / 1920, window.innerHeight / 950)));
-      el.style.setProperty("--fit", String(fit));
+      layout = computeLayout();
+      applyLayout(el, layout);
       if (drv.current) drv.current.textContent = `Drv:// Viewport map ${window.innerWidth}x${window.innerHeight}`;
     };
     measure();
@@ -172,16 +307,30 @@ export function WorkStage({
       });
     };
 
+    /** Once settled, forget how the surface arrived, so every later move
+     *  starts from the plain sealed state. */
+    const settle = () => {
+      set(el, "data-regroup", false);
+      el.setAttribute("data-origin", "settled");
+      // Hand the cells back to CSS, so the next move starts from the sealed state.
+      el.querySelectorAll<HTMLElement>(".work-cell").forEach((cell) => {
+        cell.getAnimations().forEach((a) => a.cancel());
+        cell.style.transform = "";
+      });
+    };
+
     /** Step 1 of leaving: the single plane hands back to its sealed cells —
      *  identical pixels — so there is something to move on the next frame. */
-    const unseat = () => {
+    const unseat = (to: Target) => {
       ["data-solid", "data-ui", "data-echo", "data-link", "data-glitch"].forEach((n) => set(el, n, false));
+      if (to === "about") targets.current = mapToPanels(el, layout);
     };
     /** Step 2: the move itself. */
     const depart = (to: Target) => {
       if (to === "about") {
         set(el, "data-drift", false);
         set(el, "data-to-about");
+        runCellMove(el, targets.current, "to");
       } else {
         set(el, "data-leaving");
       }
@@ -190,14 +339,14 @@ export function WorkStage({
     // Reduced motion: settled states at once, no frame loop.
     if (stillAtMount) {
       ["data-form", "data-seal", "data-ui", "data-echo", "data-solid"].forEach((n) => set(el, n));
-      if (origin === "about") set(el, "data-regroup");
+      settle();
       arrive.current();
       let left = false;
       const id = window.setInterval(() => {
         if (leavingRef.current && !left) {
           left = true;
           const to = leavingToRef.current;
-          unseat();
+          unseat(to);
           depart(to);
           set(stage, "data-x-work", false);
           if (to === "about") set(el, "data-dissolve");
@@ -224,7 +373,7 @@ export function WorkStage({
       // ---- leaving ------------------------------------------------------------
       if (leavingRef.current && leftAt === null) {
         leftAt = now;
-        unseat();
+        unseat(leavingToRef.current);
         return;
       }
       if (leftAt !== null) {
@@ -261,7 +410,10 @@ export function WorkStage({
 
       if (origin === "about") {
         // Raised on the first frame, after the panel-shaped cells have painted.
-        set(el, "data-regroup");
+        if (!on.has("w:data-regroup")) {
+          set(el, "data-regroup");
+          runCellMove(el, targets.current, "from");
+        }
         if (t >= WORK_ABOUT.seal) set(el, "data-seal");
         if (t >= WORK_ABOUT.ui) set(el, "data-ui");
         if (t >= WORK_ABOUT.echo) set(el, "data-echo");
@@ -291,6 +443,7 @@ export function WorkStage({
       }
       if (t >= end) {
         arrived = true;
+        settle();
         arrive.current();
       }
     };
@@ -309,8 +462,13 @@ export function WorkStage({
       <div className="work-3d">
         <div className="work-origin">
           <div className="work-plane">
-            <svg className="work-wire" viewBox={`-120 -90 ${PLANE.w + 240} ${PLANE.h + 180}`} aria-hidden="true">
-              <path d={WIRE} fill="none" stroke="#7d7d7d" strokeWidth="0.7" strokeOpacity="0.45" />
+            <svg
+              className="work-wire"
+              viewBox={`-120 -90 ${PLANE.w + 240} ${PLANE.h + 180}`}
+              preserveAspectRatio="none"
+              aria-hidden="true"
+            >
+              <path d={WIRE} fill="none" stroke="#7d7d7d" strokeWidth="0.7" strokeOpacity="0.45" vectorEffect="non-scaling-stroke" />
             </svg>
 
             <div className="work-ghost" aria-hidden="true" />
@@ -331,6 +489,11 @@ export function WorkStage({
                     ["--ay" as string]: `${cell.ay}px`,
                     ["--asx" as string]: cell.asx,
                     ["--asy" as string]: cell.asy,
+                    ["--sx" as string]: `${cell.sx}px`,
+                    ["--sy" as string]: `${cell.sy}px`,
+                    ["--sz" as string]: `${cell.sz}px`,
+                    ["--rx" as string]: `${cell.rx}deg`,
+                    ["--ry" as string]: `${cell.ry}deg`,
                     ["--ad" as string]: `${cell.ad}s`,
                     ["--bd" as string]: `${cell.bd}s`,
                   }}

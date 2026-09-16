@@ -9,6 +9,7 @@ import { ABOUT } from "@/content/site";
 import { ABOUT_CUES_IN, ABOUT_CUES_OUT, ABOUT_IN, ABOUT_LABELS, ABOUT_OUT, GLOBE } from "@/content/about";
 import { clamp01, inOut, lerp, outQuart, seg, smooth } from "@/lib/sculpture/math";
 import { addTick } from "@/lib/ticker";
+import { computeLayout } from "@/lib/layout";
 import { useSound } from "@/lib/sound";
 
 /* ------------------------------------------------------------ land data */
@@ -122,8 +123,11 @@ export function AboutStage({
     raise(stage, "data-x-about");
 
     const measure = () => {
-      const fit = Math.min(1.25, Math.max(0.5, Math.min(window.innerWidth / 1920, window.innerHeight / 950)));
-      el.style.setProperty("--fit", String(fit));
+      const L = computeLayout();
+      el.style.setProperty("--fit", String(L.fit));
+      el.style.setProperty("--gfit", String(L.globeFit));
+      el.style.setProperty("--globe-y", `${L.globeY * 100}%`);
+      el.style.setProperty("--stage-y", `${L.stageY * 100}%`);
     };
     measure();
     window.addEventListener("resize", measure);
@@ -385,7 +389,9 @@ export function AboutStage({
                         className="about__meta-link"
                         href={row.href}
                         {...(row.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                        onPointerEnter={() => cue("hover")}
+                        onPointerEnter={(e) => {
+                          if (e.pointerType === "mouse") cue("hover");
+                        }}
                       >
                         {row.value}
                       </a>

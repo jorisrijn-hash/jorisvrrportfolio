@@ -95,13 +95,13 @@ export const WORK_ABOUT = {
   /** plane origin once it faces the camera, so it spans the panels' bounds */
   flat: { x: -420, y: -280 },
   // work -> about (AboutStage owns the globe, the panels and arrival)
-  dissolve: 1.45,          // cells hand over to the glass panels
+  dissolve: 1.5,           // cells hand over to the glass panels, tile by tile
   // about -> work (WorkStage owns arrival)
-  seal: 1.3,
-  ui: 1.45,
-  echo: 1.5,
-  solid: 1.6,
-  end: 1.95,
+  seal: 1.38,
+  ui: 1.5,
+  echo: 1.55,
+  solid: 1.65,
+  end: 2.0,
 } as const;
 
 /** Where the released cluster gathers, and how the core sinks (scene units). */
@@ -125,9 +125,9 @@ export const WORK_CUES_TO_ABOUT = [
 
 export const WORK_CUES_FROM_ABOUT = [
   { at: 0.3, cue: "align" },      // panels break back into cells
-  { at: 1.3, cue: "snap" },       // the frame locks
-  { at: 1.38, cue: "bloom" },
-  { at: 1.9, cue: "settle" },
+  { at: 1.38, cue: "snap" },      // the frame locks
+  { at: 1.46, cue: "bloom" },
+  { at: 1.95, cue: "settle" },
 ] as const;
 
 export const WORK_CUES_OUT = [

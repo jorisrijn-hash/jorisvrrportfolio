@@ -27,7 +27,7 @@ export function BootControls() {
         className="ctl"
         aria-pressed={on}
         aria-label={on ? "Turn sound off" : "Turn sound on"}
-        onPointerEnter={() => cue("hover")}
+        onPointerEnter={(e) => { if (e.pointerType === "mouse") cue("hover"); }}
         onClick={() => {
           setEnabled(!on);
           if (!on) window.setTimeout(() => cue("toggle"), 60);
@@ -46,7 +46,7 @@ export function BootControls() {
         className="ctl"
         aria-label="Replay the boot sequence"
         disabled={state === "loading"}
-        onPointerEnter={() => cue("hover")}
+        onPointerEnter={(e) => { if (e.pointerType === "mouse") cue("hover"); }}
         onClick={() => {
           cue("select");
           replay();

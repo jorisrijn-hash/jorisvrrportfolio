@@ -7,6 +7,7 @@ import { WORK_IN, WORK_OUT } from "@/content/work";
 import { OBJECT_COUNT, createScene, type DrawFace } from "@/lib/sculpture/scene";
 import { inOut, seg } from "@/lib/sculpture/math";
 import { addTick } from "@/lib/ticker";
+import { computeLayout, type Layout } from "@/lib/layout";
 import { useSound } from "@/lib/sound";
 
 const SVG = "http://www.w3.org/2000/svg";
@@ -130,9 +131,10 @@ export function HomeStage({
       raise("data-x-ui");
     }
 
-    let fit = 1;
+    let layout: Layout = computeLayout();
     const measure = () => {
-      fit = Math.min(1.25, Math.max(0.5, Math.min(window.innerWidth / 1920, window.innerHeight / 950)));
+      layout = computeLayout();
+      root.style.top = `${layout.stageY * 100}%`;
     };
     measure();
     window.addEventListener("resize", measure);
@@ -147,7 +149,9 @@ export function HomeStage({
       pointer.overControl = !!(e.target as Element | null)?.closest?.(CONTROL);
     };
     const onLeave = () => { pointer.present = false; };
-    if (!still) {
+    // Touch screens have no hover and no cursor to follow: no pointer tracking.
+    const finePointer = window.matchMedia("(pointer: fine)").matches;
+    if (!still && finePointer) {
       window.addEventListener("pointermove", onMove, { passive: true });
       html.addEventListener("mouseleave", onLeave);
     }
@@ -172,7 +176,7 @@ export function HomeStage({
 
     const draw = (t: number, loop: number, glitch: number | null, collapse: number, work: number) => {
       const f = evaluate({
-        t, loop, fit, hover, collapse, work,
+        t, loop, fit: layout.fit, layout, hover, collapse, work,
         tiltX: tilt.x, tiltY: tilt.y, shiftX: tilt.sx, shiftY: tilt.sy,
       });
       faces = f.faces;
@@ -269,6 +273,7 @@ export function HomeStage({
     let lastMode: StageMode = modeRef.current;
     let modeAt = start;
     let hidden = false;
+    let skip = false;
 
     const frame = (now: number, dt: number) => {
       // The crash freezes time where it is and tears the last pose.
@@ -347,7 +352,7 @@ export function HomeStage({
         let hit = -1;
         if (interactive && pointer.present && !pointer.overControl) {
           const px = pointer.x - window.innerWidth / 2;
-          const py = pointer.y - window.innerHeight * 0.495;
+          const py = pointer.y - window.innerHeight * layout.stageY;
           for (let i = faces.length - 1; i >= 0; i--) {
             const fc = faces[i];
             if (fc.id < 0 || fc.fa < 0.3 || !fc.pts.length) continue;
@@ -373,6 +378,10 @@ export function HomeStage({
         root.style.visibility = gone ? "hidden" : "";
       }
       if (gone) return;
+
+      // Compact screens redraw the settled idle loop at 30fps; transitions
+      // always run at full rate.
+      if (layout.lite && arrivedAt !== null && m === "home" && (skip = !skip)) return;
 
       draw(Math.min(t, XFER.end), loop, null, collapse, work);
     };
