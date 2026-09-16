@@ -144,6 +144,25 @@ export function AboutStage({
     let lastGrat = "";
     let landKey = "";
 
+    /**
+     * Attributes are only written when their value actually changes.
+     * Every write repaints the globe, and a repaint re-composites the
+     * full-screen atmosphere layers above and below it: writing the same
+     * values each frame cost ~25% of frames in the settled About state.
+     */
+    const written = new WeakMap<Element, Record<string, string>>();
+    const put = (el: Element | null | undefined, name: string, v: string) => {
+      if (!el) return;
+      let c = written.get(el);
+      if (!c) {
+        c = {};
+        written.set(el, c);
+      }
+      if (c[name] === v) return;
+      c[name] = v;
+      el.setAttribute(name, v);
+    };
+
     /** One pose of the whole stage. p* are 0..1 progress values. */
     const pose = (o: {
       rings: number; wire: number; globe: number; spin: number; scale: number; seconds: number; orbit: number; fast?: boolean;
@@ -152,8 +171,8 @@ export function AboutStage({
       projection.rotate([lon, -GLOBE.lat, 0]);
 
       // Size is a group transform, so the projection never re-derives its scale.
-      globe.setAttribute("opacity", String(Math.round(Math.max(o.wire * 0.35, o.globe) * 100) / 100));
-      globe.setAttribute("transform", `scale(${Math.round(o.scale * 1000) / 1000})`);
+      put(globe, "opacity", String(Math.round(Math.max(o.wire * 0.35, o.globe) * 100) / 100));
+      put(globe, "transform", `scale(${Math.round(o.scale * 1000) / 1000})`);
 
       // The fine coastline is re-projected only when the view has actually
       // turned by LAND_STEP; the coarse one follows a fast spin every frame.
@@ -164,35 +183,35 @@ export function AboutStage({
         if (key !== landKey) {
           landKey = key;
           const d = path(o.fast ? land.coarse : land.fine) ?? "";
-          if (d !== lastLand) { lastLand = d; landPath.current?.setAttribute("d", d); }
+          if (d !== lastLand) { lastLand = d; put(landPath.current, "d", d); }
         }
       }
-      landPath.current?.setAttribute("fill-opacity", String(Math.round(o.globe * 100) / 100));
+      put(landPath.current, "fill-opacity", String(Math.round(o.globe * 100) / 100));
 
       const gA = o.wire * (1 - o.globe * 0.85);
       if (gA > 0.01 && !o.fast) {
         const d = path(GRATICULE) ?? "";
-        if (d !== lastGrat) { lastGrat = d; gratPath.current?.setAttribute("d", d); }
+        if (d !== lastGrat) { lastGrat = d; put(gratPath.current, "d", d); }
       }
-      gratPath.current?.setAttribute("stroke-opacity", String(Math.round(gA * 100) / 100));
+      put(gratPath.current, "stroke-opacity", String(Math.round(gA * 100) / 100));
 
       const ro = lerp(GLOBE.ringOuter + 50, GLOBE.ringOuter, outQuart(o.rings));
       const ri = lerp(GLOBE.ringInner + 40, GLOBE.ringInner, outQuart(o.rings));
-      ringOuter.current?.setAttribute("r", String(r1(ro)));
-      ringInner.current?.setAttribute("r", String(r1(ri)));
+      put(ringOuter.current, "r", String(r1(ro)));
+      put(ringInner.current, "r", String(r1(ri)));
       const ringA = String(Math.round(smooth(o.rings) * 100) / 100);
-      ringOuter.current?.setAttribute("stroke-opacity", ringA);
-      ringInner.current?.setAttribute("stroke-opacity", ringA);
+      put(ringOuter.current, "stroke-opacity", ringA);
+      put(ringInner.current, "stroke-opacity", ringA);
 
       // The orbit dot travels counter-clockwise, ~10°/s, as in the reference.
       const a = ((-37 - 10 * o.orbit) * Math.PI) / 180;
-      dotOuter.current?.setAttribute("cx", String(r1(Math.cos(a) * ro)));
-      dotOuter.current?.setAttribute("cy", String(r1(Math.sin(a) * ro)));
-      dotOuter.current?.setAttribute("fill-opacity", ringA);
+      put(dotOuter.current, "cx", String(r1(Math.cos(a) * ro)));
+      put(dotOuter.current, "cy", String(r1(Math.sin(a) * ro)));
+      put(dotOuter.current, "fill-opacity", ringA);
       const ai = a + 0.04;
-      dotInner.current?.setAttribute("cx", String(r1(Math.cos(ai) * ri)));
-      dotInner.current?.setAttribute("cy", String(r1(Math.sin(ai) * ri)));
-      dotInner.current?.setAttribute("fill-opacity", String(Math.round(smooth(o.rings) * (1 - o.globe) * 100) / 100));
+      put(dotInner.current, "cx", String(r1(Math.cos(ai) * ri)));
+      put(dotInner.current, "cy", String(r1(Math.sin(ai) * ri)));
+      put(dotInner.current, "fill-opacity", String(Math.round(smooth(o.rings) * (1 - o.globe) * 100) / 100));
     };
 
     const onKey = (e: KeyboardEvent) => {
@@ -392,6 +411,7 @@ export function AboutStage({
                         onPointerEnter={(e) => {
                           if (e.pointerType === "mouse") cue("hover");
                         }}
+                        onClick={() => cue("select")}
                       >
                         {row.value}
                       </a>

@@ -69,10 +69,10 @@ type CueDef = {
  * The hierarchy still holds: a hover is a whisper, a state change is a tone.
  */
 const CUES: Record<Cue, CueDef> = {
-  hover:  { recipe: "tick",    gain: 0.32, limit: 90 },
-  select: { recipe: "press",   gain: 0.75, limit: 60 },
+  hover:  { recipe: "tick",    gain: 0.26, limit: 90 },
+  select: { recipe: "press",   gain: 0.68, limit: 60 },
   state:  { recipe: "page",    gain: 0.90, limit: 200 },
-  toggle: { recipe: "toggle",  gain: 0.80, limit: 90 },
+  toggle: { recipe: "toggle",  gain: 0.72, limit: 90 },
   scan:   { recipe: "scan",    gain: 0.42, limit: 150 },
   arrive: { recipe: "arrival", gain: 0.85, limit: 400 },
   lock:    { recipe: "press",   gain: 0.62, limit: 1500 },
@@ -83,11 +83,11 @@ const CUES: Record<Cue, CueDef> = {
   crash:   { recipe: "error",   gain: 0.8,  limit: 1500 },
   release: { recipe: "release", gain: 0.55, limit: 1200 },
   align:   { recipe: "whisper", gain: 0.7,  limit: 1200 },
-  row:     { recipe: "tick",    gain: 0.3,  limit: 1200 },
-  snap:    { recipe: "toggle",  gain: 0.78, limit: 1200 },
+  row:     { recipe: "tick",    gain: 0.26, limit: 1200 },
+  snap:    { recipe: "toggle",  gain: 0.72, limit: 1200 },
   bloom:   { recipe: "bloom",   gain: 0.5,  limit: 1200 },
   settle:  { recipe: "tick",    gain: 0.48, limit: 1200 },
-  glitch:  { recipe: "tick",    gain: 0.42, limit: 45 },
+  glitch:  { recipe: "tick",    gain: 0.38, limit: 45 },
   power:   { recipe: "release", gain: 0.85, limit: 1200 },
 };
 

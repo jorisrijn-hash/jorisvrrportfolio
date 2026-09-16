@@ -58,12 +58,27 @@
   inset: 0;
   z-index: 2;
   pointer-events: none;
-  background: radial-gradient(
-    circle at 50% 49.5%,
-    rgb(232 232 232 / var(--wash-alpha)) 0,
-    rgb(232 232 232 / calc(var(--wash-alpha) * 0.55)) calc(var(--wash-radius) * 0.55),
-    rgb(232 232 232 / 0) var(--wash-radius)
-  );
+  /* The measured wash, with the ambient light riding on top of it: two very
+     wide fields nudged by --amb-x / --amb-y (components/atmosphere). Carried
+     here rather than on their own layer — a full-screen layer beneath the
+     content is re-blended on every repaint of the globe above it. */
+  background:
+    radial-gradient(
+      circle at calc(26% + var(--amb-x, 0px)) calc(28% + var(--amb-y, 0px)),
+      rgb(255 255 255 / calc(0.3 * var(--ambient-opacity))) 0%,
+      rgb(255 255 255 / 0) 46%
+    ),
+    radial-gradient(
+      circle at calc(80% - var(--amb-x, 0px)) calc(84% - var(--amb-y, 0px)),
+      rgb(102 31 44 / calc(0.07 * var(--ambient-opacity))) 0%,
+      rgb(102 31 44 / 0) 38%
+    ),
+    radial-gradient(
+      circle at 50% 49.5%,
+      rgb(232 232 232 / var(--wash-alpha)) 0,
+      rgb(232 232 232 / calc(var(--wash-alpha) * 0.55)) calc(var(--wash-radius) * 0.55),
+      rgb(232 232 232 / 0) var(--wash-radius)
+    );
 }
 
 /* ---- corner registration brackets -------------------------------------- */
@@ -832,10 +847,15 @@ html[data-cursor-hidden="true"] * { cursor: none; }
   background: rgb(255 255 255 / 0.4);
   border: 1px solid rgb(0 0 0 / 0.12);
   border-radius: 4px;
-  transition: background-color 180ms var(--ease-out), color 180ms var(--ease-out), border-color 180ms var(--ease-out);
+  transition:
+    background-color 180ms var(--ease-out),
+    color 180ms var(--ease-out),
+    border-color 180ms var(--ease-out),
+    transform 220ms var(--ease-out);
 }
 
-.home-pill:hover:not(:disabled) { background: rgb(255 255 255 / 0.85); color: var(--color-hud); }
+.home-pill:hover:not(:disabled) { background: rgb(255 255 255 / 0.85); color: var(--color-hud); transform: translateY(-1px); }
+.home-pill:active:not(:disabled) { transform: translateY(0); }
 .home-pill[aria-disabled="true"] { cursor: default; }
 
 .home-pill--sound { height: 22px; padding: 0 8px; font-size: 9px; }
@@ -1065,7 +1085,9 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
   -webkit-backdrop-filter: blur(16px) saturate(1.05);
   backdrop-filter: blur(16px) saturate(1.05);
   border: 1px solid rgb(255 255 255 / 0.7);
-  box-shadow: 0 10px 30px rgb(0 0 0 / 0.07), inset 0 1px 0 rgb(255 255 255 / 0.6);
+  /* a wide, soft haze field rather than a card shadow */
+  box-shadow: 0 34px 90px -46px rgb(20 18 20 / calc(var(--haze-strength) * 1.5)),
+    inset 0 1px 0 rgb(255 255 255 / 0.6);
   opacity: 0;
   transform: translateY(16px) scale(0.985);
   transition:
@@ -1875,3 +1897,170 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
   .home-hud__bar > span:nth-child(3) { display: none; }
   .home-dock button { font-size: 9px; letter-spacing: 0.12em; }
 }
+
+/* =========================================================================
+   ATMOSPHERE — grain, vignette, ambient light.
+   One set of layers over every state, under the cursor. Intensities come from
+   tokens; [data-busy] lifts them for the length of a transition.
+   ========================================================================= */
+.atmos { position: absolute; inset: 0; z-index: 85; pointer-events: none; }
+
+.experience {
+  transition: --grain-opacity 800ms var(--ease-inout), --vignette-strength 800ms var(--ease-inout);
+}
+
+/* A transition breathes: a touch more grain, a touch more edge. */
+.experience[data-busy] { --grain-opacity: 0.095; --vignette-strength: 0.08; }
+.experience[data-busy][data-x-ui] .home-hud [data-reveal] { opacity: 0.8; }
+
+/* ---- grain + vignette, one layer -------------------------------------------
+   Grain: procedural, tiled, stitched so no seam reads. Its two-polarity alpha
+   (black below mid, white above, transparent at mid) means plain compositing
+   adds light and dark speckle in equal measure, so the ivory keeps its exact
+   luminance — no blend mode, which would force the animating page beneath to
+   re-composite every frame.
+   Vignette: the corners only, a few percent, expressed relative to the layer's
+   own opacity so both tokens stay independent. Static, like the grain. */
+.atmos__field {
+  position: absolute;
+  inset: 0;
+  opacity: var(--grain-opacity);
+  background-repeat: repeat, no-repeat;
+  background-size: 190px 190px, 100% 100%;
+  background-image: var(--grain-image), var(--vignette-image);
+}
+
+:root {
+  /* Baked to a bitmap on purpose: as an SVG data-URI with a filter, this
+     full-screen tile was re-rasterised on composite and cost ~25% of frames
+     in About. A PNG is a texture upload and nothing more. */
+  --grain-image: url("/grain.png");
+  --vignette-image: radial-gradient(
+    farthest-corner at 50% 47%,
+    rgb(26 22 24 / 0) 55%,
+    rgb(26 22 24 / calc(var(--vignette-strength) / var(--grain-opacity) * 0.55)) 84%,
+    rgb(26 22 24 / calc(var(--vignette-strength) / var(--grain-opacity))) 100%
+  );
+}
+
+.atmos__field.no-grain { --grain-image: none; }
+.atmos__field.no-vignette { --vignette-image: none; }
+
+/* =========================================================================
+   DEPTH HAZE — light around a surface, not a shadow under a card
+   ========================================================================= */
+.work-plane::before {
+  content: "";
+  position: absolute;
+  inset: -16%;
+  transform: translateZ(-2px);
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(closest-side, rgb(18 16 18 / var(--haze-strength)) 0%, rgb(18 16 18 / 0) 76%);
+  transition: opacity 700ms var(--ease-inout);
+}
+.work[data-seal] .work-plane::before,
+.work[data-solid] .work-plane::before { opacity: 1; }
+
+/* =========================================================================
+   MICRO SYSTEM ACTIVITY — a live system, not a static graphic.
+   Four behaviours in total: the status dot breathes, a tick runs the top-bar
+   rule, one corner mark blinks, and the dot turns burgundy while the system
+   is busy.
+   ========================================================================= */
+.home-hud__dot { animation: dot-breathe calc(4.6s / var(--micro-speed)) var(--ease-inout) infinite; }
+
+@keyframes dot-breathe {
+  0%, 100% { opacity: 0.72; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+/* the rare burgundy: the system is working */
+.experience[data-busy] .home-hud__dot {
+  background: var(--color-burgundy);
+  box-shadow: 0 0 7px rgb(102 31 44 / 0.45);
+  animation-duration: 1.1s;
+}
+
+.home-hud__rule { position: relative; overflow: hidden; }
+.home-hud__rule::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: currentColor;
+  opacity: 0;
+  animation: rule-tick calc(9s / var(--micro-speed)) linear infinite;
+}
+
+@keyframes rule-tick {
+  0% { transform: translateX(-6px); opacity: 0; }
+  3% { opacity: 0.9; }
+  11% { transform: translateX(18px); opacity: 0.9; }
+  14%, 100% { transform: translateX(18px); opacity: 0; }
+}
+
+.reg-marks i[data-c="br"] { animation: mark-flash calc(13s / var(--micro-speed)) linear infinite; }
+
+@keyframes mark-flash {
+  0%, 92%, 100% { opacity: 0.9; }
+  94% { opacity: 1; }
+  96% { opacity: 0.55; }
+  98% { opacity: 1; }
+}
+
+/* the wash breathes a little, which reads as the grid breathing without
+   touching the grid's own opacity (bloom and compact both set that) */
+.wash-layer { animation: wash-breathe calc(19s / var(--micro-speed)) var(--ease-inout) infinite; }
+
+@keyframes wash-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.9; }
+}
+
+/* the grid steps back very slightly while a transition owns the screen */
+.experience[data-busy]:not([data-x-bloom]) .grid-layer { opacity: 0.88; }
+
+/* =========================================================================
+   FEEDBACK — mechanical, 1px, never a scale-up
+   ========================================================================= */
+.ctl,
+.gate__btn,
+.work-ctl { transition: transform 200ms var(--ease-out), color 180ms var(--ease-out), border-color 180ms var(--ease-out), background-color 200ms var(--ease-out); }
+.ctl:hover:not(:disabled),
+.gate__btn:hover,
+.work-ctl:hover:not([aria-disabled="true"]) { transform: translateY(-1px); }
+.ctl:active:not(:disabled),
+.gate__btn:active { transform: translateY(0); }
+.work-ctl:hover:not([aria-disabled="true"]) { color: var(--color-hud); border-color: rgb(0 0 0 / 0.2); }
+
+/* the cursor's mark tips a degree into an interactive state */
+.cursor[data-state="link"] .cursor__mark { transform: translate(3px, 3px) scale(0.8) rotate(-4deg); }
+.cursor[data-state="view"] .cursor__mark { transform: scale(0.5) rotate(-6deg); opacity: 0.65; }
+
+/* =========================================================================
+   ATMOSPHERE: reduced motion, compact screens, dev toggles
+   ========================================================================= */
+@media (prefers-reduced-motion: reduce) {
+  /* the texture stays; the movement does not */
+  .home-hud__dot,
+  .home-hud__rule::after,
+  .reg-marks i[data-c="br"],
+  .wash-layer { animation: none; }
+  .home-hud__rule::after { opacity: 0; }
+}
+
+@media (max-width: 900px), (max-aspect-ratio: 4/5) {
+  :root { --grain-opacity: 0.055; --ambient-opacity: 0.4; --haze-strength: 0.1; }
+  .experience[data-busy] { --grain-opacity: 0.075; --vignette-strength: 0.07; }
+}
+
+.experience.no-ambient .wash-layer { --ambient-opacity: 0; }
+.experience.no-haze .work-plane::before { display: none; }
+.experience.no-haze .about__panel { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.6); }
+.experience.no-micro .home-hud__dot,
+.experience.no-micro .home-hud__rule::after,
+.experience.no-micro .reg-marks i[data-c="br"],
+.experience.no-micro .wash-layer { animation: none; }

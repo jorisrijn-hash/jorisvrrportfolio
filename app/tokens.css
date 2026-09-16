@@ -110,3 +110,27 @@
   --z-boot: 90;
   --z-cursor: 100;
 }
+
+/* =========================================================================
+   ATMOSPHERE — the polish layer's intensities, in one place.
+   Registered so transitions can interpolate them (@property), with the same
+   values as plain fallbacks where that is unsupported.
+   ========================================================================= */
+@property --grain-opacity {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0.07;
+}
+@property --vignette-strength {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0.05;
+}
+
+:root {
+  --grain-opacity: 0.07;
+  --vignette-strength: 0.05;
+  --ambient-opacity: 0.55;
+  --haze-strength: 0.14;
+  --micro-speed: 1;
+}

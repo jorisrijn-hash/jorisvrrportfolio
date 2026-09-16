@@ -6,6 +6,7 @@ import { dev } from "@/lib/dev";
 import { useSessionFlag, setSessionFlag } from "@/lib/clock";
 import { useReducedMotion } from "@/lib/motion";
 import { StaticComposition } from "./StaticComposition";
+import { Atmosphere } from "@/components/atmosphere/Atmosphere";
 import { AudioGate } from "@/components/boot/AudioGate";
 import { BootSequence } from "@/components/boot/BootSequence";
 import { BootControls } from "@/components/hud/BootControls";
@@ -30,7 +31,7 @@ export function Experience() {
 }
 
 function Stage() {
-  const { state, runId, begin, skipToHome, ready, arrive, reboot, go } = useExperience();
+  const { state, busy, runId, begin, skipToHome, ready, arrive, reboot, go } = useExperience();
   const seen = useSessionFlag(SESSION_KEY);
   const reduced = useReducedMotion();
   const still = reduced && !dev("FORCE_INTRO");
@@ -55,8 +56,18 @@ function Stage() {
   const atHome = state === "loading-to-home" || state === "home" || state === "crash" || inAbout || inWork;
   const mode: StageMode = inAbout || inWork ? (state as StageMode) : "home";
 
+  // Atmosphere reacts to transitions through this one attribute; the dev
+  // classes only exist while tuning (both compile out of a build).
+  const devClass = [
+    dev("NO_HAZE") ? "no-haze" : "",
+    dev("NO_MICRO") ? "no-micro" : "",
+    dev("NO_AMBIENT") ? "no-ambient" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <div className="experience" data-state={state}>
+    <div className={`experience ${devClass}`.trim()} data-state={state} data-busy={busy || undefined}>
       {/* The resting composition is mounted the whole time. From the handover
           on, its centre construction is drawn by the sculpture instead. */}
       <StaticComposition resolved={state !== "gate" && state !== "loading"} centre={!atHome} />
@@ -121,6 +132,9 @@ function Stage() {
       )}
 
       {state === "crash" ? <CrashSequence key={`crash-${runId}`} onDone={reboot} /> : null}
+
+      {/* Over everything, under the cursor: grain, vignette, ambient light. */}
+      <Atmosphere />
 
       {dev("SHOW_STATE") ? <div className="dev-state">{state}</div> : null}
     </div>

@@ -20,6 +20,17 @@ export type DevFlags = {
   SKIP_TRANSITIONS: boolean;
   /** Keep the native cursor visible alongside the custom one. */
   CUSTOM_CURSOR_DEBUG: boolean;
+  /* ---- atmosphere, for tuning the polish pass ---- */
+  /** Drop the global grain field. */
+  NO_GRAIN: boolean;
+  /** Drop the edge vignette. */
+  NO_VIGNETTE: boolean;
+  /** Drop the drifting ambient light. */
+  NO_AMBIENT: boolean;
+  /** Drop the depth haze behind surfaces. */
+  NO_HAZE: boolean;
+  /** Stop the HUD's micro activity. */
+  NO_MICRO: boolean;
 };
 
 const DEFAULTS: DevFlags = {
@@ -30,6 +41,11 @@ const DEFAULTS: DevFlags = {
   SHOW_STATE: false,
   SKIP_TRANSITIONS: false,
   CUSTOM_CURSOR_DEBUG: false,
+  NO_GRAIN: false,
+  NO_VIGNETTE: false,
+  NO_AMBIENT: false,
+  NO_HAZE: false,
+  NO_MICRO: false,
 };
 
 const isDev = process.env.NODE_ENV !== "production";
