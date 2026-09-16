@@ -1279,7 +1279,18 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
 }
 
 /* Idle: a barely-there drift in depth once the surface is one plane. */
-.work[data-drift] .work-plane { animation: work-plane-drift 10s var(--ease-inout) infinite alternate; }
+/* A settle, then the idle drift takes over: half a degree and a hair of
+   scale, ~260ms, no bounce — the surface arrives rather than stopping. */
+.work[data-drift] .work-plane {
+  animation:
+    work-plane-settle 280ms var(--ease-out) 1 both,
+    work-plane-drift 10s var(--ease-inout) 280ms infinite alternate;
+}
+
+@keyframes work-plane-settle {
+  from { transform: translate3d(var(--plane-x), var(--plane-y), 0) rotateY(calc(var(--plane-yaw) + 0.5deg)) scale(1.012); }
+  to   { transform: translate3d(var(--plane-x), var(--plane-y), 0) rotateY(var(--plane-yaw)) scale(1); }
+}
 @keyframes work-plane-drift {
   from { transform: translate3d(var(--plane-x), var(--plane-y), 0) rotateY(var(--plane-yaw)); }
   to   { transform: translate3d(var(--plane-x), calc(var(--plane-y) - 1px), -6px) rotateY(calc(var(--plane-yaw) + 0.35deg)); }
@@ -1358,22 +1369,31 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
   transition: opacity 360ms var(--ease-out);
 }
 
+/* The tile's own dark face. It does not fade away: it retracts, so the media
+   is uncovered from inside the geometry that just formed. */
 .work-cell::after {
   content: "";
   position: absolute;
   inset: 0;
   background: #141416;
   opacity: 0.94;
-  transition: opacity 760ms var(--ease-inout) calc(var(--d) + 200ms);
+  clip-path: inset(0 0 0 0);
+  transition:
+    clip-path 720ms var(--ease-inout) calc(var(--d) + 180ms),
+    opacity 720ms var(--ease-inout) calc(var(--d) + 180ms);
 }
 
 .work[data-form] .work-cell { transform: scale(0.955); opacity: 1; }
-.work[data-form] .work-cell::after { opacity: 0.22; }
+.work[data-form] .work-cell::after { clip-path: inset(0 0 58% 0); opacity: 0.46; }
 
 /* The frame locks: seams close, lines and tint go. */
 .work[data-seal] .work-cell { transform: scale(1.002); transition: transform 300ms var(--ease-out) 0ms, opacity 0ms; }
 .work[data-seal] .work-cell::before { opacity: 0; }
-.work[data-seal] .work-cell::after { opacity: 0; transition: opacity 420ms var(--ease-out) 0ms; }
+.work[data-seal] .work-cell::after {
+  clip-path: inset(0 0 100% 0);
+  opacity: 0;
+  transition: clip-path 460ms var(--ease-out) 0ms, opacity 460ms var(--ease-out) 0ms;
+}
 .work[data-glitch] .work-cell[data-g] { transform: translateX(-9px) scale(1.002); transition: none; }
 
 /* Hand over to one plane (identical pixels) so idle costs one layer, not 216. */
@@ -1574,7 +1594,7 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
   transition: opacity 500ms var(--ease-out) 300ms;
 }
 .work[data-to-about] .work-cell::before { opacity: 0.45; transition: opacity 300ms var(--ease-out) 0ms; }
-.work[data-to-about] .work-cell::after { animation: work-cell-frost 760ms var(--ease-inout) calc(var(--ad) + 360ms) both; }
+.work[data-to-about] .work-cell::after { clip-path: inset(0 0 0 0); animation: work-cell-frost 760ms var(--ease-inout) calc(var(--ad) + 360ms) both; }
 .work[data-to-about][data-dissolve] .work-cell {
   opacity: 0;
   transition: opacity 460ms var(--ease-out) calc(var(--ad) * 1.4);
@@ -1586,10 +1606,10 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
 .work[data-origin="about"] .work-ghost { display: none; }
 .work[data-origin="about"] .work-cell { transform-origin: 0 0; opacity: 1; transition: none; }
 .work[data-origin="about"]:not([data-regroup]) .work-cell::before { opacity: 0.45; transition: none; }
-.work[data-origin="about"]:not([data-regroup]) .work-cell::after { background: #eeeef0; opacity: 0.86; transition: none; }
+.work[data-origin="about"]:not([data-regroup]) .work-cell::after { background: #eeeef0; opacity: 0.86; clip-path: inset(0 0 0 0); transition: none; }
 
 .work[data-regroup] .work-cell::before { opacity: 0.6; }
-.work[data-regroup] .work-cell::after { animation: work-cell-unfrost 700ms var(--ease-inout) calc(var(--bd) + 420ms) both; }
+.work[data-regroup] .work-cell::after { clip-path: inset(0 0 0 0); animation: work-cell-unfrost 700ms var(--ease-inout) calc(var(--bd) + 420ms) both; }
 .work[data-regroup][data-seal] .work-cell::before { opacity: 0; transition: opacity 300ms var(--ease-out) 0ms; }
 
 /* ---- work -> home: tint returns and the surface folds away, bottom rows
@@ -1604,7 +1624,7 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
     opacity 160ms linear calc(var(--o) + 220ms);
 }
 .work[data-leaving] .work-cell::before { opacity: 0.8; transition: opacity 220ms var(--ease-out) 0ms; }
-.work[data-leaving] .work-cell::after { background: #141416; opacity: 0.9; transition: opacity 220ms var(--ease-out) 0ms; }
+.work[data-leaving] .work-cell::after { background: #141416; opacity: 0.9; clip-path: inset(0 0 0 0); transition: opacity 220ms var(--ease-out) 0ms, clip-path 220ms var(--ease-out) 0ms; }
 
 /* ---- About's side of the handover ----------------------------------------- */
 .about[data-from-work] .about__panel { transform: none; transition: opacity 280ms var(--ease-out) 0ms; }

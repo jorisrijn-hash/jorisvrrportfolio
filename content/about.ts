@@ -16,7 +16,8 @@ export const ABOUT_IN = {
   labels: 0.5,             // ROUTE / HANDSHAKE labels
   online: 1.2,             // PROFILE ONLINE
   labelsOut: 1.85,
-  panels: 1.4,             // glass panels settle, staggered
+  panels: 1.55,            // glass panels settle, staggered — after the
+                           // geometry has done its work, not during it
   end: 2.4,
 } as const;
 

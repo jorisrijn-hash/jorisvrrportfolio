@@ -22,6 +22,34 @@ export const outQuart = (t: number) => {
 };
 export const deg = (d: number) => (d * Math.PI) / 180;
 
+/**
+ * Cubic-bezier timing, solved with a few Newton steps — the same curve family
+ * CSS uses, so geometry and CSS can share a feel.
+ */
+export function cubicBezier(x1: number, y1: number, x2: number, y2: number) {
+  const ax = 3 * x1 - 3 * x2 + 1, bx = 3 * x2 - 6 * x1, cx = 3 * x1;
+  const ay = 3 * y1 - 3 * y2 + 1, by = 3 * y2 - 6 * y1, cy = 3 * y1;
+  const fx = (u: number) => ((ax * u + bx) * u + cx) * u;
+  const dfx = (u: number) => (3 * ax * u + 2 * bx) * u + cx;
+  return (x: number) => {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    let u = x;
+    for (let i = 0; i < 5; i++) {
+      const e = fx(u) - x;
+      const d = dfx(u);
+      if (Math.abs(e) < 1e-5 || d === 0) break;
+      u -= e / d;
+    }
+    return ((ay * u + by) * u + cy) * u;
+  };
+}
+
+/** Primary geometry: slow to leave, quick through the middle, soft landing. */
+export const easePrimary = cubicBezier(0.65, 0, 0.35, 1);
+/** Secondary pieces: the same shape, a little quicker out of the middle. */
+export const easeSecondary = cubicBezier(0.5, 0, 0.2, 1);
+
 export const vLerp = (a: V3, b: V3, t: number): V3 => [
   a[0] + (b[0] - a[0]) * t,
   a[1] + (b[1] - a[1]) * t,

@@ -5,7 +5,7 @@ import { IDLE_LOOP, XFER, XFER_CUES } from "@/content/transition";
 import { ABOUT_IN, ABOUT_OUT } from "@/content/about";
 import { WORK_IN, WORK_OUT } from "@/content/work";
 import { OBJECT_COUNT, createScene, type DrawFace } from "@/lib/sculpture/scene";
-import { inOut, seg } from "@/lib/sculpture/math";
+import { clamp01, seg } from "@/lib/sculpture/math";
 import { addTick } from "@/lib/ticker";
 import { computeLayout, type Layout } from "@/lib/layout";
 import { useSound } from "@/lib/sound";
@@ -171,6 +171,17 @@ export function HomeStage({
       }
     };
 
+    // The blend between the idle loop and a running move, the camera, and the
+    // settle that ends a move — all derived from the same frame, so there is
+    // only ever one clock shaping the object.
+    let idleW = 1;
+    let settleAt: number | null = null;
+    let wasResting = true;
+    let camF = 1600;
+    let camX = 0;
+    let camY = 0;
+    let settle = 0;
+
     let lastOpacity = -1;
     const setAttr = (el: Element | null, name: string, v: string) => el?.setAttribute(name, v);
 
@@ -178,6 +189,7 @@ export function HomeStage({
       const f = evaluate({
         t, loop, fit: layout.fit, layout, hover, collapse, work,
         tiltX: tilt.x, tiltY: tilt.y, shiftX: tilt.sx, shiftY: tilt.sy,
+        idleW, camF, camX, camY, settle,
       });
       faces = f.faces;
 
@@ -313,9 +325,11 @@ export function HomeStage({
       }
       const tm = (now - modeAt) / 1000;
       let collapse = 0;
-      if (m === "to-about" || m === "work-to-about") collapse = inOut(seg(tm, ABOUT_IN.collapse[0], ABOUT_IN.collapse[1]));
+      // Linear progress: the scene eases it, per group, so the hierarchy lives
+      // in one place.
+      if (m === "to-about" || m === "work-to-about") collapse = seg(tm, ABOUT_IN.collapse[0], ABOUT_IN.collapse[1]);
       else if (m === "about") collapse = 1;
-      else if (m === "to-home" || m === "about-to-work") collapse = 1 - inOut(seg(tm, ABOUT_OUT.collapse[0], ABOUT_OUT.collapse[1]));
+      else if (m === "to-home" || m === "about-to-work") collapse = 1 - seg(tm, ABOUT_OUT.collapse[0], ABOUT_OUT.collapse[1]);
 
       // Featured work: the formation clock, and the same clock run backward.
       let work = 0;
@@ -323,6 +337,30 @@ export function HomeStage({
       else if (m === "work" || m === "work-to-about" || m === "about-to-work") work = WORK_IN.end;
       else if (m === "work-to-home") work = Math.max(0, WORK_OUT.from - tm * WORK_OUT.rate);
       const interactive = m === "home";
+
+      // ---- one blend, one camera, one settle ---------------------------------
+      // A move never cancels the idle loop: its influence eases down over
+      // ~300ms and back up afterwards, so the transition starts from exactly
+      // the pose the object is in. Work rests at 0.4 — quieter, not frozen.
+      const resting = m === "home" || m === "work" || m === "about";
+      const idleTarget = !resting ? 0.25 : m === "home" ? 1 : 0.4;
+      idleW += (idleTarget - idleW) * (1 - Math.exp(-dt / (resting ? 260 : 110)));
+
+      if (resting !== wasResting) {
+        wasResting = resting;
+        if (resting) settleAt = now;
+      }
+      const sp = settleAt === null ? 1 : clamp01((now - settleAt) / 240);
+      settle = (1 - sp) * (1 - sp);
+
+      // The camera moves less than the geometry. Toward Work it breathes
+      // forward and is back to neutral before the first cell locks — the cubes
+      // have to land exactly on the CSS cells, so it cannot drift there.
+      const wp = clamp01(work / 1.0);
+      const ap = clamp01(collapse);
+      camF = 1600 - 16 * Math.sin(Math.PI * wp) + 48 * ap;
+      camX = 10 * ap;
+      camY = -6 * ap;
 
       let e = 0;
       if (arrivedAt !== null) {

@@ -3,8 +3,8 @@ import { PLANE, WORK_CLUSTER, WORK_CORE, WORK_CORE_SCALE, WORK_IN, lockTime } fr
 import type { Layout, PlaneSpec } from "@/lib/layout";
 import {
   type M3, type Q, type V3,
-  Q_ID, clamp01, deg, inOut, lerp, m3Apply, qAxis, qEuler, qFromAxes, qMul, qSlerp, qToM3,
-  rng, seg, smooth, vCross, vDot, vLerp, vNorm, vSub,
+  Q_ID, clamp01, deg, easePrimary, easeSecondary, inOut, lerp, m3Apply, qAxis, qEuler, qFromAxes,
+  qMul, qSlerp, qToM3, rng, seg, smooth, vCross, vDot, vLerp, vNorm, vSub,
 } from "./math";
 
 /**
@@ -342,6 +342,16 @@ export type Pose = {
   work: number;
   /** screen composition: desktop or compact, and the media plane */
   layout: Pick<Layout, "compact" | "lite" | "plane">;
+  /** how much the idle loop still shapes the pose: 1 at rest in home, lower
+   *  while a move runs, so the two never argue over the same object */
+  idleW: number;
+  /** camera: focal length, and a small lateral drift. Always moves less than
+   *  the geometry, and returns to neutral before anything has to register. */
+  camF: number;
+  camX: number;
+  camY: number;
+  /** the settle at the end of a move, 1 -> 0 */
+  settle: number;
 };
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
@@ -374,16 +384,26 @@ export function createScene() {
     // The cluster releases and gathers top-right; ring and orbit cubes fly to
     // their cells, flatten into tiles, and hand over at their lock times.
     const wt = pose.work;
-    const cm = inOut(seg(wt, WORK_IN.release[0], WORK_IN.release[1]));
+    // Released in order — core, then the planes, then the blocks — on one
+    // clock, so the cluster reads as connected rather than fragmented.
+    const release = (delay: number, dur: number) =>
+      easePrimary(seg(wt, WORK_IN.release[0] + delay, WORK_IN.release[0] + delay + dur));
+    const cmCore = release(0, 0.85);
+    const cmTetra = release(0.04, 0.81);
+    const cmMedium = release(0.08, 0.78);
+    const cm = cmTetra;
     // On compact screens the released cluster would sit over the project
     // text, so it dissolves instead of gathering.
     const clusterFade = compact ? 1 - cm : 1;
-    const gather = (p: V3, s: V3) => {
-      if (cm <= 0) return;
-      p[0] = lerp(p[0], p[0] * WORK_CLUSTER.spread + WORK_CLUSTER.x, cm);
-      p[1] = lerp(p[1], p[1] * WORK_CLUSTER.spread + WORK_CLUSTER.y, cm);
-      p[2] = lerp(p[2], p[2] * WORK_CLUSTER.spread + WORK_CLUSTER.z, cm);
-      const k2 = lerp(1, WORK_CLUSTER.size, cm);
+    const gather = (p: V3, s: V3, g: number) => {
+      if (g <= 0) return;
+      // An arc, not a slide: pieces lift and swing toward the camera on their
+      // way to the cluster, so they travel through space rather than across it.
+      const arc = Math.sin(Math.PI * g);
+      p[0] = lerp(p[0], p[0] * WORK_CLUSTER.spread + WORK_CLUSTER.x, g) - arc * 15;
+      p[1] = lerp(p[1], p[1] * WORK_CLUSTER.spread + WORK_CLUSTER.y, g) - arc * 19;
+      p[2] = lerp(p[2], p[2] * WORK_CLUSTER.spread + WORK_CLUSTER.z, g) - arc * 58;
+      const k2 = lerp(1, WORK_CLUSTER.size, g);
       s[0] *= k2; s[1] *= k2; s[2] *= k2;
     };
     const toCell = (cell: number, p: V3, q: Q, s: V3, depart: number) => {
@@ -391,7 +411,7 @@ export function createScene() {
       const lock = lockTime(Math.floor(cell / PLANE.cols), cell % PLANE.cols);
       const fade = 1 - seg(wt, lock + 0.02, lock + 0.14);
       if (fade <= 0) return null;
-      const u = inOut(seg(wt, depart, lock));
+      const u = easeSecondary(seg(wt, depart, lock));
       const target = geo.centres[cell];
       const lift = -140 * Math.sin(Math.PI * u);           // arcs toward the camera
       const flat = smooth(seg(u, 0.55, 1));                // cube -> thin tile
@@ -410,21 +430,40 @@ export function createScene() {
     const transform = inOut(seg(t, XFER.transform[0], XFER.transform[1]));
     const expand = inOut(seg(t, XFER.expand[0], XFER.expand[1]));
 
-    // Collapse toward About: everything shrinks into the centre while the
-    // cluster spins up, then fades.
-    const fold = smooth(clamp01(pose.collapse));
-    const fade = 1 - smooth(clamp01(pose.collapse * 1.3));
-    const k = lerp(1, pose.fit, expand) * (1 - 0.035 * Math.sin(Math.PI * lock)) * (1 - 0.86 * fold);
+    // Collapse toward About. One progress value, offsets in progress space:
+    // the core leads, the cluster follows, the ring and far orbit trail. The
+    // system reconfigures rather than moving as one block.
+    const step = (c: number, d: number) => easePrimary(clamp01((c - d) / (1 - d)));
+    const foldCore = step(pose.collapse, 0);
+    const foldCluster = step(pose.collapse, 0.05);
+    const foldRing = step(pose.collapse, 0.1);
+    const fade = 1 - smooth(clamp01(step(pose.collapse, 0.05) * 1.25));
+
+    // The idle loop is weighted, never cut: a move begins from the pose the
+    // object is already in and takes over as the idle influence eases away.
+    const iw = pose.idleW;
+    // The end of a move: a fraction of a degree and a hair of scale, no bounce.
+    const settleYaw = deg(-0.8) * pose.settle;
+
+    const k = lerp(1, pose.fit, expand)
+      * (1 - 0.035 * Math.sin(Math.PI * lock))
+      * (1 - 0.86 * foldCore)
+      * (1 + 0.012 * pose.settle);
 
     // ---- idle (every term is periodic in IDLE_LOOP and zero at loop = 0) --
     const w = (loop / IDLE_LOOP) * TAU;
-    const tilt = qEuler(pose.tiltX, pose.tiltY, 0);
-    const cluster = qToM3(qMul(tilt, qEuler(deg(5) * Math.sin(2 * w), deg(16) * Math.sin(w) + deg(150) * fold, 0)));
-    const secondary = qToM3(qMul(tilt, qEuler(0, deg(70) * fold, 0)));
+    const tilt = qEuler(pose.tiltX * iw, pose.tiltY * iw, 0);
+    const cluster = qToM3(qMul(tilt, qEuler(
+      deg(5) * Math.sin(2 * w) * iw,
+      deg(16) * Math.sin(w) * iw + deg(150) * foldCluster + settleYaw,
+      0,
+    )));
+    const secondary = qToM3(qMul(tilt, qEuler(0, deg(70) * foldRing + settleYaw, 0)));
 
     const project = (p: V3): [number, number] => {
-      const s = (F / Math.max(80, F + p[2])) * k;
-      return [(p[0] + pose.shiftX) * s, (p[1] + pose.shiftY) * s];
+      const f = pose.camF;
+      const s = (f / Math.max(80, f + p[2])) * k;
+      return [(p[0] + pose.shiftX + pose.camX) * s, (p[1] + pose.shiftY + pose.camY) * s];
     };
 
     const shade = (n: V3) => {
@@ -483,10 +522,10 @@ export function createScene() {
 
     // ---- core: ring r119 -> octagon ---------------------------------------
     {
-      const breathe = 1 + 0.03 * Math.sin(2 * w);
-      const radius = lerp(R_RING, 88, expand) * breathe * hover[ID_CORE] * lerp(1, WORK_CORE_SCALE, cm);
+      const breathe = 1 + 0.03 * Math.sin(2 * w) * iw;
+      const radius = lerp(R_RING, 88, expand) * breathe * hover[ID_CORE] * lerp(1, WORK_CORE_SCALE, cmCore);
       const c0 = m3Apply(cluster, [0, 0, lerp(0, 30, expand)]);
-      const centre = cm > 0 ? vLerp(c0, WORK_CORE, cm) : c0;
+      const centre = cmCore > 0 ? vLerp(c0, WORK_CORE, cmCore) : c0;
       const [cx, cy] = project(centre);
       const scale = (F / Math.max(80, F + centre[2])) * k;
       let d = "";
@@ -535,18 +574,18 @@ export function createScene() {
       const arc = Math.sin(Math.PI * c) * 70;
 
       const wb = part.wobble;
-      const bob = wb.bob * Math.sin(wb.n * w);
+      const bob = wb.bob * Math.sin(wb.n * w) * iw;
       const p = vLerp(part.start.p, target, c);
       p[0] += out[0] * arc;
       p[1] += out[1] * arc + bob;
 
       const q = qMul(
-        qEuler(wb.a * Math.sin(wb.n * w), wb.b * Math.sin(wb.m * w), 0),
+        qEuler(wb.a * Math.sin(wb.n * w) * iw, wb.b * Math.sin(wb.m * w) * iw, 0),
         qSlerp(part.start.q, part.home.q, c),
       );
       const hs = part.home.s;
       const s: V3 = [lerp(part.start.s[0], hs, c), lerp(part.start.s[1], hs, c), lerp(part.start.s[2], hs, c)];
-      gather(p, s);
+      gather(p, s, cmTetra);
 
       emit(ID_TETRA + idx, TETRA, p, q, s, cluster, {
         g0: part.g0,
@@ -565,8 +604,8 @@ export function createScene() {
       const s: V3 = [lerp(part.start.s[0], hs, c), lerp(part.start.s[1], hs, c), lerp(part.start.s[2], hs, c)];
       const p = vLerp(part.start.p, part.home.p, c);
       // offset so the bob is exactly zero at loop = 0 — no jump on arrival
-      p[1] += 5 * (Math.sin(w + part.delay * 20) - Math.sin(part.delay * 20));
-      gather(p, s);
+      p[1] += 5 * (Math.sin(w + part.delay * 20) - Math.sin(part.delay * 20)) * iw;
+      gather(p, s, cmMedium);
       emit(ID_MEDIUM + idx, CUBE, p, qSlerp(Q_ID, part.home.q, c), s, cluster, {
         g0: 216, m: c, fa: clusterFade, sa: 0, strokeFace: -2,
       });
