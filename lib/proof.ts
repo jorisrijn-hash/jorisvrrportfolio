@@ -29,7 +29,7 @@ export const getProof = () => value;
 export function setProof(v: number) {
   value = v;
   const a = active ? v > 0.01 : v > 0.03;
-  const f = formed ? v > 0.5 : v > 0.65;
+  const f = formed ? v > 0.72 : v > 0.82;
   if (a !== active || f !== formed) {
     active = a;
     formed = f;

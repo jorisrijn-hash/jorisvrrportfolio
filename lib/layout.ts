@@ -35,9 +35,9 @@ export type ProofSpec = {
 
 function proofSpec(vw: number, vh: number, compact: boolean, safe: { t: number; b: number; l: number; r: number }): ProofSpec {
   const cols: 1 | 2 | 3 = compact ? (vw >= 600 ? 2 : 1) : vw >= 1100 ? 3 : 2;
-  const gap = compact ? 24 : 56;
-  const margin = compact ? 16 + Math.max(safe.l, safe.r) : 120;
-  const laneW = Math.min(cols === 1 ? 520 : 380, (vw - 2 * margin - (cols - 1) * gap) / cols);
+  const gap = compact ? 24 : 72;
+  const margin = compact ? 16 + Math.max(safe.l, safe.r) : 104;
+  const laneW = Math.min(cols === 1 ? 520 : 400, (vw - 2 * margin - (cols - 1) * gap) / cols);
   const pitch = laneW + gap;
   const lanes = Array.from({ length: cols }, (_, i) => (i - (cols - 1) / 2) * pitch);
   const rails = Array.from({ length: cols + 1 }, (_, i) => (i - cols / 2) * pitch);

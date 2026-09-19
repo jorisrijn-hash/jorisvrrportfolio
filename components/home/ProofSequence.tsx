@@ -4,26 +4,34 @@ import { useEffect, useRef } from "react";
 import type { Testimonial } from "@/content/proof";
 import { computeLayout } from "@/lib/layout";
 import { registerProofScroller, returnHome, setProof, useProofSpec, useTestimonials } from "@/lib/proof";
-import { clamp01, easePrimary, seg, smooth } from "@/lib/sculpture/math";
+import { clamp01, seg, smooth } from "@/lib/sculpture/math";
 import { addTick } from "@/lib/ticker";
 import { triggerVhs } from "@/lib/vhs";
 import { useSound, type Cue } from "@/lib/sound";
 
-/** Scroll distance of the whole morph, in viewport heights. */
-const DISTANCE = { desktop: 1.6, compact: 1.4 };
+/** Scroll distance of the whole morph, in viewport heights — about two
+ *  deliberate trackpad gestures, long enough to watch each phase. */
+const DISTANCE = { desktop: 2.2, compact: 1.9 };
+
+/** The progress follows the scroll on a critically damped spring: no
+ *  overshoot, no bounce, ~90ms to catch up — smoothing, not delayed control. */
+const SPRING = 11;
 
 /** Sound at the milestones, once per crossing going down. Re-armed only after
  *  falling a clear margin back below, so resting on a threshold stays quiet. */
 const MARKS: { at: number; cue: Cue }[] = [
-  { at: 0.2, cue: "release" },   // the object lets go
-  { at: 0.45, cue: "align" },    // pieces travel and align
-  { at: 0.7, cue: "form" },      // the structure locks
-  { at: 0.9, cue: "settle" },    // proof has arrived
+  { at: 0.14, cue: "release" },  // the object lets go — a quiet click
+  { at: 0.4, cue: "sweep" },     // mid-morph — a soft tonal sweep
+  { at: 0.62, cue: "align" },    // the lanes form
+  { at: 0.74, cue: "row" },      // the first card resolves — a tiny tick
+  { at: 0.96, cue: "land" },     // proof has settled
 ];
-const REARM = 0.1;
+const REARM = 0.08;
 
-/** Lane reveal windows by rank — the centre lane first, then left, then right. */
-const REVEAL = [[0.55, 0.74], [0.6, 0.79], [0.65, 0.84]] as const;
+/** Lane reveal windows by rank — the centre lane first, then left, then
+ *  right. Nothing shows before the structure has formed. */
+const REVEAL = [[0.68, 0.84], [0.72, 0.88], [0.76, 0.92]] as const;
+const easeOut3 = (x: number) => 1 - (1 - x) ** 3;
 
 /**
  * HOME -> SOCIAL PROOF. Not a page and not a section below Home: the Home
@@ -75,7 +83,8 @@ export function ProofSequence({ live, still }: { live: boolean; still: boolean }
       // a steady drift: every track moves at the same px/s whatever its length
       root.querySelectorAll<HTMLElement>(".proof-lane__track").forEach((t) => {
         const half = t.scrollHeight / 2;
-        t.style.setProperty("--dur", `${Math.max(30, half / 14).toFixed(1)}s`);
+        // slow enough to read comfortably while it moves
+        t.style.setProperty("--dur", `${Math.max(40, half / 9).toFixed(1)}s`);
       });
     };
     size();
@@ -118,19 +127,21 @@ export function ProofSequence({ live, still }: { live: boolean; still: boolean }
       if (!liveRef.current || e.ctrlKey) return;
       const t = e.target as Node | null;
       if (t && sc.contains(t)) return;
-      if (!(t as HTMLElement | null)?.closest?.(".home-hud")) return;
+      if (!(t as HTMLElement | null)?.closest?.(".home-hud, .proof")) return;
       const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? sc.clientHeight : 1;
       sc.scrollBy({ top: e.deltaY * unit, behavior: "instant" });
     };
     window.addEventListener("wheel", onWheel, { passive: true });
 
     let p = 0;
+    let v = 0;
     let lastP = -1;
     const written: string[] = [];
     const armed = MARKS.map(() => true);
     let vhsSide = 0;   // which side of the VHS window the morph was last on
     let formed = false;
     let sculpture: HTMLElement | null = null;
+    const stage = root.closest<HTMLElement>(".experience");
 
     const stop = addTick((_now, dt) => {
       if (!liveRef.current) {
@@ -140,9 +151,18 @@ export function ProofSequence({ live, still }: { live: boolean; still: boolean }
         }
         return;
       }
-      // light smoothing only, so a wheel notch glides instead of stepping
-      p += (target - p) * (still ? 1 : 1 - Math.exp(-dt / 110));
-      if (Math.abs(target - p) < 0.0004) p = target;
+      // raw scroll -> smoothed progress -> everything else
+      if (still) {
+        p = target;
+      } else {
+        const h = Math.min(dt, 34) / 1000;
+        v += (SPRING * SPRING * (target - p) - 2 * SPRING * v) * h;
+        p = clamp01(p + v * h);
+        if (Math.abs(target - p) < 0.0003 && Math.abs(v) < 0.002) {
+          p = target;
+          v = 0;
+        }
+      }
       if (p === lastP) return;
       const down = p > lastP;
       lastP = p;
@@ -152,7 +172,7 @@ export function ProofSequence({ live, still }: { live: boolean; still: boolean }
       lanesEls.forEach((el) => {
         const rank = +(el.dataset.rank ?? 0);
         const [a, b] = REVEAL[Math.min(rank, REVEAL.length - 1)];
-        const e = still ? smooth(seg(p, a, b)) : easePrimary(seg(p, a, b));
+        const e = still ? smooth(seg(p, a, b)) : easeOut3(seg(p, a, b));
         const v = `translate3d(0, ${((1 - e) * laneH * 0.9).toFixed(1)}px, 0)|${Math.min(1, e * 1.6).toFixed(3)}`;
         const k = +(el.dataset.i ?? 0);
         if (written[k] === v) return;
@@ -162,11 +182,13 @@ export function ProofSequence({ live, still }: { live: boolean; still: boolean }
         el.style.opacity = op;
       });
 
-      // The drift runs only once the proof has formed.
-      const f = formed ? p > 0.6 : p > 0.72;
+      // The drift runs, and cards answer the pointer, once the proof has
+      // settled; the environment steps back behind them.
+      const f = formed ? p > 0.84 : p > 0.9;
       if (f !== formed) {
         formed = f;
         root.toggleAttribute("data-live", f);
+        stage?.toggleAttribute("data-proof-formed", f);
       }
 
       // Reduced motion: the sculpture is drawn once, so it crossfades instead
@@ -188,7 +210,9 @@ export function ProofSequence({ live, still }: { live: boolean; still: boolean }
         });
         // One short VHS pass through the strongest part of the morph, in
         // either direction; re-armed once clear of the window.
-        const side = p < 0.45 ? -1 : p > 0.6 ? 1 : 0;
+        // (0.52-0.60 only: the rest of the morph stays clean, which is
+        // what makes the interference read)
+        const side = p < 0.52 ? -1 : p > 0.6 ? 1 : 0;
         if (side !== 0 && vhsSide !== 0 && side !== vhsSide) triggerVhs({ strength: 0.5 });
         if (side !== 0) vhsSide = side;
       }
@@ -202,6 +226,7 @@ export function ProofSequence({ live, still }: { live: boolean; still: boolean }
       sc.removeEventListener("scroll", onScroll);
       registerProofScroller(null);
       setProof(0);
+      stage?.removeAttribute("data-proof-formed");
       if (sculpture) sculpture.style.opacity = "";
     };
   }, [cue, still, cols]);
@@ -211,7 +236,16 @@ export function ProofSequence({ live, still }: { live: boolean; still: boolean }
   /** `echo`: a repeat that exists only so the drift loops — hidden from
    *  assistive tech, which reads each entry once. */
   const card = (t: Testimonial, key: string, echo = false) => (
-    <article key={key} className="proof-card" data-placeholder={t.isPlaceholder || undefined} aria-hidden={echo || undefined}>
+    <article
+      key={key}
+      className="proof-card"
+      data-cursor="view"
+      data-placeholder={t.isPlaceholder || undefined}
+      aria-hidden={echo || undefined}
+      onPointerEnter={(e) => {
+        if (e.pointerType === "mouse") cue("hover");
+      }}
+    >
       <i className="proof-card__node" data-c="tl" aria-hidden="true" />
       <i className="proof-card__node" data-c="tr" aria-hidden="true" />
       <i className="proof-card__node" data-c="bl" aria-hidden="true" />
@@ -221,10 +255,15 @@ export function ProofSequence({ live, still }: { live: boolean; still: boolean }
         {t.isPlaceholder ? <span className="proof-card__ph">Placeholder</span> : null}
       </p>
       <blockquote className="proof-card__quote">
-        <p>{`“${t.quote}”`}</p>
+        <p>
+          <span className="proof-card__mark" aria-hidden="true">“</span>
+          {`${t.quote}”`}
+        </p>
       </blockquote>
-      <p className="proof-card__name">{t.name}</p>
-      <p className="proof-card__role">{`${t.role} / ${t.company}`}</p>
+      <footer className="proof-card__by">
+        <p className="proof-card__name">{t.name}</p>
+        <p className="proof-card__role">{`${t.role} / ${t.company}`}</p>
+      </footer>
     </article>
   );
 
@@ -246,6 +285,7 @@ export function ProofSequence({ live, still }: { live: boolean; still: boolean }
             key={i}
             className="proof-lane"
             data-dir={i % 2 ? "down" : "up"}
+            data-outer={(cols === 3 && i !== 1) || undefined}
             style={{ ["--x" as string]: `${spec.lanes[i]}px`, ["--lane-w" as string]: `${spec.laneW}px` }}
           >
             <div className="proof-lane__reveal" data-reveal-lane data-i={i} data-rank={order.indexOf(i)}>

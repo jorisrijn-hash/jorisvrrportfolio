@@ -1578,7 +1578,9 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
 .proof-scroll::-webkit-scrollbar { display: none; }
 .proof-scroll[data-live] { overflow-y: auto; pointer-events: auto; }
 
-.proof { position: absolute; inset: 0; z-index: 7; pointer-events: none; }
+/* above the scroller, so a card can take the pointer; everywhere else the
+   pointer (and the wheel) falls through to the scroller */
+.proof { position: absolute; inset: 0; z-index: 9; pointer-events: none; }
 .proof__sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 .proof-lane {
@@ -1600,20 +1602,36 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
 }
 .proof-lane[data-dir="down"] .proof-lane__track { animation-name: proof-down; }
 .proof[data-live] .proof-lane__track { animation-play-state: running; }
-.proof-lane__copy { display: flex; flex-direction: column; gap: 14px; padding-bottom: 14px; }
+.proof-lane__copy { display: flex; flex-direction: column; }
 
 @keyframes proof-up { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(0, -50%, 0); } }
 @keyframes proof-down { from { transform: translate3d(0, -50%, 0); } to { transform: translate3d(0, 0, 0); } }
 
-/* a record, in the About panels' language: hairline, square, corner nodes */
+/* A testimonial is CONTENT, not system UI: a physical sheet in the About
+   panels' language — hairline, square, corner nodes — but warmer, more opaque
+   and slightly lifted off the technical ground, with the quote carrying the
+   hierarchy and mono kept for the metadata. */
 .proof-card {
   position: relative;
-  padding: 18px 20px 17px;
-  background: rgb(243 243 244 / 0.84);
-  border: 1px solid rgb(0 0 0 / 0.13);
-  box-shadow: 0 22px 44px -34px rgb(20 18 20 / calc(var(--haze-strength) * 2));
+  padding: 26px 28px 24px;
+  background: rgb(250 249 246 / 0.97);
+  border: 1px solid rgb(0 0 0 / 0.17);
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.8) inset,
+    0 10px 30px -14px rgb(24 20 22 / 0.16),
+    0 2px 6px -3px rgb(24 20 22 / 0.08);
+  transition: transform 420ms var(--ease-out), border-color 280ms var(--ease-out), box-shadow 420ms var(--ease-out);
 }
-.proof-card__node { position: absolute; width: 5px; height: 5px; background: #5e5e5e; }
+/* the sheet's own faint grain, so it reads as stock rather than a fill */
+.proof-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: url("/grain.png") 0 0 / 190px 190px repeat;
+  opacity: 0.05;
+}
+.proof-card__node { position: absolute; width: 5px; height: 5px; background: #5e5e5e; transition: background-color 280ms var(--ease-out); }
 .proof-card__node[data-c="tl"] { left: -3px; top: -3px; }
 .proof-card__node[data-c="tr"] { right: -3px; top: -3px; }
 .proof-card__node[data-c="bl"] { left: -3px; bottom: -3px; }
@@ -1623,45 +1641,63 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
   justify-content: space-between;
   gap: 12px;
   font-family: var(--font-mono);
-  font-size: 9px;
+  font-size: 9.5px;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  color: #8a8a8a;
+  color: #9a9a9a;
 }
 /* Development / ?preview=proof only: these are not real testimonials. */
 .proof-card__ph { color: var(--color-burgundy); letter-spacing: 0.2em; }
-.proof-card__quote { margin: 14px 0 16px; }
+.proof-card__quote { margin: 18px 0 24px; }
 .proof-card__quote p {
   font-family: var(--font-display);
   font-weight: 300;
-  font-size: 17px;
-  line-height: 1.38;
-  color: #262626;
+  font-size: 21px;
+  line-height: 1.34;
+  letter-spacing: -0.005em;
+  color: #1c1c1c;
+  transition: color 280ms var(--ease-out);
 }
+/* the one burgundy signature: the opening mark */
+.proof-card__mark { color: var(--color-burgundy); margin-right: 1px; }
+.proof-card__by { display: grid; gap: 5px; }
 .proof-card__name {
   font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.2em;
+  font-size: 10.5px;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: #3d3d3d;
+  color: #2e2e2e;
 }
 .proof-card__role {
-  margin-top: 4px;
   font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.08em;
-  color: #8a8a8a;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: #7c7c7c;
 }
 
-/* Informational HUD text never catches the pointer: under it is the proof
-   scroller (the telemetry box alone was ~7% of a desktop screen where the
-   wheel did nothing). Controls keep theirs; ProofSequence forwards a wheel
-   that starts on one. */
-.experience[data-x-ui] .home-hud > .home-hud__telemetry,
-.experience[data-x-ui] .home-hud > .home-hud__title,
-.experience[data-x-ui] .home-hud > .home-state,
-.experience[data-x-ui] .home-hud > .home-hud__bar { pointer-events: none; }
-.experience[data-x-ui] .home-hud__bar .home-pill { pointer-events: auto; }
+/* Cards answer a mouse once the proof has settled (never on touch, where a
+   card must not swallow the scroll). The lane pauses under the pointer. */
+@media (hover: hover) and (pointer: fine) {
+  .proof[data-live] .proof-card { pointer-events: auto; }
+  .proof[data-live] .proof-lane:hover .proof-lane__track { animation-play-state: paused; }
+  .proof-card:hover {
+    transform: translateY(-3px);
+    border-color: rgb(102 31 44 / 0.42);
+    box-shadow:
+      0 1px 0 rgb(255 255 255 / 0.8) inset,
+      0 16px 36px -16px rgb(24 20 22 / 0.2),
+      0 3px 8px -4px rgb(24 20 22 / 0.1);
+  }
+  .proof-card:hover .proof-card__node { background: var(--color-burgundy); }
+  .proof-card:hover .proof-card__quote p { color: #0f0f0f; }
+}
+
+/* Layered, not pasted flat: the centre stream sits a touch nearer. */
+.proof-lane[data-outer] { transform: scale(0.98); opacity: 0.92; }
+.proof-lane__copy { gap: 22px; padding-bottom: 22px; }
+
+/* Behind settled testimonials the environment steps back a little. */
+.experience[data-proof-formed][data-x-bloom] .grid-layer { opacity: 0.18; }
 
 /* the HUD, while Home has become Proof: navigation stays, metadata quiets */
 .home-hud__index { opacity: 0.8; }
@@ -1672,8 +1708,9 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
 .home-hud[data-proof] .home-pill--dark { opacity: 0 !important; pointer-events: none !important; }
 
 @media (max-width: 900px), (max-aspect-ratio: 4/5) {
-  .proof-card { padding: 16px 16px 15px; }
-  .proof-card__quote p { font-size: 16px; }
+  .proof-card { padding: 22px 20px 20px; }
+  .proof-card__quote { margin: 14px 0 18px; }
+  .proof-card__quote p { font-size: 18px; }
   .home-hud__index { display: none; }
 }
 

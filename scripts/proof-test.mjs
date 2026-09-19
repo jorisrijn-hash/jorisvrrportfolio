@@ -8,7 +8,7 @@ import { chromium } from "playwright";
  *   reverse      progress returns to exactly 0 and Home's UI comes back
  *   vhs          one pass per crossing of the strongest window, none from
  *                jiggling inside it
- *   sound        the four milestone cues once going down, never repeated by
+ *   sound        the five milestone cues once going down, never repeated by
  *                jiggling on a threshold, not replayed on the way up
  *                (counted as bursts of real Web Audio node starts)
  *   navigation   [Work] from the proof glides Home back first; [Home] and
@@ -123,16 +123,16 @@ pass("reverse: Home's HUD returns at progress 0", !back.hudProof && back.rebuild
 
 // ---- VHS and sound
 pass("vhs: one pass going down, one coming back up", downVhs === 1 && upVhs === 1, `down ${downVhs}, up ${upVhs}`);
-// four milestones + the VHS tape flick going down; only the tape flick coming back
-pass("sound: four milestone cues (+ tape) going down", downBursts === 5, `${downBursts} bursts`);
+// five milestones + the VHS tape flick going down; only the tape flick coming back
+pass("sound: five milestone cues (+ tape) going down", downBursts === 6, `${downBursts} bursts`);
 pass("sound: nothing replayed going up but the tape flick", upBursts === 1, `${upBursts} bursts`);
 
-// jiggle on the 0.2 threshold and inside the VHS window
+// jiggle on the first threshold (0.14) and inside the VHS window (0.52-0.60)
 await scrollTo(0.3); await p.waitForTimeout(900); await bursts(); await vhsRuns();
-for (let i = 0; i < 6; i++) { await scrollTo(i % 2 ? 0.17 : 0.24); await p.waitForTimeout(300); }
+for (let i = 0; i < 6; i++) { await scrollTo(i % 2 ? 0.11 : 0.18); await p.waitForTimeout(300); }
 pass("sound: jiggling across a threshold stays quiet", (await bursts()) === 0);
-await scrollTo(0.52); await p.waitForTimeout(900); await vhsRuns();
-for (let i = 0; i < 6; i++) { await scrollTo(i % 2 ? 0.48 : 0.56); await p.waitForTimeout(300); }
+await scrollTo(0.56); await p.waitForTimeout(900); await vhsRuns();
+for (let i = 0; i < 6; i++) { await scrollTo(i % 2 ? 0.53 : 0.59); await p.waitForTimeout(300); }
 pass("vhs: jiggling inside the window never fires", (await vhsRuns()) === 0);
 
 // ---- navigation from the proof

@@ -499,9 +499,15 @@ export function createScene() {
     // recedes, the planes flatten and fall back into faint central geometry,
     // and the ring and orbit cubes travel into the rails, each rail drawing
     // from the top down. Scrolling back runs the same function in reverse.
+    // Staged so the change reads in order: the core leads, the planes follow
+    // (and keep their depth until halfway — they only flatten from 0.5),
+    // the ring and orbit cubes travel to the rails and align late, and the
+    // whole system quiets once the testimonials have the stage.
     const pp = pose.rails ? pose.proof : 0;
-    const pCore = easePrimary(seg(pp, 0.15, 0.55));
-    const pCluster = easePrimary(seg(pp, 0.18, 0.6));
+    const pCore = easePrimary(seg(pp, 0.1, 0.52));
+    const pCluster = easePrimary(seg(pp, 0.2, 0.6));
+    const pFlat = easePrimary(seg(pp, 0.5, 0.75));
+    const pQuiet = smooth(seg(pp, 0.7, 0.95));
     const rails = pose.rails;
     if (rails && pp > 0) {
       const key = `${rails.x.length}|${lite}`;
@@ -516,8 +522,13 @@ export function createScene() {
     const toRail = (slot: Slot | undefined, p: V3, q: Q, s: V3) => {
       if (!rails || !slot || pp <= 0) return null;
       const d = slot.slot / slot.n;
-      const u = easeSecondary(seg(pp, 0.25 + 0.22 * d, 0.5 + 0.22 * d));
-      if (u <= 0) return null;
+      const ur = seg(pp, 0.24 + 0.2 * d, 0.5 + 0.2 * d);
+      if (ur <= 0) return null;
+      // travel: a soft start and a strong deceleration into the rail
+      const u = easeSecondary(ur);
+      // alignment comes late: each cube stays a dimensional block for the
+      // first half of its flight, then turns to the camera and shrinks
+      const ua = easePrimary(seg(ur, 0.45, 1));
       const dir = slot.rail % 2 ? -1 : 1;
       let k = (slot.slot + 0.5 + dir * railPhase) % slot.n;
       if (k < 0) k += slot.n;
@@ -529,9 +540,9 @@ export function createScene() {
       const edge = smooth(clamp01(Math.min(k, slot.n - k) / 2.5));
       return {
         p: [lerp(p[0], rails.x[slot.rail], u), lerp(p[1], ty, u), lerp(p[2], 0, u) - 180 * arc] as V3,
-        q: qSlerp(q, Q_ID, u),
-        s: [lerp(s[0], n, u), lerp(s[1], n, u), lerp(s[2], n * 0.5, u)] as V3,
-        a: lerp(1, edge, u),
+        q: qSlerp(q, Q_ID, ua),
+        s: [lerp(s[0], n, ua), lerp(s[1], n, ua), lerp(s[2], n * 0.5, ua)] as V3,
+        a: lerp(1, edge, u) * lerp(1, 0.72, pQuiet),
       };
     };
     /** the planes and blocks: pulled together, flattened toward the camera,
@@ -545,8 +556,8 @@ export function createScene() {
       const k2 = lerp(1, 0.6, m);
       s[0] *= k2;
       s[1] *= k2;
-      s[2] *= k2 * lerp(1, 0.06, m);
-      return qSlerp(q, Q_ID, m);
+      s[2] *= k2 * lerp(1, 0.06, pFlat);
+      return qSlerp(q, Q_ID, pFlat);
     };
 
     // The idle loop is weighted, never cut: a move begins from the pose the
@@ -652,7 +663,7 @@ export function createScene() {
         pts.push(x, y);
         d += (i ? "L" : "M") + r1(x) + " " + r1(y);
       }
-      faces.push({ id: ID_CORE, z: centre[2] + 4, d: d + "Z", pts, g: 251, fa: expand * 0.96 * clusterFade * lerp(1, 0.5, pCore), sa: 1 - expand });
+      faces.push({ id: ID_CORE, z: centre[2] + 4, d: d + "Z", pts, g: 251, fa: expand * 0.96 * clusterFade * lerp(1, 0.5, pCore) * lerp(1, 0.7, pQuiet), sa: 1 - expand });
     }
 
     // ---- diamond -> octahedron -> tetrahedra -------------------------------
@@ -702,7 +713,7 @@ export function createScene() {
       emit(ID_TETRA + idx, TETRA, p, qp, s, cluster, {
         g0: part.g0,
         m: c,
-        fa: lerp(part.fa0, 1, smooth(clamp01(c * 1.6))) * clusterFade * lerp(1, 0.4, pCluster),
+        fa: lerp(part.fa0, 1, smooth(clamp01(c * 1.6))) * clusterFade * lerp(1, 0.4, pCluster) * lerp(1, 0.75, pQuiet),
         sa: part.sa0 * (1 - c),
         strokeFace: TETRA_BASE,
         bias: idx === TETRA_HOMES.length + 1 ? -2 : 0,
@@ -720,7 +731,7 @@ export function createScene() {
       gather(p, s, cmMedium);
       const qm = toCluster(p, qSlerp(Q_ID, part.home.q, c), s);
       emit(ID_MEDIUM + idx, CUBE, p, qm, s, cluster, {
-        g0: 216, m: c, fa: clusterFade * lerp(1, 0.4, pCluster), sa: 0, strokeFace: -2,
+        g0: 216, m: c, fa: clusterFade * lerp(1, 0.4, pCluster) * lerp(1, 0.75, pQuiet), sa: 0, strokeFace: -2,
       });
     });
 
@@ -818,7 +829,7 @@ export function createScene() {
       faces,
       orbit, orbitA: 0.28 * (1 - orbitC) * fade,
       stem, stemA: (1 - seg(t, 1.3, 2.1)) * fade,
-      links: linkPath, dots, linkA: linkA * fade * (1 - (compact ? 1 : 0.5) * cm) * (1 - smooth(seg(pp, 0.05, 0.3))),
+      links: linkPath, dots, linkA: linkA * fade * (1 - (compact ? 1 : 0.5) * cm) * (1 - smooth(seg(pp, 0.08, 0.35))),
     };
   };
 }
