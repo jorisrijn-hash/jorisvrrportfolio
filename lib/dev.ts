@@ -10,16 +10,22 @@ export type DevFlags = {
   FORCE_INTRO: boolean;
   /** Outline the 24px grid and the centre construction. */
   SHOW_GRID_DEBUG: boolean;
-  /** Skip heavy video layers (posters only). */
-  REDUCE_MEDIA: boolean;
   /** Force sound off regardless of user choice. */
   MUTE_SOUND: boolean;
   /** Corner readout of the current experience state. */
   SHOW_STATE: boolean;
-  /** Jump state changes instantly, no transition timelines. */
-  SKIP_TRANSITIONS: boolean;
+  /** Corner readout of frame rate and worst frame time (performance pass). */
+  SHOW_FPS: boolean;
   /** Keep the native cursor visible alongside the custom one. */
   CUSTOM_CURSOR_DEBUG: boolean;
+  /** No custom cursor at all. */
+  NO_CURSOR: boolean;
+  /** Freeze the sculpture's idle loop (transitions still run). */
+  NO_IDLE_MOTION: boolean;
+  /** Hide the About globe and its orbit system. */
+  NO_GLOBE: boolean;
+  /** No VHS pass over transitions. */
+  NO_VHS: boolean;
   /* ---- atmosphere, for tuning the polish pass ---- */
   /** Drop the global grain field. */
   NO_GRAIN: boolean;
@@ -36,11 +42,14 @@ export type DevFlags = {
 const DEFAULTS: DevFlags = {
   FORCE_INTRO: false,
   SHOW_GRID_DEBUG: false,
-  REDUCE_MEDIA: false,
   MUTE_SOUND: false,
   SHOW_STATE: false,
-  SKIP_TRANSITIONS: false,
+  SHOW_FPS: false,
   CUSTOM_CURSOR_DEBUG: false,
+  NO_CURSOR: false,
+  NO_IDLE_MOTION: false,
+  NO_GLOBE: false,
+  NO_VHS: false,
   NO_GRAIN: false,
   NO_VIGNETTE: false,
   NO_AMBIENT: false,

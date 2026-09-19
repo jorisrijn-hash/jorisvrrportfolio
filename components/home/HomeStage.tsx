@@ -9,6 +9,7 @@ import { clamp01, seg } from "@/lib/sculpture/math";
 import { addTick } from "@/lib/ticker";
 import { computeLayout, type Layout } from "@/lib/layout";
 import { useSound } from "@/lib/sound";
+import { dev } from "@/lib/dev";
 
 const SVG = "http://www.w3.org/2000/svg";
 const GRAY = Array.from({ length: 256 }, (_, g) => `rgb(${g},${g},${g})`);
@@ -367,7 +368,7 @@ export function HomeStage({
         // Idle clock, eased in so the loop starts from rest: t²/2R, then linear.
         e = (now - arrivedAt) / 1000;
         const tau = e < IDLE_RAMP ? (e * e) / (2 * IDLE_RAMP) : e - IDLE_RAMP / 2;
-        loop = tau % IDLE_LOOP;
+        loop = dev("NO_IDLE_MOTION") ? 0 : tau % IDLE_LOOP;
 
         const n = Math.floor(tau / IDLE_LOOP) % 100;
         if (n !== loops) {

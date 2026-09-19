@@ -74,11 +74,11 @@ export const PROFILE = {
 
 /**
  * External channels, in the About LINKS panel and as nodes on the globe.
- * UNVERIFIED: these handles are assumed from the domain (jorisvrr) — confirm
- * each URL points to the right profile.
+ * LinkedIn is confirmed. Instagram and YouTube are still UNVERIFIED: assumed
+ * from the domain (jorisvrr) — confirm they point to the right profiles.
  */
 export const SOCIALS = [
   { id: "instagram", label: "Instagram", handle: "@jorisvrr", href: "https://www.instagram.com/jorisvrr" },
   { id: "youtube", label: "YouTube", handle: "@jorisvrr", href: "https://www.youtube.com/@jorisvrr" },
-  { id: "linkedin", label: "LinkedIn", handle: "in/jorisvrr", href: "https://www.linkedin.com/in/jorisvrr" },
+  { id: "linkedin", label: "LinkedIn", handle: "in/jorisvnrijn", href: "https://www.linkedin.com/in/jorisvnrijn/" },
 ] as const;

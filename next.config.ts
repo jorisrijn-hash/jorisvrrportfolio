@@ -37,11 +37,26 @@ const legacy = [
   { source: "/portfolio/:path*", destination: "/work", permanent: true },
 ];
 
+/**
+ * Public media is not content-hashed (unlike /_next/static, which Next already
+ * serves immutable), so it cannot be cached forever. A day fresh, then a week
+ * served from cache while revalidating in the background: repeat visits skip
+ * the round-trips, and a replaced file still lands within a day. Vercel's
+ * default here was max-age=0, must-revalidate — a request per file per visit.
+ */
+const MEDIA_CACHE = "public, max-age=86400, stale-while-revalidate=604800";
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   trailingSlash: false,
   async redirects() {
     return legacy;
+  },
+  async headers() {
+    return ["/grain.png", "/blocknoise.png", "/og-image.jpg", "/data/:path*", "/work/:path*", "/audio/:path*"].map((source) => ({
+      source,
+      headers: [{ key: "Cache-Control", value: MEDIA_CACHE }],
+    }));
   },
 };
 

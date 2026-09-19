@@ -5,8 +5,11 @@ import { RotateCw, Volume2, VolumeX } from "lucide-react";
 import { useExperience, type State } from "@/lib/experience";
 import { useSound } from "@/lib/sound";
 import { stopBootTrack } from "@/lib/bootAudio";
-import { preloadGlobe } from "@/components/about/AboutStage";
-import { preloadWork } from "@/components/work/WorkStage";
+import { load } from "@/lib/stages";
+
+// Hovering a destination fetches it: the stage's code, then its media.
+const preloadWork = () => void load("work").then((m) => m.preloadWork(), () => {});
+const preloadGlobe = () => load("about").then((m) => m.preloadGlobe(), () => null);
 
 /** "[USER]: 0X92-MAC_OS_X_10_15_7" — the visitor's own OS token, plus a byte of hash. */
 function userToken(ua: string) {
@@ -90,7 +93,10 @@ export function HomeHud() {
   const goTo = (to: "home" | "work" | "about") => {
     if (at === to) return;
     cue("select");
-    go(to);
+    // The destination's stage is normally in already (idle / hover); if not,
+    // the transition starts the moment it lands, never half-mounted.
+    if (to === "home") go(to);
+    else void load(to).then(() => go(to), () => go(to));
   };
 
   const rebuild = () => {

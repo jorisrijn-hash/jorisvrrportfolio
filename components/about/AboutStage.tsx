@@ -13,6 +13,7 @@ import { addTick } from "@/lib/ticker";
 import { computeLayout } from "@/lib/layout";
 import { useSound } from "@/lib/sound";
 import { triggerVhs } from "@/lib/vhs";
+import { dev } from "@/lib/dev";
 
 /* ------------------------------------------------------------ land data */
 
@@ -45,8 +46,12 @@ export function preloadGlobe(): Promise<Lands | null> {
   return landPromise;
 }
 
-/** Re-project the fine coastline only once the view has turned this far. */
-const LAND_STEP = 0.12;
+/**
+ * Re-project the coastline only once the view has turned by about half a
+ * pixel at the globe's centre, for its size on this screen. (Desktop ~0.11°;
+ * a phone's smaller globe re-projects less often.)
+ */
+const HALF_PX_DEG = (radiusPx: number) => Math.min(0.4, Math.max(0.1, 0.55 / ((radiusPx * Math.PI) / 180)));
 
 const GRATICULE = geoGraticule10();
 const r1 = (n: number) => Math.round(n * 10) / 10;
@@ -186,8 +191,9 @@ export function AboutStage({
       });
     };
 
+    let landStep = 0.12;
     // Screen geometry, and where the page's parts sit in the scroll.
-    const geo = { vw: 1, vh: 1, gfit: 1, compact: false, colRight: 0, linksTop: Infinity };
+    const geo = { vw: 1, vh: 1, gfit: 1, compact: false, lite: false, colRight: 0, linksTop: Infinity };
     const measure = () => {
       const L = computeLayout();
       el.style.setProperty("--fit", String(L.fit));
@@ -197,7 +203,9 @@ export function AboutStage({
       geo.vw = L.vw;
       geo.vh = L.vh;
       geo.gfit = L.globeFit;
+      landStep = HALF_PX_DEG(GLOBE.r * L.globeFit);
       geo.compact = L.compact;
+      geo.lite = L.lite;
       const scRect = sc.getBoundingClientRect();
       const col = column.current?.getBoundingClientRect();
       if (col) geo.colRight = col.right - L.vw / 2;
@@ -214,12 +222,14 @@ export function AboutStage({
     // ---- scroll ------------------------------------------------------------
     // Read on the event, applied on the frame: the frame never reads layout.
     let scrollTop = 0;
+    let lastScrollAt = -Infinity;
     let scrolled = false;
     // Reduced motion reshapes the globe straight from the scroll event; bound
     // further down, once the pose exists.
     let onStillScroll: (() => void) | null = null;
     const onScroll = () => {
       scrollTop = sc.scrollTop;
+      lastScrollAt = performance.now();
       const on = scrollTop > 24;
       if (on !== scrolled) {
         scrolled = on;
@@ -359,7 +369,8 @@ export function AboutStage({
       /** surface -> linework */ line?: number;
       /** rings separate into flattened, crossing orbits */ flat?: number;
       /** the orbits become a network */ net?: number;
-      /** the meridian sweep's strength; its phase follows `seconds` */ sweep?: number;
+      /** the meridian sweep's strength */ sweep?: number;
+      /** the sweep's own clock, seconds — it keeps moving where the globe holds still */ sweepT?: number;
     }) => {
       const line = o.line ?? 0;
       const flat = o.flat ?? 0;
@@ -372,11 +383,11 @@ export function AboutStage({
       put(globe, "transform", `scale(${Math.round(o.scale * 1000) / 1000})`);
 
       // The fine coastline is re-projected only when the view has actually
-      // turned by LAND_STEP; the coarse one follows a fast spin every frame.
+      // turned by landStep; the coarse one follows a fast spin every frame.
       // Projected once as soon as the land data is in (even while invisible),
       // so the first visible frame never pays for it.
       if (land && (o.globe > 0 || !lastLand)) {
-        const key = o.fast ? `c${lon}` : `f${Math.round(lon / LAND_STEP)}`;
+        const key = o.fast ? `c${lon}` : `f${Math.round(lon / landStep)}`;
         if (key !== landKey) {
           landKey = key;
           const d = path(o.fast ? land.coarse : land.fine) ?? "";
@@ -391,10 +402,10 @@ export function AboutStage({
       put(limb.current, "opacity", String(r2(1 - line)));
       put(outline.current, "stroke-opacity", String(r2(0.7 * line)));
 
-      // Re-projected on the same LAND_STEP throttle as the coastline.
+      // Re-projected on the same throttle as the coastline.
       const gA = Math.max(o.wire * (1 - o.globe * 0.85), 0.4 * line * o.globe);
       if (gA > 0.01 && !o.fast) {
-        const key = `${Math.round(lon / LAND_STEP)}`;
+        const key = `${Math.round(lon / landStep)}`;
         if (key !== gratKey) {
           gratKey = key;
           const d = path(GRATICULE) ?? "";
@@ -405,7 +416,7 @@ export function AboutStage({
 
       // One meridian crossing the face, limb to limb: the line passing round
       // the globe. It fades at the limbs, so it never pops.
-      const ph = (o.seconds / SWEEP) % 1;
+      const ph = ((o.sweepT ?? o.seconds) / SWEEP) % 1;
       const mA = (o.sweep ?? 0) * Math.sin(Math.PI * ph) * o.globe;
       if (mA > 0.01) {
         const mLon = GLOBE.lon + GLOBE.drift * o.seconds + o.spin - 90 + 180 * ph;
@@ -569,6 +580,11 @@ export function AboutStage({
     let cueIn = 0;
     let cueOut = 0;
     let spinAtLeave = 0;
+    // The globe's own clock: it turns while About rests, and holds still while
+    // the page scrolls — the eye is on the moving page then, and the globe is
+    // mid-morph, so re-projecting its coastline would be work nobody sees.
+    // (Lite screens: see the frame loop.)
+    let drift = 0;
     let orbitAtLeave = 0;
     // Scroll morph, eased toward its targets so the system glides rather
     // than tracking the wheel notch by notch.
@@ -622,10 +638,14 @@ export function AboutStage({
 
     const frame = (now: number, dt: number) => {
       const t = (now - start) / 1000;
+      // Lite screens (phones, small tablets) hold the globe still: there it is
+      // dimmed behind the page, and each re-projection of the coastline cost
+      // a frame on a mid-range phone. The meridian and orbit markers still move.
+      if (t > ABOUT_IN.end && !geo.lite && now - lastScrollAt > 180) drift += dt / 1000;
 
       if (leavingRef.current && leftAt === null) {
         leftAt = now;
-        spinAtLeave = Math.max(0, t - ABOUT_IN.end);
+        spinAtLeave = drift;
         orbitAtLeave = t;
         raise(el, leavingToRef.current === "work" ? "data-leaving-work" : "data-leaving");
       }
@@ -657,10 +677,11 @@ export function AboutStage({
           spin: 0,
           scale: lerp(0.82, 1, outQuart(seg(t, ABOUT_IN.wire[0], ABOUT_IN.globe[1]))),
           // The globe only starts to drift once About has arrived: mid-transition
-          // the fine coastline is projected once, not every LAND_STEP.
-          seconds: Math.max(0, t - ABOUT_IN.end),
+          // the fine coastline is projected once, not every step.
+          seconds: drift,
           orbit: t,
           sweep: smooth(seg(t, ABOUT_IN.end, ABOUT_IN.end + 1.2)),
+          sweepT: Math.max(0, t - ABOUT_IN.end),
           ...scrollMorph(dt),
         });
         return;
@@ -705,7 +726,7 @@ export function AboutStage({
 
   return (
     <div ref={root} className="about" data-from-work={fromWorkAtMount || undefined}>
-      <svg ref={globeSvg} className="about__globe" aria-hidden="true">
+      <svg ref={globeSvg} className="about__globe" aria-hidden="true" style={dev("NO_GLOBE") ? { display: "none" } : undefined}>
         <defs>
           <radialGradient id="about-ocean" cx="0.62" cy="0.64" r="0.78">
             <stop offset="0" stopColor="#f7f7f8" />

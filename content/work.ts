@@ -25,7 +25,8 @@ export type Project = {
 /**
  * PLACEHOLDERS. No project media has been supplied yet: these are generated
  * abstract images (scripts/gen-work-placeholders.py) standing in for real
- * work, and the copy is the layout's own example text. Replace per project.
+ * work, and the copy is the layout's own example text. Replace per project:
+ * put the source in media/work/ and run scripts/encode-media.py.
  */
 export const PROJECTS: Project[] = [1, 2, 3, 4].map((n) => {
   const id = String(n).padStart(2, "0");
@@ -46,8 +47,29 @@ export const PROJECTS: Project[] = [1, 2, 3, 4].map((n) => {
   };
 });
 
+/**
+ * What the site actually serves. `src`/`thumb` name the SOURCE files in
+ * media/work/; scripts/encode-media.py writes WebP variants of each to
+ * public/work/, and these map a source to the right one:
+ *   1680 wide  Retina desktops and laptops
+ *    960 wide  1x desktops, phones and small tablets
+ * One chooser for everything, so the surface's cells (a CSS background) and
+ * the <img> always ask for the same URL and nothing downloads twice.
+ */
+export type MediaWidth = 960 | 1680;
+const variant = (src: string, suffix: string) => src.replace(/\.(jpe?g|png)$/i, `${suffix}.webp`);
+
+/** The width to serve for a surface this many CSS px wide on this screen.
+ *  Density is capped at 2x: past that the difference is not visible on a
+ *  photograph, and a phone would otherwise pull the desktop file. */
+export const mediaWidth = (surfaceCssPx: number): MediaWidth =>
+  surfaceCssPx * Math.min(typeof window === "undefined" ? 1 : window.devicePixelRatio || 1, 2) <= 960 ? 960 : 1680;
+
 /** The still a surface is assembled from — the poster, for video. */
-export const mediaStill = (p: Project) => (p.media.type === "video" ? p.media.poster : p.media.src);
+export const mediaStill = (p: Project, w: MediaWidth) =>
+  p.media.type === "video" ? p.media.poster : variant(p.media.src, `-${w}`);
+
+export const thumbSrc = (p: Project) => variant(p.thumb, "");
 
 /**
  * The media plane, in reference px around the viewport centre (1920x950).

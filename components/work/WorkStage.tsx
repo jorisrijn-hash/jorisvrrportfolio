@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   FED_CELLS, PLANE, PROJECTS, WORK_ABOUT, WORK_CUES_FROM_ABOUT, WORK_CUES_IN, WORK_CUES_OUT,
-  WORK_CUES_TO_ABOUT, WORK_IN, WORK_OUT, lockTime, mediaStill,
+  WORK_CUES_TO_ABOUT, WORK_IN, WORK_OUT, lockTime, mediaStill, mediaWidth, thumbSrc,
 } from "@/content/work";
 import { PANELS } from "@/content/about";
 import { addTick } from "@/lib/ticker";
@@ -16,9 +16,12 @@ let preloaded = false;
 export function preloadWork() {
   if (preloaded || typeof window === "undefined") return;
   preloaded = true;
+  // The project Work opens on, and the index thumbnails it shows — not the
+  // whole portfolio. (When switching exists: next, then previous, from here.)
+  const L = computeLayout();
+  new Image().src = mediaStill(PROJECTS[0], mediaWidth(L.plane.w * L.fit));
   PROJECTS.forEach((p) => {
-    new Image().src = mediaStill(p);
-    new Image().src = p.thumb;
+    new Image().src = thumbSrc(p);
   });
 }
 
@@ -97,6 +100,8 @@ const WIRE = (() => {
 
 /** Write the layout the CSS surface needs (desktop values are the CSS defaults). */
 function applyLayout(el: HTMLElement, L: Layout) {
+  // Lite screens take the simplified Work <-> About handover (experience.css).
+  el.toggleAttribute("data-lite", L.lite);
   const s = el.style;
   s.setProperty("--fit", String(L.fit));
   s.setProperty("--stage-y", `${L.stageY * 100}%`);
@@ -242,7 +247,12 @@ export function WorkStage({
   // A single project for this checkpoint; switching will move this index.
   const [index] = useState(0);
   const project = PROJECTS[index];
-  const still_ = mediaStill(project);
+  // Chosen once for this screen; the cells and the <img> share it.
+  const [mw] = useState(() => {
+    const L = computeLayout();
+    return mediaWidth(L.plane.w * L.fit);
+  });
+  const still_ = mediaStill(project, mw);
 
   const [origin] = useState<Origin>(from);
   const targets = useRef<CellTarget[]>([]);
@@ -506,6 +516,7 @@ export function WorkStage({
                 <video
                   src={project.media.src}
                   poster={project.media.poster}
+                  preload="metadata"
                   muted
                   loop
                   playsInline
@@ -515,7 +526,8 @@ export function WorkStage({
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={project.media.src}
+                  src={still_}
+                  decoding="async"
                   width={project.media.width}
                   height={project.media.height}
                   alt={project.media.alt}
@@ -554,7 +566,7 @@ export function WorkStage({
           {PROJECTS.map((p, i) => (
             <li key={p.id} data-current={i === index || undefined} aria-current={i === index || undefined}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={p.thumb} alt="" width={320} height={205} draggable={false} />
+              <img src={thumbSrc(p)} alt="" decoding="async" width={320} height={205} draggable={false} />
             </li>
           ))}
         </ul>

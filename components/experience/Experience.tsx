@@ -8,15 +8,14 @@ import { useReducedMotion } from "@/lib/motion";
 import { StaticComposition } from "./StaticComposition";
 import { Atmosphere } from "@/components/atmosphere/Atmosphere";
 import { Vhs } from "@/components/atmosphere/Vhs";
+import { FpsMeter } from "@/components/atmosphere/FpsMeter";
 import { AudioGate } from "@/components/boot/AudioGate";
-import { BootSequence } from "@/components/boot/BootSequence";
 import { BootControls } from "@/components/hud/BootControls";
 import { CustomCursor } from "@/components/cursor/CustomCursor";
 import { HomeStage, type StageMode } from "@/components/home/HomeStage";
 import { HomeHud } from "@/components/home/HomeHud";
 import { CrashSequence } from "@/components/home/CrashSequence";
-import { AboutStage } from "@/components/about/AboutStage";
-import { WorkStage } from "@/components/work/WorkStage";
+import { load, loadWhenIdle, useStage } from "@/lib/stages";
 
 const SESSION_KEY = "jvr.booted";
 
@@ -36,6 +35,16 @@ function Stage() {
   const seen = useSessionFlag(SESSION_KEY);
   const reduced = useReducedMotion();
   const still = reduced && !dev("FORCE_INTRO");
+
+  // Heavy stages arrive when wanted (lib/stages): the boot sequence while the
+  // gate is up, Work and About once Home has settled.
+  const Boot = useStage("boot")?.BootSequence;
+  const About = useStage("about")?.AboutStage;
+  const Work = useStage("work")?.WorkStage;
+  useEffect(() => {
+    if (state === "gate") void load("boot").catch(() => {});
+    if (state === "home") loadWhenIdle("work", "about");
+  }, [state]);
 
   // Returning within the same session skips both the gate and the sequence.
   // A replay (runId > 0) always shows them.
@@ -73,7 +82,7 @@ function Stage() {
           on, its centre construction is drawn by the sculpture instead. */}
       <StaticComposition resolved={state !== "gate" && state !== "loading"} centre={!atHome} />
 
-      {state === "loading" ? <BootSequence key={`boot-${runId}`} onDone={ready} /> : null}
+      {state === "loading" && Boot ? <Boot key={`boot-${runId}`} onDone={ready} /> : null}
 
       {/* Same element across home and everything staged over it, so the
           timeline carries straight on without remounting. */}
@@ -88,8 +97,8 @@ function Stage() {
         />
       ) : null}
 
-      {inAbout ? (
-        <AboutStage
+      {inAbout && About ? (
+        <About
           key={`about-${runId}`}
           leaving={state === "to-home" || state === "about-to-work"}
           leavingTo={state === "about-to-work" ? "work" : "home"}
@@ -102,8 +111,8 @@ function Stage() {
 
       {/* After About in the DOM, so Work's cells sit over the glass panels
           while one hands over to the other. */}
-      {inWork ? (
-        <WorkStage
+      {inWork && Work ? (
+        <Work
           key={`work-${runId}`}
           from={state === "about-to-work" ? "about" : "home"}
           leaving={state === "work-to-home" || state === "work-to-about"}
@@ -117,7 +126,9 @@ function Stage() {
         <AudioGate
           onChoose={() => {
             setSessionFlag(SESSION_KEY, true);
-            begin();
+            // Fetched as soon as the gate appeared; this only waits on a
+            // slow first connection.
+            void load("boot").then(begin, begin);
           }}
         />
       ) : null}
@@ -141,6 +152,7 @@ function Stage() {
       <Atmosphere />
 
       {dev("SHOW_STATE") ? <div className="dev-state">{state}</div> : null}
+      {dev("SHOW_FPS") ? <FpsMeter /> : null}
     </div>
   );
 }

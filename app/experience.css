@@ -25,11 +25,9 @@
   z-index: 0;
   /* tuned so overall image variance matches the reference (std 3.78) */
   opacity: 0.05;
-  mix-blend-mode: multiply;
+  background: url("/blocknoise.png") 0 0 / 1024px 1024px repeat;
   pointer-events: none;
 }
-
-.noise-layer svg { width: 100%; height: 100%; display: block; }
 
 /* ---- grid: uniform 24px, verticals x=0, horizontals y=14 --------------- */
 .grid-layer {
@@ -161,6 +159,19 @@
   font-size: 10px;
   padding: 3px 8px;
   letter-spacing: 0.1em;
+  pointer-events: none;
+}
+
+.dev-fps {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 90;
+  background: #111;
+  color: #0f0;
+  font-size: 10px;
+  padding: 3px 8px;
+  letter-spacing: 0.06em;
   pointer-events: none;
 }
 
@@ -482,21 +493,6 @@
   z-index: 60;
 }
 
-.sound-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--color-env-label);
-  padding: 4px 7px;
-  border: 1px solid transparent;
-  transition: color 180ms var(--ease-out), border-color 180ms var(--ease-out);
-}
-
-.sound-toggle:hover { color: var(--color-hud-dim); border-color: var(--color-env-mark); }
 
 /* The resting furniture resolves once the boot completes. Opacity only —
    nothing re-lays-out, so handover cannot cause a jump. */
@@ -1577,6 +1573,9 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
   opacity: var(--vhs-k, 1);
 }
 .vhs[data-run] { visibility: visible; }
+/* Between passes the layer is not merely hidden but gone from layout and
+   compositing: its parts carry will-change and backdrop filters. */
+.vhs:not([data-run]) { display: none; }
 .vhs > * { position: absolute; pointer-events: none; }
 
 .vhs__luma { inset: 0; background: #fff; opacity: 0; will-change: opacity; }
@@ -1666,6 +1665,16 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
 @keyframes vhs-slip {
   0% { translate: 0 0; } 14% { translate: 3px 0; } 26% { translate: -2px 0; } 42% { translate: 4px 0; }
   54% { translate: 0 0; } 68% { translate: -1px 0; } 80%, 100% { translate: 0 0; }
+}
+
+/* Phones: the same pass without its two backdrop blurs (band, head strip) —
+   the gradient, tears, snow and slip carry it. */
+@media (max-width: 900px), (max-aspect-ratio: 4/5) {
+  .vhs__band,
+  .vhs__head { -webkit-backdrop-filter: none; backdrop-filter: none; }
+  /* a permanently animating full-screen layer is the one ambient cost a
+     phone GPU notices; the wash holds still there */
+  .wash-layer { animation: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1814,29 +1823,33 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
 }
 
 /* The tile's own dark face. It does not fade away: it retracts, so the media
-   is uncovered from inside the geometry that just formed. */
+   is uncovered from inside the geometry that just formed. A flat fill scaled
+   from its top edge is pixel-for-pixel the same as clipping its bottom away —
+   and a transform runs on the compositor, where clip-path on 216 faces was
+   repainted on the main thread every frame. */
 .work-cell::after {
   content: "";
   position: absolute;
   inset: 0;
   background: #141416;
   opacity: 0.94;
-  clip-path: inset(0 0 0 0);
+  transform-origin: 50% 0;
+  transform: scaleY(1);
   transition:
-    clip-path 720ms var(--ease-inout) calc(var(--d) + 180ms),
+    transform 720ms var(--ease-inout) calc(var(--d) + 180ms),
     opacity 720ms var(--ease-inout) calc(var(--d) + 180ms);
 }
 
 .work[data-form] .work-cell { transform: scale(0.955); opacity: 1; }
-.work[data-form] .work-cell::after { clip-path: inset(0 0 58% 0); opacity: 0.46; }
+.work[data-form] .work-cell::after { transform: scaleY(0.42); opacity: 0.46; }
 
 /* The frame locks: seams close, lines and tint go. */
 .work[data-seal] .work-cell { transform: scale(1.002); transition: transform 300ms var(--ease-out) 0ms, opacity 0ms; }
 .work[data-seal] .work-cell::before { opacity: 0; }
 .work[data-seal] .work-cell::after {
-  clip-path: inset(0 0 100% 0);
+  transform: scaleY(0);
   opacity: 0;
-  transition: clip-path 460ms var(--ease-out) 0ms, opacity 460ms var(--ease-out) 0ms;
+  transition: transform 460ms var(--ease-out) 0ms, opacity 460ms var(--ease-out) 0ms;
 }
 .work[data-glitch] .work-cell[data-g] { transform: translateX(-9px) scale(1.002); transition: none; }
 
@@ -2020,14 +2033,17 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
 .work[data-to-about] .work-wire,
 .work[data-to-about] .work-ghost { display: none; }
 
+/* Opacity only: the frost colour is set on the rule. (It used to ride in the
+   keyframes, constant, which alone kept the whole animation — 216 of them —
+   off the compositor.) */
 @keyframes work-cell-frost {
-  from { opacity: 0; background-color: #eeeef0; }
-  to   { opacity: 0.86; background-color: #eeeef0; }
+  from { opacity: 0; }
+  to   { opacity: 0.86; }
 }
 
 @keyframes work-cell-unfrost {
-  from { opacity: 0.86; background-color: #eeeef0; }
-  to   { opacity: 0; background-color: #eeeef0; }
+  from { opacity: 0.86; }
+  to   { opacity: 0; }
 }
 
 /* The transforms are driven by the Web Animations API (WorkStage
@@ -2038,7 +2054,7 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
   transition: opacity 500ms var(--ease-out) 300ms;
 }
 .work[data-to-about] .work-cell::before { opacity: 0.45; transition: opacity 300ms var(--ease-out) 0ms; }
-.work[data-to-about] .work-cell::after { clip-path: inset(0 0 0 0); animation: work-cell-frost 760ms var(--ease-inout) calc(var(--ad) + 360ms) both; }
+.work[data-to-about] .work-cell::after { transform: none; background-color: #eeeef0; animation: work-cell-frost 760ms var(--ease-inout) calc(var(--ad) + 360ms) both; }
 .work[data-to-about][data-dissolve] .work-cell {
   opacity: 0;
   transition: opacity 460ms var(--ease-out) calc(var(--ad) * 1.4);
@@ -2050,11 +2066,32 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
 .work[data-origin="about"] .work-ghost { display: none; }
 .work[data-origin="about"] .work-cell { transform-origin: 0 0; opacity: 1; transition: none; }
 .work[data-origin="about"]:not([data-regroup]) .work-cell::before { opacity: 0.45; transition: none; }
-.work[data-origin="about"]:not([data-regroup]) .work-cell::after { background: #eeeef0; opacity: 0.86; clip-path: inset(0 0 0 0); transition: none; }
+.work[data-origin="about"]:not([data-regroup]) .work-cell::after { background: #eeeef0; opacity: 0.86; transform: none; transition: none; }
 
 .work[data-regroup] .work-cell::before { opacity: 0.6; }
-.work[data-regroup] .work-cell::after { clip-path: inset(0 0 0 0); animation: work-cell-unfrost 700ms var(--ease-inout) calc(var(--bd) + 420ms) both; }
+.work[data-regroup] .work-cell::after { transform: none; background-color: #eeeef0; animation: work-cell-unfrost 700ms var(--ease-inout) calc(var(--bd) + 420ms) both; }
 .work[data-regroup][data-seal] .work-cell::before { opacity: 0; transition: opacity 300ms var(--ease-out) 0ms; }
+
+/* ---- lite screens: the same handover, without the per-tile frost ---------
+   Any animation INSIDE the 216 independently transformed cells (the frost on
+   ::after, the seam lines on ::before — CSS, Web Animations, filter or child
+   element alike) fell back to a main-thread restyle every frame: ~40 of ~180
+   frames dropped on a mid-range phone. Cell-level transforms and opacity stay
+   on the compositor, so here the tiles travel as media and dissolve into the
+   glass; coming back, they fade in over the panels as the glass fades out,
+   then regroup. Desktop keeps the frost (0-2 dropped frames there). */
+.work[data-lite][data-to-about] .work-cell::after { animation: none; opacity: 0; }
+/* instead of frosting, the tiles pale as they gather (cell opacity — composited),
+   close to the frost's 14% of media over near-white */
+.work[data-lite][data-to-about]:not([data-dissolve]) .work-cell {
+  opacity: calc(var(--pv, 1) * 0.3);
+  transition: opacity 700ms var(--ease-inout) calc(var(--ad) + 360ms);
+}
+.work[data-lite][data-to-about] .work-cell::before,
+.work[data-lite][data-regroup] .work-cell::before { transition: none; }
+.work[data-lite][data-origin="about"]:not([data-regroup]) .work-cell { opacity: 0; }
+.work[data-lite][data-origin="about"] .work-cell::after { animation: none; opacity: 0; }
+.work[data-lite][data-regroup] .work-cell { opacity: 1; transition: opacity 380ms var(--ease-out) calc(var(--bd) * 0.5); }
 
 /* ---- work -> home: tint returns and the surface folds away, bottom rows
    first, each cell just before its cube reappears. The sealed cells were
@@ -2068,7 +2105,7 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
     opacity 160ms linear calc(var(--o) + 220ms);
 }
 .work[data-leaving] .work-cell::before { opacity: 0.8; transition: opacity 220ms var(--ease-out) 0ms; }
-.work[data-leaving] .work-cell::after { background: #141416; opacity: 0.9; clip-path: inset(0 0 0 0); transition: opacity 220ms var(--ease-out) 0ms, clip-path 220ms var(--ease-out) 0ms; }
+.work[data-leaving] .work-cell::after { background: #141416; opacity: 0.9; transform: scaleY(1); transition: opacity 220ms var(--ease-out) 0ms, transform 220ms var(--ease-out) 0ms; }
 
 /* ---- About's side of the handover ----------------------------------------- */
 .about[data-from-work] .about__panel { transform: none; transition: opacity 280ms var(--ease-out) 0ms; }
@@ -2384,12 +2421,12 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
    ========================================================================= */
 .atmos { position: absolute; inset: 0; z-index: 85; pointer-events: none; }
 
-.experience {
-  transition: --grain-opacity 800ms var(--ease-inout), --vignette-strength 800ms var(--ease-inout);
-}
-
-/* A transition breathes: a touch more grain, a touch more edge. */
-.experience[data-busy] { --grain-opacity: 0.095; --vignette-strength: 0.08; }
+/* A transition breathes: a touch more grain and edge. Only the field's own
+   opacity moves — a compositor animation. (This was an 800ms tween of two
+   inherited custom properties on .experience, which restyled the whole tree
+   and repainted the full-screen vignette every frame, at the start and end
+   of every transition.) */
+:root { --grain-busy: 0.095; }
 .experience[data-busy][data-x-ui] .home-hud [data-reveal] { opacity: 0.8; }
 
 /* ---- grain + vignette, one layer -------------------------------------------
@@ -2404,6 +2441,7 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
   position: absolute;
   inset: 0;
   opacity: var(--grain-opacity);
+  transition: opacity 800ms var(--ease-inout);
   background-repeat: repeat, no-repeat;
   background-size: 190px 190px, 100% 100%;
   background-image: var(--grain-image), var(--vignette-image);
@@ -2421,6 +2459,8 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
     rgb(26 22 24 / calc(var(--vignette-strength) / var(--grain-opacity))) 100%
   );
 }
+
+.experience[data-busy] .atmos__field { opacity: var(--grain-busy); }
 
 .atmos__field.no-grain { --grain-image: none; }
 .atmos__field.no-vignette { --vignette-image: none; }
@@ -2532,8 +2572,7 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
 }
 
 @media (max-width: 900px), (max-aspect-ratio: 4/5) {
-  :root { --grain-opacity: 0.055; --ambient-opacity: 0.4; --haze-strength: 0.1; }
-  .experience[data-busy] { --grain-opacity: 0.075; --vignette-strength: 0.07; }
+  :root { --grain-opacity: 0.055; --grain-busy: 0.075; --ambient-opacity: 0.4; --haze-strength: 0.1; }
 }
 
 .experience.no-ambient .wash-layer { --ambient-opacity: 0; }

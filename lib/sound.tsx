@@ -1,5 +1,6 @@
 "use client";
 
+import { dev } from "@/lib/dev";
 import {
   createContext,
   useCallback,
@@ -303,7 +304,7 @@ export function SoundProvider({ children }: { children: React.ReactNode }) {
     // Reading `enabled` here would close over a stale snapshot, so a cue fired
     // moments after the user switches sound on would be silently dropped —
     // which is exactly the confirmation beep you most want to hear.
-    if (getSnapshot() !== true) return;
+    if (getSnapshot() !== true || dev("MUTE_SOUND")) return;
 
     const def = CUES[name];
     if (!def) return;

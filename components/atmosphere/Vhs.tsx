@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import type { State } from "@/lib/experience";
 import { onVhs, triggerVhs } from "@/lib/vhs";
 import { useSound } from "@/lib/sound";
+import { dev } from "@/lib/dev";
 
 /** Which transitions get a pass, how far in, and how strong. */
 const PASSES: Partial<Record<State, { delay: number; strength: number }>> = {
@@ -42,7 +43,7 @@ export function Vhs({ state, still }: { state: State; still: boolean }) {
   useEffect(() => {
     const el = root.current;
     const stage = el?.closest<HTMLElement>(".experience");
-    if (!el || !stage || still) return;
+    if (!el || !stage || still || dev("NO_VHS")) return;
     const timers: number[] = [];
 
     const off = onVhs(({ delay, strength }) => {

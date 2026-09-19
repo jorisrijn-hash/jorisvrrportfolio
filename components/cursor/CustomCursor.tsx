@@ -5,9 +5,6 @@ import { dev } from "@/lib/dev";
 import { useFinePointer, useReducedMotion } from "@/lib/motion";
 import { addTick, removeTick } from "@/lib/ticker";
 
-/** Interpolation factor per frame. Lower is heavier. */
-const SMOOTHING = 0.22;
-
 /** Elements carrying this attribute set the cursor state explicitly. */
 const HIT = "[data-cursor], a[href], button, [role='button'], input, select, textarea";
 
@@ -16,7 +13,10 @@ const HIT = "[data-cursor], a[href], button, [role='button'], input, select, tex
  *
  *   · position fixed at 0,0; moved only by transform
  *   · coordinates live in refs, never in React state
- *   · runs on the shared frame clock (lib/ticker), and unsubscribes once caught up
+ *   · exact: the arrow IS the pointer (the native one is hidden), so it is
+ *     never eased — any smoothing reads as input lag. Pointer events only
+ *     record the target; the shared frame clock (lib/ticker) writes it once
+ *     per frame, then unsubscribes until the pointer moves again
  *   · hover state written straight to the DOM, so input never causes a render
  *   · pointer-events: none, so it can never intercept a click
  *
@@ -37,7 +37,7 @@ export function CustomCursor() {
   const el = useRef<HTMLDivElement>(null);
   const fine = useFinePointer();
   const reduced = useReducedMotion();
-  const active = fine && !reduced;
+  const active = fine && !reduced && !dev("NO_CURSOR");
 
   useEffect(() => {
     const node = el.current;
@@ -47,20 +47,14 @@ export function CustomCursor() {
     if (!dev("CUSTOM_CURSOR_DEBUG")) root.setAttribute("data-cursor-hidden", "true");
 
     const target = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-    const current = { ...target };
     let running = false;
     let visible = false;
     let state = "default";
 
     const frame = () => {
-      current.x += (target.x - current.x) * SMOOTHING;
-      current.y += (target.y - current.y) * SMOOTHING;
-      node.style.transform = `translate3d(${current.x}px, ${current.y}px, 0)`;
-
-      if (Math.abs(target.x - current.x) < 0.05 && Math.abs(target.y - current.y) < 0.05) {
-        running = false;
-        removeTick(frame);
-      }
+      node.style.transform = `translate3d(${target.x}px, ${target.y}px, 0)`;
+      running = false;
+      removeTick(frame);
     };
 
     const kick = () => {
