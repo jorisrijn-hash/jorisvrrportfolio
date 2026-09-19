@@ -7,6 +7,7 @@ import { useSessionFlag, setSessionFlag } from "@/lib/clock";
 import { useReducedMotion } from "@/lib/motion";
 import { StaticComposition } from "./StaticComposition";
 import { Atmosphere } from "@/components/atmosphere/Atmosphere";
+import { Vhs } from "@/components/atmosphere/Vhs";
 import { AudioGate } from "@/components/boot/AudioGate";
 import { BootSequence } from "@/components/boot/BootSequence";
 import { BootControls } from "@/components/hud/BootControls";
@@ -132,6 +133,9 @@ function Stage() {
       )}
 
       {state === "crash" ? <CrashSequence key={`crash-${runId}`} onDone={reboot} /> : null}
+
+      {/* Analog interference, only while an About transition runs. */}
+      <Vhs state={state} still={still} />
 
       {/* Over everything, under the cursor: grain, vignette, ambient light. */}
       <Atmosphere />

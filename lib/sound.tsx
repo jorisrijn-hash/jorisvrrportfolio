@@ -53,7 +53,9 @@ export type Cue =
   | "settle"   // work state settles
   // [REBUILD]
   | "glitch"   // a burst of the tear
-  | "power";   // the screen drops to black
+  | "power"    // the screen drops to black
+  // about
+  | "tape";    // the VHS pass over an About transition — a soft flick of tape
 
 type CueDef = {
   /** cuelume recipe name */
@@ -89,7 +91,77 @@ const CUES: Record<Cue, CueDef> = {
   settle:  { recipe: "tick",    gain: 0.48, limit: 1200 },
   glitch:  { recipe: "tick",    gain: 0.38, limit: 45 },
   power:   { recipe: "release", gain: 0.85, limit: 1200 },
+  tape:    { recipe: "tape",    gain: 0.6,  limit: 500 },
 };
+
+/* ---- the tape flick --------------------------------------------------------
+   cuelume has no analog texture, so this one cue is synthesized here: a burst
+   of soft noise whose band falls as it decays (tape slowing), amplitude-
+   modulated at ~26Hz for flutter, over a tiny low thump. ~220ms, and pitched
+   to sit at the same loudness as a press. Its AudioContext is only created
+   the first time it plays, which is always after a gesture. */
+let tapeCtx: AudioContext | null = null;
+let tapeNoise: AudioBuffer | null = null;
+
+function playTape(volume: number) {
+  try {
+    const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AC) return;
+    tapeCtx ??= new AC();
+    const ctx = tapeCtx;
+    if (ctx.state === "suspended") void ctx.resume();
+    if (!tapeNoise) {
+      const len = Math.floor(ctx.sampleRate * 0.3);
+      tapeNoise = ctx.createBuffer(1, len, ctx.sampleRate);
+      const d = tapeNoise.getChannelData(0);
+      let b = 0;
+      // gently low-passed noise: hiss rather than static
+      for (let i = 0; i < len; i++) { b = 0.86 * b + 0.14 * (Math.random() * 2 - 1); d[i] = b * 2.2; }
+    }
+    const t = ctx.currentTime + 0.005;
+    const peak = 0.12 * 0.42 * volume;
+
+    const src = ctx.createBufferSource();
+    src.buffer = tapeNoise;
+    const band = ctx.createBiquadFilter();
+    band.type = "bandpass";
+    band.Q.value = 0.9;
+    band.frequency.setValueAtTime(2400, t);
+    band.frequency.exponentialRampToValueAtTime(700, t + 0.2);
+
+    const flutter = ctx.createGain();
+    flutter.gain.value = 0.6;
+    const lfo = ctx.createOscillator();
+    lfo.frequency.value = 26;
+    const depth = ctx.createGain();
+    depth.gain.value = 0.4;
+    lfo.connect(depth).connect(flutter.gain);
+
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0.0001, t);
+    env.gain.exponentialRampToValueAtTime(peak, t + 0.006);
+    env.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+    src.connect(band).connect(flutter).connect(env).connect(ctx.destination);
+
+    const thump = ctx.createOscillator();
+    thump.frequency.setValueAtTime(150, t);
+    thump.frequency.exponentialRampToValueAtTime(62, t + 0.14);
+    const tg = ctx.createGain();
+    tg.gain.setValueAtTime(0.0001, t);
+    tg.gain.exponentialRampToValueAtTime(peak * 0.5, t + 0.01);
+    tg.gain.exponentialRampToValueAtTime(0.0001, t + 0.13);
+    thump.connect(tg).connect(ctx.destination);
+
+    src.start(t);
+    lfo.start(t);
+    thump.start(t);
+    src.stop(t + 0.26);
+    lfo.stop(t + 0.26);
+    thump.stop(t + 0.16);
+  } catch {
+    /* a failed cue must never break an interaction */
+  }
+}
 
 /** Master. Interface feedback sits well under the content (§25). */
 const VOLUME = 0.28;
@@ -235,6 +307,14 @@ export function SoundProvider({ children }: { children: React.ReactNode }) {
 
     const def = CUES[name];
     if (!def) return;
+
+    if (def.recipe === "tape") {
+      const now = performance.now();
+      if (now - (lastPlayed.current[name] ?? -Infinity) < def.limit) return;
+      lastPlayed.current[name] = now;
+      playTape(VOLUME * def.gain);
+      return;
+    }
 
     const mod = engine.current;
     if (!mod) {
