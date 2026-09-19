@@ -158,6 +158,43 @@ function planeGeometry(p: PlaneSpec): PlaneGeo {
   };
 }
 
+/* --------------------------------------------------- the social proof rails */
+
+// Home -> Social Proof: the ring and orbit cubes line up into vertical rails
+// beside the testimonial lanes. Each cube's rail and slot come from where it
+// sits at home — left cubes to left rails, higher cubes to higher slots — so
+// the paths into the rails do not cross.
+type Slot = { rail: number; slot: number; n: number };
+function assignRails(rails: number, lite: boolean): { ring: Slot[]; orbit: Slot[] } {
+  const items: { kind: 0 | 1; i: number; x: number; y: number }[] = [];
+  const ringM = qToM3(RING_Q);
+  const ringStart0 = 2.5 / R_DASH;
+  for (let i = 0; i < RING_COUNT; i++) {
+    const a = ringStart0 + (TAU * i) / RING_COUNT;
+    const v = m3Apply(ringM, [RING_R * Math.cos(a), RING_R * Math.sin(a), 0]);
+    items.push({ kind: 0, i, x: v[0] + RING_C[0], y: v[1] + RING_C[1] });
+  }
+  if (!lite) {
+    const orbitM = qToM3(ORBIT_Q);
+    for (let j = 0; j < ORBIT_COUNT; j++) {
+      const a = (TAU * j) / ORBIT_COUNT;
+      const v = m3Apply(orbitM, [ORBIT_R * Math.cos(a), ORBIT_R * Math.sin(a), 0]);
+      items.push({ kind: 1, i: j, x: v[0] + ORBIT_C[0], y: v[1] + ORBIT_C[1] });
+    }
+  }
+  items.sort((a, b) => a.x - b.x);
+  const ring: Slot[] = [];
+  const orbit: Slot[] = [];
+  for (let r = 0; r < rails; r++) {
+    const group = items.slice(Math.round((r * items.length) / rails), Math.round(((r + 1) * items.length) / rails));
+    group.sort((a, b) => a.y - b.y);
+    group.forEach((it, k) => {
+      (it.kind === 0 ? ring : orbit)[it.i] = { rail: r, slot: k, n: group.length };
+    });
+  }
+  return { ring, orbit };
+}
+
 /* ------------------------------------------------------ object identities */
 
 // Every separate asset has a stable id, so it can be hovered and scaled.
@@ -352,6 +389,21 @@ export type Pose = {
   camY: number;
   /** the settle at the end of a move, 1 -> 0 */
   settle: number;
+  /** Home -> Social Proof, 0..1 — scroll progress, linear; each group eases
+   *  its own window of it here */
+  proof: number;
+  /** the proof rails, scene units around the stage centre (null: no proof) */
+  rails: Rails | null;
+};
+
+export type Rails = {
+  /** x of each rail */
+  x: number[];
+  /** top and bottom of the rails */
+  y0: number;
+  y1: number;
+  /** edge of a node on a rail */
+  node: number;
 };
 
 const r1 = (n: number) => Math.round(n * 10) / 10;
@@ -369,6 +421,9 @@ export function createScene() {
 
   const tmpM = new Float64Array(9) as M3;
   const objM = new Float64Array(9) as M3;
+
+  let railKey = "";
+  let railSlots: { ring: Slot[]; orbit: Slot[] } | null = null;
 
   return function evaluate(pose: Pose): Frame {
     const { t, loop, hover } = pose;
@@ -438,6 +493,61 @@ export function createScene() {
     const foldCluster = step(pose.collapse, 0.05);
     const foldRing = step(pose.collapse, 0.1);
     const fade = 1 - smooth(clamp01(step(pose.collapse, 0.05) * 1.25));
+
+    // ---- home -> social proof ---------------------------------------------
+    // One progress value, a window of it per group: the core compresses and
+    // recedes, the planes flatten and fall back into faint central geometry,
+    // and the ring and orbit cubes travel into the rails, each rail drawing
+    // from the top down. Scrolling back runs the same function in reverse.
+    const pp = pose.rails ? pose.proof : 0;
+    const pCore = easePrimary(seg(pp, 0.15, 0.55));
+    const pCluster = easePrimary(seg(pp, 0.18, 0.6));
+    const rails = pose.rails;
+    if (rails && pp > 0) {
+      const key = `${rails.x.length}|${lite}`;
+      if (key !== railKey) {
+        railKey = key;
+        railSlots = assignRails(rails.x.length, lite);
+      }
+    }
+    // Nodes drift along their rail — whole slots per idle loop, so the loop
+    // seam lands every node exactly where another one was.
+    const railPhase = (loop / IDLE_LOOP) * 4;
+    const toRail = (slot: Slot | undefined, p: V3, q: Q, s: V3) => {
+      if (!rails || !slot || pp <= 0) return null;
+      const d = slot.slot / slot.n;
+      const u = easeSecondary(seg(pp, 0.25 + 0.22 * d, 0.5 + 0.22 * d));
+      if (u <= 0) return null;
+      const dir = slot.rail % 2 ? -1 : 1;
+      let k = (slot.slot + 0.5 + dir * railPhase) % slot.n;
+      if (k < 0) k += slot.n;
+      const ty = rails.y0 + (k * (rails.y1 - rails.y0)) / slot.n;
+      // an arc toward the camera on the way, as every other move travels
+      const arc = Math.sin(Math.PI * u);
+      const n = rails.node;
+      // fade to nothing at the rail's ends, where a drifting node wraps round
+      const edge = smooth(clamp01(Math.min(k, slot.n - k) / 2.5));
+      return {
+        p: [lerp(p[0], rails.x[slot.rail], u), lerp(p[1], ty, u), lerp(p[2], 0, u) - 180 * arc] as V3,
+        q: qSlerp(q, Q_ID, u),
+        s: [lerp(s[0], n, u), lerp(s[1], n, u), lerp(s[2], n * 0.5, u)] as V3,
+        a: lerp(1, edge, u),
+      };
+    };
+    /** the planes and blocks: pulled together, flattened toward the camera,
+     *  pushed back in depth behind the centre lane */
+    const toCluster = (p: V3, q: Q, s: V3): Q => {
+      if (pCluster <= 0) return q;
+      const m = pCluster;
+      p[0] = lerp(p[0], p[0] * 0.32, m);
+      p[1] = lerp(p[1], p[1] * 0.32, m);
+      p[2] = lerp(p[2], p[2] * 0.32 + 620, m);
+      const k2 = lerp(1, 0.6, m);
+      s[0] *= k2;
+      s[1] *= k2;
+      s[2] *= k2 * lerp(1, 0.06, m);
+      return qSlerp(q, Q_ID, m);
+    };
 
     // The idle loop is weighted, never cut: a move begins from the pose the
     // object is already in and takes over as the idle influence eases away.
@@ -523,9 +633,10 @@ export function createScene() {
     // ---- core: ring r119 -> octagon ---------------------------------------
     {
       const breathe = 1 + 0.03 * Math.sin(2 * w) * iw;
-      const radius = lerp(R_RING, 88, expand) * breathe * hover[ID_CORE] * lerp(1, WORK_CORE_SCALE, cmCore);
+      const radius = lerp(R_RING, 88, expand) * breathe * hover[ID_CORE] * lerp(1, WORK_CORE_SCALE, cmCore) * lerp(1, 0.38, pCore);
       const c0 = m3Apply(cluster, [0, 0, lerp(0, 30, expand)]);
-      const centre = cmCore > 0 ? vLerp(c0, WORK_CORE, cmCore) : c0;
+      let centre = cmCore > 0 ? vLerp(c0, WORK_CORE, cmCore) : c0;
+      if (pCore > 0) centre = vLerp(centre, [0, 0, 650], pCore);
       const [cx, cy] = project(centre);
       const scale = (F / Math.max(80, F + centre[2])) * k;
       let d = "";
@@ -541,7 +652,7 @@ export function createScene() {
         pts.push(x, y);
         d += (i ? "L" : "M") + r1(x) + " " + r1(y);
       }
-      faces.push({ id: ID_CORE, z: centre[2] + 4, d: d + "Z", pts, g: 251, fa: expand * 0.96 * clusterFade, sa: 1 - expand });
+      faces.push({ id: ID_CORE, z: centre[2] + 4, d: d + "Z", pts, g: 251, fa: expand * 0.96 * clusterFade * lerp(1, 0.5, pCore), sa: 1 - expand });
     }
 
     // ---- diamond -> octahedron -> tetrahedra -------------------------------
@@ -586,11 +697,12 @@ export function createScene() {
       const hs = part.home.s;
       const s: V3 = [lerp(part.start.s[0], hs, c), lerp(part.start.s[1], hs, c), lerp(part.start.s[2], hs, c)];
       gather(p, s, cmTetra);
+      const qp = toCluster(p, q, s);
 
-      emit(ID_TETRA + idx, TETRA, p, q, s, cluster, {
+      emit(ID_TETRA + idx, TETRA, p, qp, s, cluster, {
         g0: part.g0,
         m: c,
-        fa: lerp(part.fa0, 1, smooth(clamp01(c * 1.6))) * clusterFade,
+        fa: lerp(part.fa0, 1, smooth(clamp01(c * 1.6))) * clusterFade * lerp(1, 0.4, pCluster),
         sa: part.sa0 * (1 - c),
         strokeFace: TETRA_BASE,
         bias: idx === TETRA_HOMES.length + 1 ? -2 : 0,
@@ -606,8 +718,9 @@ export function createScene() {
       // offset so the bob is exactly zero at loop = 0 — no jump on arrival
       p[1] += 5 * (Math.sin(w + part.delay * 20) - Math.sin(part.delay * 20)) * iw;
       gather(p, s, cmMedium);
-      emit(ID_MEDIUM + idx, CUBE, p, qSlerp(Q_ID, part.home.q, c), s, cluster, {
-        g0: 216, m: c, fa: clusterFade, sa: 0, strokeFace: -2,
+      const qm = toCluster(p, qSlerp(Q_ID, part.home.q, c), s);
+      emit(ID_MEDIUM + idx, CUBE, p, qm, s, cluster, {
+        g0: 216, m: c, fa: clusterFade * lerp(1, 0.4, pCluster), sa: 0, strokeFace: -2,
       });
     });
 
@@ -627,8 +740,9 @@ export function createScene() {
       const s: V3 = [lerp(5, RING_CUBE, c), lerp(1, RING_CUBE, c), lerp(1, RING_CUBE, c)];
       const to = toCell(i, p, q, s, 0.2 + 0.28 * (i / RING_COUNT));
       if (!to) continue;
-      emit(ID_RING + i, CUBE, to.p, to.q, to.s, secondary, {
-        g0: 216, m: c, fa: to.fade, sa: 0, strokeFace: -2, ink: to.ink,
+      const rr = toRail(railSlots?.ring[i], to.p, to.q, to.s);
+      emit(ID_RING + i, CUBE, rr?.p ?? to.p, rr?.q ?? to.q, rr?.s ?? to.s, secondary, {
+        g0: 216, m: c, fa: to.fade * (rr?.a ?? 1), sa: 0, strokeFace: -2, ink: to.ink,
       });
     }
 
@@ -654,8 +768,9 @@ export function createScene() {
       const sz = lerp(0.01, ORBIT_CUBE, c);
       const to = toCell(RING_COUNT + j, p, q, [sz, sz, sz], 0.12 + 0.3 * (j / ORBIT_COUNT));
       if (!to) continue;
-      emit(ID_ORBIT + j, CUBE, to.p, to.q, to.s, secondary, {
-        g0: 221, m: c, fa: lerp(0.28, 1, c) * to.fade, sa: 0, strokeFace: -2, ink: to.ink,
+      const rr = toRail(railSlots?.orbit[j], to.p, to.q, to.s);
+      emit(ID_ORBIT + j, CUBE, rr?.p ?? to.p, rr?.q ?? to.q, rr?.s ?? to.s, secondary, {
+        g0: 221, m: c, fa: lerp(0.28, 1, c) * to.fade * (rr ? lerp(1, 0.75, pp) * rr.a : 1), sa: 0, strokeFace: -2, ink: to.ink,
       });
     }
     const orbitC = inOut(seg(t, 1.2, 2.1));
@@ -703,7 +818,7 @@ export function createScene() {
       faces,
       orbit, orbitA: 0.28 * (1 - orbitC) * fade,
       stem, stemA: (1 - seg(t, 1.3, 2.1)) * fade,
-      links: linkPath, dots, linkA: linkA * fade * (1 - (compact ? 1 : 0.5) * cm),
+      links: linkPath, dots, linkA: linkA * fade * (1 - (compact ? 1 : 0.5) * cm) * (1 - smooth(seg(pp, 0.05, 0.3))),
     };
   };
 }

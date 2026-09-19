@@ -104,12 +104,23 @@ const CUES: Record<Cue, CueDef> = {
 let tapeCtx: AudioContext | null = null;
 let tapeNoise: AudioBuffer | null = null;
 
+/** The tape flick's context — also the one that opens the audio device. */
+function tapeContext(): AudioContext | null {
+  if (tapeCtx) return tapeCtx;
+  const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!AC) return null;
+  try {
+    tapeCtx = new AC();
+  } catch {
+    return null;
+  }
+  return tapeCtx;
+}
+
 function playTape(volume: number) {
   try {
-    const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AC) return;
-    tapeCtx ??= new AC();
-    const ctx = tapeCtx;
+    const ctx = tapeContext();
+    if (!ctx) return;
     if (ctx.state === "suspended") void ctx.resume();
     if (!tapeNoise) {
       const len = Math.floor(ctx.sampleRate * 0.3);
@@ -260,6 +271,8 @@ type SoundApi = {
   enabled: SoundPref;
   setEnabled: (on: boolean) => void;
   cue: (name: Cue) => void;
+  /** Open the audio path ahead of the first cue (after the gate only). */
+  warm: () => void;
 };
 
 const SoundContext = createContext<SoundApi | null>(null);
@@ -284,6 +297,26 @@ export function SoundProvider({ children }: { children: React.ReactNode }) {
       loading.current = false;
     }
   }, []);
+
+  // Warm the audio path once the gate is behind the visitor (Experience
+  // calls this on reaching Home). The first AudioContext of a page opens the
+  // audio device — ~140ms of main thread — and the engine import is ~90ms
+  // more; left to the first cue, both landed mid-transition (a 232ms freeze
+  // in the middle of the Home -> Proof morph, or at the start of the first
+  // navigation). A suspended context needs no gesture; once one exists,
+  // every later one (cuelume's included) is free. Never before the gate's
+  // choice: that is the consent.
+  const warmed = useRef(false);
+  const warm = useCallback(() => {
+    if (warmed.current || getSnapshot() !== true) return;
+    warmed.current = true;
+    const run = () => {
+      tapeContext();
+      void load();
+    };
+    if ("requestIdleCallback" in window) window.requestIdleCallback(run, { timeout: 1500 });
+    else globalThis.setTimeout(run, 600);
+  }, [load]);
 
   const setEnabled = useCallback(
     (on: boolean) => {
@@ -350,8 +383,8 @@ export function SoundProvider({ children }: { children: React.ReactNode }) {
   }, [load]);
 
   const value = useMemo<SoundApi>(
-    () => ({ enabled, setEnabled, cue }),
-    [enabled, setEnabled, cue],
+    () => ({ enabled, setEnabled, cue, warm }),
+    [enabled, setEnabled, cue, warm],
   );
 
   return <SoundContext.Provider value={value}>{children}</SoundContext.Provider>;

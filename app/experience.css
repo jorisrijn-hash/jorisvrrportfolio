@@ -1559,6 +1559,119 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
 }
 
 /* =========================================================================
+   SOCIAL PROOF — Home, scrolled (components/home/ProofSequence.tsx)
+   Not a section below Home: a transparent scroller over the stage provides
+   the scroll, the sculpture's cubes form the rails, and these lanes stand
+   between them in a fixed layer. Each lane is a static clip window; its
+   content is revealed by one JS transform and drifts on a CSS loop that only
+   runs once the proof has formed. No filters, no blur, no glass.
+   ========================================================================= */
+.proof-scroll {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  overflow: hidden;
+  pointer-events: none;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+.proof-scroll::-webkit-scrollbar { display: none; }
+.proof-scroll[data-live] { overflow-y: auto; pointer-events: auto; }
+
+.proof { position: absolute; inset: 0; z-index: 7; pointer-events: none; }
+.proof__sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.proof-lane {
+  position: absolute;
+  top: var(--lane-top);
+  bottom: var(--lane-bottom);
+  left: calc(50% + var(--x) - var(--lane-w) / 2);
+  width: var(--lane-w);
+  overflow: hidden;
+  /* the stream comes in and goes out soft, like the rails' ends */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 56px, #000 calc(100% - 56px), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 56px, #000 calc(100% - 56px), transparent 100%);
+}
+.proof-lane__reveal { opacity: 0; will-change: transform, opacity; }
+
+.proof-lane__track {
+  animation: proof-up var(--dur, 80s) linear infinite;
+  animation-play-state: paused;
+}
+.proof-lane[data-dir="down"] .proof-lane__track { animation-name: proof-down; }
+.proof[data-live] .proof-lane__track { animation-play-state: running; }
+.proof-lane__copy { display: flex; flex-direction: column; gap: 14px; padding-bottom: 14px; }
+
+@keyframes proof-up { from { transform: translate3d(0, 0, 0); } to { transform: translate3d(0, -50%, 0); } }
+@keyframes proof-down { from { transform: translate3d(0, -50%, 0); } to { transform: translate3d(0, 0, 0); } }
+
+/* a record, in the About panels' language: hairline, square, corner nodes */
+.proof-card {
+  position: relative;
+  padding: 18px 20px 17px;
+  background: rgb(243 243 244 / 0.84);
+  border: 1px solid rgb(0 0 0 / 0.13);
+  box-shadow: 0 22px 44px -34px rgb(20 18 20 / calc(var(--haze-strength) * 2));
+}
+.proof-card__node { position: absolute; width: 5px; height: 5px; background: #5e5e5e; }
+.proof-card__node[data-c="tl"] { left: -3px; top: -3px; }
+.proof-card__node[data-c="tr"] { right: -3px; top: -3px; }
+.proof-card__node[data-c="bl"] { left: -3px; bottom: -3px; }
+.proof-card__node[data-c="br"] { right: -3px; bottom: -3px; }
+.proof-card__id {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: #8a8a8a;
+}
+/* Development / ?preview=proof only: these are not real testimonials. */
+.proof-card__ph { color: var(--color-burgundy); letter-spacing: 0.2em; }
+.proof-card__quote { margin: 14px 0 16px; }
+.proof-card__quote p {
+  font-family: var(--font-display);
+  font-weight: 300;
+  font-size: 17px;
+  line-height: 1.38;
+  color: #262626;
+}
+.proof-card__name {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #3d3d3d;
+}
+.proof-card__role {
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: #8a8a8a;
+}
+
+/* the HUD, while Home has become Proof: navigation stays, metadata quiets */
+.home-hud__index { opacity: 0.8; }
+.home-hud[data-proof] .home-hud__telemetry { opacity: 0.28 !important; }
+/* formed: the left lane stands where the telemetry is */
+.home-hud[data-proof="2"] .home-hud__telemetry { opacity: 0 !important; }
+.home-hud[data-proof] .home-hud__title,
+.home-hud[data-proof] .home-pill--dark { opacity: 0 !important; pointer-events: none !important; }
+
+@media (max-width: 900px), (max-aspect-ratio: 4/5) {
+  .proof-card { padding: 16px 16px 15px; }
+  .proof-card__quote p { font-size: 16px; }
+  .home-hud__index { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .proof-lane__track { animation: none; }
+}
+
+/* =========================================================================
    VHS — analog interference over About transitions only (components/
    atmosphere/Vhs.tsx). Every moving part is transform or opacity, and the
    whole layer is hidden between passes.

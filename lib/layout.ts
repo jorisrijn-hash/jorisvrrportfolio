@@ -18,6 +18,36 @@ export const COMPACT_QUERY = "(max-width: 900px), (max-aspect-ratio: 4/5)";
 
 export type PlaneSpec = { x: number; y: number; yaw: number; w: number; h: number };
 
+/**
+ * The Social Proof composition, in CSS px. Lanes hold the testimonial
+ * streams; rails run between and beside them, and are where the sculpture's
+ * cubes line up. x values are relative to the viewport centre.
+ */
+export type ProofSpec = {
+  cols: 1 | 2 | 3;
+  laneW: number;
+  lanes: number[];
+  rails: number[];
+  /** px from the top / bottom of the viewport */
+  top: number;
+  bottom: number;
+};
+
+function proofSpec(vw: number, vh: number, compact: boolean, safe: { t: number; b: number; l: number; r: number }): ProofSpec {
+  const cols: 1 | 2 | 3 = compact ? (vw >= 600 ? 2 : 1) : vw >= 1100 ? 3 : 2;
+  const gap = compact ? 24 : 56;
+  const margin = compact ? 16 + Math.max(safe.l, safe.r) : 120;
+  const laneW = Math.min(cols === 1 ? 520 : 380, (vw - 2 * margin - (cols - 1) * gap) / cols);
+  const pitch = laneW + gap;
+  const lanes = Array.from({ length: cols }, (_, i) => (i - (cols - 1) / 2) * pitch);
+  const rails = Array.from({ length: cols + 1 }, (_, i) => (i - cols / 2) * pitch);
+  return {
+    cols, laneW, lanes, rails,
+    top: compact ? safe.t + 64 : 96,
+    bottom: compact ? safe.b + 112 : 56,
+  };
+}
+
 export type Layout = {
   compact: boolean;
   /** drop low-priority geometry (the far orbit) and halve idle redraws */
@@ -37,6 +67,7 @@ export type Layout = {
   globeFit: number;
   globeY: number;
   safe: { t: number; r: number; b: number; l: number };
+  proof: ProofSpec;
 };
 
 let probe: HTMLDivElement | null = null;
@@ -76,6 +107,7 @@ export function computeLayout(): Layout {
       globeFit: fit,
       globeY: 0.495,
       safe,
+      proof: proofSpec(vw, vh, false, safe),
     };
   }
 
@@ -107,5 +139,6 @@ export function computeLayout(): Layout {
     globeFit: Math.min(vw / 720, vh / 1300),
     globeY: 0.4,
     safe,
+    proof: proofSpec(vw, vh, true, safe),
   };
 }
