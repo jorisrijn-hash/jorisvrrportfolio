@@ -112,6 +112,18 @@ export function ProofSequence({ live, still }: { live: boolean; still: boolean }
     };
     window.addEventListener("keydown", onKey);
 
+    // A wheel that starts on a HUD control (nav, dock, sound) would scroll
+    // nothing — those sit outside the scroller. Hand it over.
+    const onWheel = (e: WheelEvent) => {
+      if (!liveRef.current || e.ctrlKey) return;
+      const t = e.target as Node | null;
+      if (t && sc.contains(t)) return;
+      if (!(t as HTMLElement | null)?.closest?.(".home-hud")) return;
+      const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? sc.clientHeight : 1;
+      sc.scrollBy({ top: e.deltaY * unit, behavior: "instant" });
+    };
+    window.addEventListener("wheel", onWheel, { passive: true });
+
     let p = 0;
     let lastP = -1;
     const written: string[] = [];
@@ -186,6 +198,7 @@ export function ProofSequence({ live, still }: { live: boolean; still: boolean }
       stop();
       window.removeEventListener("resize", size);
       window.removeEventListener("keydown", onKey);
+      window.removeEventListener("wheel", onWheel);
       sc.removeEventListener("scroll", onScroll);
       registerProofScroller(null);
       setProof(0);

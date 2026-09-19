@@ -1653,6 +1653,16 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
   color: #8a8a8a;
 }
 
+/* Informational HUD text never catches the pointer: under it is the proof
+   scroller (the telemetry box alone was ~7% of a desktop screen where the
+   wheel did nothing). Controls keep theirs; ProofSequence forwards a wheel
+   that starts on one. */
+.experience[data-x-ui] .home-hud > .home-hud__telemetry,
+.experience[data-x-ui] .home-hud > .home-hud__title,
+.experience[data-x-ui] .home-hud > .home-state,
+.experience[data-x-ui] .home-hud > .home-hud__bar { pointer-events: none; }
+.experience[data-x-ui] .home-hud__bar .home-pill { pointer-events: auto; }
+
 /* the HUD, while Home has become Proof: navigation stays, metadata quiets */
 .home-hud__index { opacity: 0.8; }
 .home-hud[data-proof] .home-hud__telemetry { opacity: 0.28 !important; }
