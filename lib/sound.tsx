@@ -302,8 +302,7 @@ export function SoundProvider({ children }: { children: React.ReactNode }) {
   // calls this on reaching Home). The first AudioContext of a page opens the
   // audio device — ~140ms of main thread — and the engine import is ~90ms
   // more; left to the first cue, both landed mid-transition (a 232ms freeze
-  // in the middle of the Home -> Proof morph, or at the start of the first
-  // navigation). A suspended context needs no gesture; once one exists,
+  // measured at the start of the first navigation of a returning visit). A suspended context needs no gesture; once one exists,
   // every later one (cuelume's included) is free. Never before the gate's
   // choice: that is the consent.
   const warmed = useRef(false);

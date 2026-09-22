@@ -14,8 +14,6 @@ import { BootControls } from "@/components/hud/BootControls";
 import { CustomCursor } from "@/components/cursor/CustomCursor";
 import { HomeStage, type StageMode } from "@/components/home/HomeStage";
 import { HomeHud } from "@/components/home/HomeHud";
-import { ProofSequence } from "@/components/home/ProofSequence";
-import { useTestimonials } from "@/lib/proof";
 import { CrashSequence } from "@/components/home/CrashSequence";
 import { load, loadWhenIdle, useStage } from "@/lib/stages";
 import { useSound } from "@/lib/sound";
@@ -41,10 +39,6 @@ function Stage() {
 
   // Heavy stages arrive when wanted (lib/stages): the boot sequence while the
   // gate is up, Work and About once Home has settled.
-  // Social Proof exists only when there is something honest to show: real
-  // entries, or placeholders in development / ?preview=proof.
-  const proofOn = useTestimonials().length > 0;
-
   const Boot = useStage("boot")?.BootSequence;
   const About = useStage("about")?.AboutStage;
   const Work = useStage("work")?.WorkStage;
@@ -108,9 +102,6 @@ function Stage() {
           onArrive={arrive}
         />
       ) : null}
-
-      {/* Home -> Social Proof: scrolling reconfigures the Home stage itself. */}
-      {atHome && proofOn ? <ProofSequence live={state === "home"} still={still} /> : null}
 
       {inAbout && About ? (
         <About

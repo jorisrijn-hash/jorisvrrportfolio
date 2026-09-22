@@ -8,47 +8,44 @@
  * cells) both read these numbers, so the two can never drift apart.
  */
 
-export type ProjectMedia =
-  | { type: "image"; src: string; width: number; height: number; alt: string }
-  | { type: "video"; src: string; poster: string; width: number; height: number; alt: string };
+import { PROJECTS as SOURCE, type Media, type Project } from "@/content/projects";
 
-export type Project = {
+/**
+ * The Work environment's view of a project. The data lives in
+ * content/projects.ts; this is only what the surface and its index need, with
+ * anything unknown left undefined so the interface omits the row rather than
+ * inventing a value.
+ */
+export type WorkItem = {
   id: string;
   title: string;
+  /** what the work was — the roles when known, otherwise its type */
   discipline: string;
-  year: string;
-  status: string;
-  media: ProjectMedia;
-  thumb: string;
+  year?: string;
+  /** a true system label: "Coming soon", or that the media is a stand-in */
+  status?: string;
+  media?: Media;
+  thumb?: Media;
+  comingSoon?: boolean;
+  slug: string;
 };
 
-/**
- * PLACEHOLDERS. No project media has been supplied yet: these are generated
- * abstract images (scripts/gen-work-placeholders.py) standing in for real
- * work, and the copy is the layout's own example text. Replace per project:
- * put the source in media/work/ and run scripts/encode-media.py.
- */
-export const PROJECTS: Project[] = [1, 2, 3, 4].map((n) => {
-  const id = String(n).padStart(2, "0");
-  return {
-    id,
-    title: "Project Name",
-    discipline: "Design / Development",
-    year: "2026",
-    status: "Placeholder media",
-    media: {
-      type: "image",
-      src: `/work/placeholder-${id}.jpg`,
-      width: 1680,
-      height: 1074,
-      alt: `Placeholder media for project ${id}`,
-    },
-    thumb: `/work/placeholder-${id}-thumb.jpg`,
-  };
+const item = (p: Project): WorkItem => ({
+  id: p.number,
+  title: p.title,
+  discipline: p.role?.length ? p.role.join(" / ") : p.type,
+  year: p.year,
+  status: p.status ?? (p.showcaseMedia?.isPlaceholder ? "Placeholder media" : undefined),
+  media: p.showcaseMedia,
+  thumb: p.thumbMedia,
+  comingSoon: p.comingSoon,
+  slug: p.slug,
 });
 
+export const PROJECTS: WorkItem[] = SOURCE.map(item);
+
 /**
- * What the site actually serves. `src`/`thumb` name the SOURCE files in
+ * What the site actually serves. A Media `src` names the SOURCE file in
  * media/work/; scripts/encode-media.py writes WebP variants of each to
  * public/work/, and these map a source to the right one:
  *   1680 wide  Retina desktops and laptops
@@ -66,10 +63,10 @@ export const mediaWidth = (surfaceCssPx: number): MediaWidth =>
   surfaceCssPx * Math.min(typeof window === "undefined" ? 1 : window.devicePixelRatio || 1, 2) <= 960 ? 960 : 1680;
 
 /** The still a surface is assembled from — the poster, for video. */
-export const mediaStill = (p: Project, w: MediaWidth) =>
-  p.media.type === "video" ? p.media.poster : variant(p.media.src, `-${w}`);
+export const mediaStill = (p: WorkItem, w: MediaWidth) =>
+  p.media ? (p.media.kind === "video" ? p.media.poster : variant(p.media.src, `-${w}`)) : undefined;
 
-export const thumbSrc = (p: Project) => variant(p.thumb, "");
+export const thumbSrc = (p: WorkItem) => (p.thumb ? variant(p.thumb.src, "") : undefined);
 
 /**
  * The media plane, in reference px around the viewport centre (1920x950).

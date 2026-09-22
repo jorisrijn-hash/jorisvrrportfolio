@@ -4,9 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { IDLE_LOOP, XFER, XFER_CUES } from "@/content/transition";
 import { ABOUT_IN, ABOUT_OUT } from "@/content/about";
 import { WORK_IN, WORK_OUT } from "@/content/work";
-import { OBJECT_COUNT, createScene, type DrawFace, type Rails } from "@/lib/sculpture/scene";
-import { getProof } from "@/lib/proof";
-import { clamp01, seg, smooth } from "@/lib/sculpture/math";
+import { OBJECT_COUNT, createScene, type DrawFace } from "@/lib/sculpture/scene";
+import { clamp01, seg } from "@/lib/sculpture/math";
 import { addTick } from "@/lib/ticker";
 import { computeLayout, type Layout } from "@/lib/layout";
 import { useSound } from "@/lib/sound";
@@ -134,20 +133,9 @@ export function HomeStage({
     }
 
     let layout: Layout = computeLayout();
-    // The Social Proof rails, in scene units around the stage centre (at the
-    // home pose one scene unit is `fit` CSS px, at z = 0).
-    let rails: Rails | null = null;
     const measure = () => {
       layout = computeLayout();
       root.style.top = `${layout.stageY * 100}%`;
-      const P = layout.proof;
-      const cy = layout.vh * layout.stageY;
-      rails = {
-        x: P.rails.map((x) => x / layout.fit),
-        y0: (P.top - cy) / layout.fit,
-        y1: (layout.vh - P.bottom - cy) / layout.fit,
-        node: (layout.compact ? 5 : 6.5) / layout.fit,
-      };
     };
     measure();
     window.addEventListener("resize", measure);
@@ -198,9 +186,6 @@ export function HomeStage({
     let camX = 0;
     let camY = 0;
     let settle = 0;
-    // Home -> Social Proof, read from lib/proof once per frame.
-    let proofNow = 0;
-    let lastProof = 0;
 
     let lastOpacity = -1;
     const setAttr = (el: Element | null, name: string, v: string) => el?.setAttribute(name, v);
@@ -208,13 +193,8 @@ export function HomeStage({
     const draw = (t: number, loop: number, glitch: number | null, collapse: number, work: number) => {
       const f = evaluate({
         t, loop, fit: layout.fit, layout, hover, collapse, work,
-        // the cursor's parallax steps out as the proof forms: the rails have
-        // to stand exactly beside their lanes
-        tiltX: tilt.x, tiltY: tilt.y,
-        shiftX: tilt.sx * (1 - smooth(seg(proofNow, 0.03, 0.25))),
-        shiftY: tilt.sy * (1 - smooth(seg(proofNow, 0.03, 0.25))),
+        tiltX: tilt.x, tiltY: tilt.y, shiftX: tilt.sx, shiftY: tilt.sy,
         idleW, camF, camX, camY, settle,
-        proof: proofNow, rails,
       });
       faces = f.faces;
 
@@ -361,19 +341,14 @@ export function HomeStage({
       if (m === "home-to-work") work = Math.min(WORK_IN.end, tm);
       else if (m === "work" || m === "work-to-about" || m === "about-to-work") work = WORK_IN.end;
       else if (m === "work-to-home") work = Math.max(0, WORK_OUT.from - tm * WORK_OUT.rate);
-      proofNow = m === "home" ? getProof() : 0;
-      // Hover belongs to the Home composition only.
-      const interactive = m === "home" && proofNow < 0.02;
+      const interactive = m === "home";
 
       // ---- one blend, one camera, one settle ---------------------------------
       // A move never cancels the idle loop: its influence eases down over
       // ~300ms and back up afterwards, so the transition starts from exactly
       // the pose the object is in. Work rests at 0.4 — quieter, not frozen.
       const resting = m === "home" || m === "work" || m === "about";
-      // Scrolling toward Social Proof hands the object from the idle loop to
-      // the morph by progress 0.15; the follower below blends it back in on
-      // the way up, so the loop resumes from a compatible pose.
-      const idleTarget = !resting ? 0.25 : m === "home" ? 1 - seg(proofNow, 0.02, 0.15) : 0.4;
+      const idleTarget = !resting ? 0.25 : m === "home" ? 1 : 0.4;
       idleW += (idleTarget - idleW) * (1 - Math.exp(-dt / (resting ? 260 : 110)));
 
       if (resting !== wasResting) {
@@ -447,11 +422,9 @@ export function HomeStage({
       }
       if (gone) return;
 
-      // Compact screens redraw the settled idle loop at 30fps; transitions,
-      // and a moving proof morph, always run at full rate.
-      const proofStill = proofNow === lastProof;
-      lastProof = proofNow;
-      if (layout.lite && arrivedAt !== null && m === "home" && proofStill && (skip = !skip)) return;
+      // Compact screens redraw the settled idle loop at 30fps; transitions
+      // always run at full rate.
+      if (layout.lite && arrivedAt !== null && m === "home" && (skip = !skip)) return;
 
       draw(Math.min(t, XFER.end), loop, null, collapse, work);
     };

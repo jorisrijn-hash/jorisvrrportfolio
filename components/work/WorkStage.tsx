@@ -19,9 +19,11 @@ export function preloadWork() {
   // The project Work opens on, and the index thumbnails it shows — not the
   // whole portfolio. (When switching exists: next, then previous, from here.)
   const L = computeLayout();
-  new Image().src = mediaStill(PROJECTS[0], mediaWidth(L.plane.w * L.fit));
+  const still = mediaStill(PROJECTS[0], mediaWidth(L.plane.w * L.fit));
+  if (still) new Image().src = still;
   PROJECTS.forEach((p) => {
-    new Image().src = thumbSrc(p);
+    const t = thumbSrc(p);
+    if (t) new Image().src = t;
   });
 }
 
@@ -245,14 +247,15 @@ export function WorkStage({
   const { cue } = useSound();
 
   // A single project for this checkpoint; switching will move this index.
-  const [index] = useState(0);
+  // (The first with media: a project without any cannot form the surface.)
+  const [index] = useState(() => Math.max(0, PROJECTS.findIndex((p) => p.media)));
   const project = PROJECTS[index];
   // Chosen once for this screen; the cells and the <img> share it.
   const [mw] = useState(() => {
     const L = computeLayout();
     return mediaWidth(L.plane.w * L.fit);
   });
-  const still_ = mediaStill(project, mw);
+  const still_ = mediaStill(project, mw) ?? "";
 
   const [origin] = useState<Origin>(from);
   const targets = useRef<CellTarget[]>([]);
@@ -512,25 +515,25 @@ export function WorkStage({
             </div>
 
             <figure className="work-media" data-cursor="view">
-              {project.media.type === "video" ? (
+              {project.media?.kind === "video" ? (
                 <video
-                  src={project.media.src}
-                  poster={project.media.poster}
+                  src={project.media!.src}
+                  poster={project.media!.poster}
                   preload="metadata"
                   muted
                   loop
                   playsInline
                   autoPlay
-                  aria-label={project.media.alt}
+                  aria-label={project.media!.alt}
                 />
               ) : (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={still_}
                   decoding="async"
-                  width={project.media.width}
-                  height={project.media.height}
-                  alt={project.media.alt}
+                  width={project.media?.width}
+                  height={project.media?.height}
+                  alt={project.media?.alt ?? ""}
                   draggable={false}
                 />
               )}
@@ -555,9 +558,10 @@ export function WorkStage({
           <span className="work-info__title">{project.title}</span>
         </h1>
         <dl className="work-info__meta" style={{ ["--d" as string]: "140ms" }}>
+          {/* A row exists only when there is something true to put in it. */}
           <div><dt>Discipline</dt><dd>{project.discipline}</dd></div>
-          <div><dt>Year</dt><dd>{project.year}</dd></div>
-          <div><dt>Status</dt><dd>{project.status}</dd></div>
+          {project.year ? <div><dt>Year</dt><dd>{project.year}</dd></div> : null}
+          {project.status ? <div><dt>Status</dt><dd>{project.status}</dd></div> : null}
         </dl>
         <p className="work-info__indexlabel" style={{ ["--d" as string]: "200ms" }}>
           Index · {project.id} / {total}
@@ -565,8 +569,10 @@ export function WorkStage({
         <ul className="work-info__thumbs" style={{ ["--d" as string]: "240ms" }} aria-label="Projects">
           {PROJECTS.map((p, i) => (
             <li key={p.id} data-current={i === index || undefined} aria-current={i === index || undefined}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={thumbSrc(p)} alt="" decoding="async" width={320} height={205} draggable={false} />
+              {thumbSrc(p) ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={thumbSrc(p)} alt="" decoding="async" width={320} height={205} draggable={false} />
+              ) : null}
             </li>
           ))}
         </ul>

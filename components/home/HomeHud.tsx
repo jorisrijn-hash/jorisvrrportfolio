@@ -6,8 +6,6 @@ import { useExperience, type State } from "@/lib/experience";
 import { useSound } from "@/lib/sound";
 import { stopBootTrack } from "@/lib/bootAudio";
 import { load } from "@/lib/stages";
-import { returnHome, useProofPhase } from "@/lib/proof";
-import { useReducedMotion } from "@/lib/motion";
 
 // Hovering a destination fetches it: the stage's code, then its media.
 const preloadWork = () => void load("work").then((m) => m.preloadWork(), () => {});
@@ -60,9 +58,6 @@ const DOCK_INDEX = { home: 0, work: 1, about: 2 } as const;
 export function HomeHud() {
   const { state, busy, crash, go } = useExperience();
   const { enabled, setEnabled, cue } = useSound();
-  // Home -> Social Proof: 0 home, 1 moving, 2 formed (thresholds only).
-  const proof = useProofPhase();
-  const reduced = useReducedMotion();
   const on = enabled === true;
   const at =
     state === "to-about" || state === "about" || state === "work-to-about"
@@ -96,21 +91,12 @@ export function HomeHud() {
   };
 
   const goTo = (to: "home" | "work" | "about") => {
-    // [Home] while the proof is showing: scroll back to the Home composition.
-    if (at === to) {
-      if (to === "home" && proof > 0) {
-        cue("select");
-        void returnHome(reduced);
-      }
-      return;
-    }
+    if (at === to) return;
     cue("select");
     // The destination's stage is normally in already (idle / hover); if not,
-    // the transition starts the moment it lands, never half-mounted. Work
-    // and About both start from the Home pose, so a scrolled Home glides
-    // back to it first.
+    // the transition starts the moment it lands, never half-mounted.
     if (to === "home") go(to);
-    else void Promise.all([load(to), returnHome(reduced)]).then(() => go(to), () => go(to));
+    else void load(to).then(() => go(to), () => go(to));
   };
 
   const rebuild = () => {
@@ -127,7 +113,7 @@ export function HomeHud() {
   };
 
   return (
-    <div className="home-hud" data-proof={proof || undefined}>
+    <div className="home-hud">
       <div className="home-hud__bar" data-reveal style={{ ["--d" as string]: "0ms" }}>
         <span className="home-hud__rule" aria-hidden="true" />
         <span>Neural Node Interface</span>
@@ -137,9 +123,6 @@ export function HomeHud() {
         </span>
         <span aria-label="Loop count">
           [Loop<span data-loop>00</span>]
-        </span>
-        <span className="home-hud__index" data-reveal-index aria-live="polite">
-          {proof === 2 ? "01 / Proof" : "00 / Home"}
         </span>
         <button
           type="button"
@@ -179,7 +162,7 @@ export function HomeHud() {
           data-reveal
           data-home-only
           style={{ ["--d" as string]: "120ms" }}
-          disabled={busy || at !== "home" || proof > 0}
+          disabled={busy || at !== "home"}
           aria-label="Rebuild: restart the experience"
           onPointerEnter={hover}
           onClick={rebuild}
@@ -237,7 +220,7 @@ export function HomeHud() {
       <p className="home-state" data-reveal style={{ ["--d" as string]: "80ms" }} aria-live="polite">
         <i className="home-hud__dot" aria-hidden="true" />
         {"// "}
-        {state === "home" && proof === 2 ? "Proof · Signals" : STATE_LABEL[state] ?? state}
+        {STATE_LABEL[state] ?? state}
       </p>
 
       <nav
@@ -250,7 +233,7 @@ export function HomeHud() {
         <button
           type="button"
           className="home-dock__rebuild"
-          disabled={busy || at !== "home" || proof > 0}
+          disabled={busy || at !== "home"}
           aria-label="Rebuild: restart the experience"
           onClick={rebuild}
         >
