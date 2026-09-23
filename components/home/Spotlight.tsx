@@ -1,45 +1,60 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { ArrowUpRight, X } from "lucide-react";
+import { ArrowRight, ArrowUpRight, X } from "lucide-react";
 import { FEATURED, hasCaseStudy } from "@/content/projects";
 import { computeLayout } from "@/lib/layout";
 import { useSound } from "@/lib/sound";
 
 /**
- * FEATURED WORK — the text side of the spotlight.
+ * FEATURED WORK — a system notification that surfaces one piece of work.
  *
- * The SURFACE is not here: it is the Work surface itself, scaled and set
- * aside (WorkStage variant="spotlight"), assembled by the sculpture's own
- * cubes. This is the identity and the actions around it, revealed by the
- * stage attributes that the formation raises — so nothing here renders per
- * frame, and the copy is only what content/projects.ts actually confirms.
+ * It is not a state. Home keeps running behind it, the sculpture keeps its
+ * place in the middle of the screen, and only a subset of its geometry flies
+ * out to build the small display set into this panel (WorkStage
+ * variant="spotlight"; the rectangle both sides use is lib/layout
+ * `spotlight`). What is here is the frame around that display, the identity
+ * beside it and one action under it — nothing that is not confirmed by
+ * content/projects.ts.
  *
  *   data-x-spotlight   the formation is running (raised by WorkStage)
- *   data-sp-ui         the surface has locked: identity may resolve
+ *   data-sp-ui         the display has locked: identity may resolve
  */
 export function Spotlight({
   closing,
+  leaving = false,
   onClose,
   onSeeAll,
 }: {
   closing: boolean;
+  /** the surface is on its way into the Work environment: the frame lets go */
+  leaving?: boolean;
   onClose: () => void;
   onSeeAll: () => void;
 }) {
-  const root = useRef<HTMLDivElement>(null);
+  const root = useRef<HTMLElement>(null);
   const { cue } = useSound();
   const p = FEATURED;
 
+  // The panel is placed in viewport px (lib/layout `notification`), so it is
+  // anchored to the screen the way a notification is — not to the sculpture.
   useEffect(() => {
     const el = root.current;
     if (!el) return;
     const measure = () => {
+      const { panel, plane } = computeLayout().spotlight;
       const L = computeLayout();
-      el.style.setProperty("--fit", String(L.fit));
-      el.style.setProperty("--stage-y", `${L.stageY * 100}%`);
-      // where the surface ends, so the compact composition sits under it
-      el.style.setProperty("--sp-media-bottom", `${Math.round(L.vh * L.stageY + (L.spotlight.plane.y + L.spotlight.plane.h) * L.fit)}px`);
+      const set = (k: string, v: number) => el.style.setProperty(k, `${Math.round(v)}px`);
+      set("--sp-x", panel.x);
+      set("--sp-y", panel.y);
+      set("--sp-w", panel.w);
+      set("--sp-h", panel.h);
+      set("--sp-pad", panel.pad);
+      set("--sp-head", panel.head);
+      set("--sp-foot", panel.foot);
+      // the display bay: the same rectangle the cubes fly to
+      set("--sp-mw", plane.w * L.fit);
+      set("--sp-mh", plane.h * L.fit);
     };
     measure();
     window.addEventListener("resize", measure);
@@ -57,7 +72,6 @@ export function Spotlight({
   };
 
   const roles = p.role?.length ? p.role.join(" / ") : null;
-  const stack = p.technologies?.length ? p.technologies.join(" · ") : null;
   const caseStudyReady = hasCaseStudy(p);
 
   return (
@@ -65,66 +79,77 @@ export function Spotlight({
       ref={root}
       className="spotlight"
       data-closing={closing || undefined}
+      data-leaving={leaving || undefined}
       aria-label={`Featured work: ${p.title}`}
       aria-live="polite"
     >
-      <p className="spotlight__system">
-        <span className="spotlight__rule" aria-hidden="true" />
-        Featured work
-        <span className="spotlight__index">{`${p.number} / Selected`}</span>
-      </p>
+      <div className="sp">
+        {/* registration marks, as everywhere else in this interface */}
+        <span className="sp__mark" data-c="tl" aria-hidden="true" />
+        <span className="sp__mark" data-c="tr" aria-hidden="true" />
+        <span className="sp__mark" data-c="bl" aria-hidden="true" />
+        <span className="sp__mark" data-c="br" aria-hidden="true" />
 
-      <div className="spotlight__identity">
-        <h2 className="spotlight__title"><span>{p.title}</span></h2>
-        <p className="spotlight__type">{p.type}</p>
-        {roles ? <p className="spotlight__roles">{roles}</p> : null}
-        {stack ? <p className="spotlight__stack">{stack}</p> : null}
+        <header className="sp__head">
+          <p className="sp__label">
+            Featured work
+            <span className="sp__rule" aria-hidden="true" />
+            <span className="sp__n">{p.number}</span>
+          </p>
+          <button
+            type="button"
+            className="sp__close"
+            onPointerEnter={hover}
+            onClick={onClose}
+            aria-label="Close featured work"
+            data-cursor="back"
+          >
+            <X size={11} strokeWidth={1.7} aria-hidden="true" />
+          </button>
+        </header>
 
-        <div className="spotlight__actions">
+        <div className="sp__body">
+          {/* The display bay. The surface itself is the Work stage, which
+              lands exactly here — this is the frame it sits in. */}
+          <span className="sp__bay" aria-hidden="true" />
+
+          <div className="sp__identity">
+            <h2 className="sp__title"><span>{p.title}</span></h2>
+            <p className="sp__type">{p.type}</p>
+            {roles ? <p className="sp__roles">{roles}</p> : null}
+          </div>
+        </div>
+
+        <footer className="sp__foot">
+          <button
+            type="button"
+            className="sp__cta"
+            data-primary
+            data-cursor="work"
+            onPointerEnter={hover}
+            onClick={() => { cue("state"); onSeeAll(); }}
+          >
+            See all featured work
+            <ArrowRight size={12} strokeWidth={1.6} aria-hidden="true" />
+          </button>
+
           {caseStudyReady ? (
             <a
-              className="spotlight__cta"
+              className="sp__cta"
               href={`/work/${p.slug}`}
               data-cursor="view"
               onPointerEnter={hover}
               onClick={() => cue("select")}
             >
               View case study
-              <ArrowUpRight size={12} strokeWidth={1.6} aria-hidden="true" />
+              <ArrowUpRight size={11} strokeWidth={1.6} aria-hidden="true" />
             </a>
           ) : (
-            // The case study is built in the next checkpoint; until it holds
-            // something real, this says so rather than opening an empty page.
-            <span className="spotlight__cta" data-pending aria-disabled="true">
-              Case study
-              <span className="spotlight__pending">{"// In preparation"}</span>
-            </span>
+            // Nothing is claimed until the case study exists.
+            <p className="sp__cta" data-pending>{"// In preparation"}</p>
           )}
-
-          <button
-            type="button"
-            className="spotlight__cta spotlight__cta--all"
-            data-cursor="work"
-            onPointerEnter={hover}
-            onClick={onSeeAll}
-          >
-            See all featured work
-            <span aria-hidden="true">→</span>
-          </button>
-        </div>
+        </footer>
       </div>
-
-      <button
-        type="button"
-        className="spotlight__close"
-        onPointerEnter={hover}
-        onClick={onClose}
-        aria-label="Close featured work"
-        data-cursor="back"
-      >
-        <X size={12} strokeWidth={1.7} aria-hidden="true" />
-        <span>Close</span>
-      </button>
     </section>
   );
 }

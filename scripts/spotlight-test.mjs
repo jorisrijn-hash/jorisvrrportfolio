@@ -56,11 +56,12 @@ const waitState = (p, s, timeout = 15000) =>
   pass("surfaces about 2s after Home settles", dt > 1800 && dt < 3200, `${Math.round(dt)}ms after Home`);
   await waitState(p, "spotlight");
   const ui = await p.evaluate(() => ({
-    title: document.querySelector(".spotlight__title")?.textContent,
-    type: document.querySelector(".spotlight__type")?.textContent,
-    roles: document.querySelector(".spotlight__roles")?.textContent,
-    stack: document.querySelector(".spotlight__stack"),
-    pending: !!document.querySelector(".spotlight__cta[data-pending]"),
+    title: document.querySelector(".sp__title")?.textContent,
+    type: document.querySelector(".sp__type")?.textContent,
+    roles: document.querySelector(".sp__roles")?.textContent,
+    stack: document.querySelector(".sp__stack"),
+    pending: !!document.querySelector(".sp__cta[data-pending]"),
+    secondary: (() => { const a = document.querySelector("a.sp__cta"); return a ? a.getAttribute("href") : null; })(),
     media: document.querySelector(".work-media img")?.currentSrc?.split("/work/")[1],
     surface: !!document.querySelector('.work[data-variant="spotlight"]'),
     workUi: getComputedStyle(document.querySelector(".work-info")).display,
@@ -68,7 +69,12 @@ const waitState = (p, s, timeout = 15000) =>
   pass("the surface is the Work surface, set aside", ui.surface && ui.workUi === "none");
   pass("shows only confirmed project data", ui.title === "Goodreads" && ui.type === "Full-stack application"
     && ui.roles === "Full-stack development / Product design" && ui.stack === null, JSON.stringify(ui.roles));
-  pass("no case study is claimed yet", ui.pending);
+  // The secondary action states the truth about the case study, whichever it
+  // is: a link once one exists, and "// in preparation" until then. It is
+  // never a dead link.
+  pass("the case study is offered or declared, never faked",
+    ui.secondary === "/work/goodreads" ? !ui.pending : ui.pending,
+    ui.secondary ?? "// in preparation");
   pass("the project's media is on the surface", !!ui.media, ui.media);
   await p.context().close();
 }
@@ -77,7 +83,7 @@ const waitState = (p, s, timeout = 15000) =>
 {
   const p = await open();
   await waitState(p, "spotlight");
-  await p.locator(".spotlight__close").click();
+  await p.locator(".sp__close").click();
   await waitState(p, "home");
   await p.waitForTimeout(3500);
   pass("does not surface again after being closed", (await state(p)) === "home");
@@ -130,7 +136,7 @@ const waitState = (p, s, timeout = 15000) =>
 {
   const p = await open();
   await waitState(p, "spotlight");
-  await p.locator(".spotlight__cta--all").click();
+  await p.locator(".sp__cta[data-primary]").click();
   pass("[See all featured work] goes straight on, without closing first", (await state(p)) === "spotlight-to-work");
   const carried = await p.evaluate(() => document.querySelectorAll(".work").length);
   await waitState(p, "work", 12000);
@@ -168,9 +174,9 @@ const waitState = (p, s, timeout = 15000) =>
   await waitState(p, "spotlight", 12000);
   await p.waitForTimeout(800);
   const r = await p.evaluate(() => ({
-    title: document.querySelector(".spotlight__title")?.textContent,
-    visible: getComputedStyle(document.querySelector(".spotlight__title > span")).transform,
-    cta: getComputedStyle(document.querySelector(".spotlight__cta--all")).opacity,
+    title: document.querySelector(".sp__title")?.textContent,
+    visible: getComputedStyle(document.querySelector(".sp__title > span")).transform,
+    cta: getComputedStyle(document.querySelector(".sp__cta[data-primary]")).opacity,
     media: !!document.querySelector(".work-media img"),
   }));
   pass("reduced motion still presents the project", r.title === "Goodreads" && r.media && +r.cta > 0.9, JSON.stringify(r));

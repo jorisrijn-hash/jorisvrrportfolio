@@ -98,6 +98,15 @@ export const PLANE = { x: -739, y: -347, yaw: 20.1, w: 840, h: 537, cols: 18, ro
 /** Cells that receive a sculpture cube (ring 68 + orbit 48), row-major from the top-left. */
 export const FED_CELLS = 116;
 
+/**
+ * How many cells a grid of this size is fed by the sculpture — the same
+ * proportion as the Work surface (116 of 216). The Featured Work
+ * notification forms from a small grid, so only a small arc of the ring
+ * leaves the sculpture for it; the rest of Home keeps turning.
+ */
+export const fedCells = (cols: number, rows: number) =>
+  Math.round(FED_CELLS * ((cols * rows) / (PLANE.cols * PLANE.rows)));
+
 /** home -> work */
 export const WORK_IN = {
   release: [0.1, 0.95],   // sculpture unlocks: cluster drifts top-right, core sinks
@@ -180,19 +189,19 @@ export const WORK_CUES_OUT = [
 /**
  * SWITCHING ONE PROJECT FOR ANOTHER, in ms from the moment it is asked for.
  *
- * Not a cross-fade: the surface is geometry, so it releases, changes what it
- * is showing while the tiles are still covering it, and re-seals. The phases
- * overlap deliberately — the image is already the new one before the cells
- * start closing, so the media resolves *through* the geometry rather than
- * after it. Nothing overshoots: this is a display re-routing, not a bounce.
+ * Not an image swapped behind shutters: one display system reconfiguring
+ * itself. The surface releases a little way back in depth, a wave passes
+ * through its tiles in the direction of travel, the image underneath changes
+ * while the wave is covering it, and the tiles realign from the other side.
+ * The identity moves with it — number first, then the name, then the details —
+ * so the project reads before its metadata does.
  *
- * The three moments the environment acts on; the phases between them belong
- * to CSS, keyed to the attributes these raise ([data-swap], [data-swapin]).
+ * Between Home -> Work (3.0s) and nothing at all: deliberate, but never slow.
  *
- *   0          release: the plane hands back to its cells, which lift and darken
- *   media      the image underneath changes, hidden by the tiles
- *   geometry   the cells begin to close, and the identity re-routes with them
- *   ~620       the media is uncovered from inside the geometry (CSS)
- *   end        sealed again: one plane, one layer
+ *   0        release: the grid lifts off the plane, the outgoing media drifts
+ *   media    the source changes, under cover; the number rolls
+ *   geometry the wave turns and the tiles begin to close; the name enters
+ *   meta     type and role wipe through
+ *   end      sealed again: one plane, one layer, exactly where Work expects it
  */
-export const WORK_SWAP = { media: 330, geometry: 370, end: 920 } as const;
+export const WORK_SWAP = { media: 340, geometry: 390, meta: 700, end: 1120 } as const;

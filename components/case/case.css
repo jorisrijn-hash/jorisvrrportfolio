@@ -230,6 +230,10 @@
 .case-problems h3 { font-family: var(--font-display); font-weight: 500; font-size: 16px; color: #262628; margin-bottom: 8px; }
 .case-problems p { font-size: 13px; line-height: 1.75; color: #4a4a4e; }
 
+.case-problems__shot { grid-column: 2; margin-top: 16px; display: grid; gap: 8px; }
+.case-problems__shot img { width: 100%; box-shadow: 0 1px 0 rgb(255 255 255 / 0.5), 0 16px 40px -34px rgb(0 0 0 / 0.5); }
+.case-problems__shot figcaption { font-size: 8px; letter-spacing: 0.2em; text-transform: uppercase; color: #a2a2a6; }
+
 /* ---- requirements ------------------------------------------------------- */
 .case-reqs { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 40px; }
 .case-reqs__label { font-size: 8.5px; letter-spacing: 0.26em; text-transform: uppercase; color: var(--color-burgundy); margin-bottom: 14px; }

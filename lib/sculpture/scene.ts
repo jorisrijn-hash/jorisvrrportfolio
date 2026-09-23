@@ -342,6 +342,15 @@ export type Pose = {
   collapse: number;
   /** seconds along the home -> work formation; 0 = home */
   work: number;
+  /**
+   * How much the rest of the composition reconfigures for that formation,
+   * on the same clock. Work moves the world (`spread` = `work`); the
+   * Featured Work notification is a small panel in a corner and barely moves
+   * it at all — only the cubes that have a cell to fly to go anywhere.
+   */
+  spread?: number;
+  /** how many cubes may leave the sculpture at all (content/work fedCells) */
+  feed?: number;
   /** screen composition: desktop or compact, and the media plane */
   layout: Pick<Layout, "compact" | "lite" | "plane">;
   /** how much the idle loop still shapes the pose: 1 at rest in home, lower
@@ -385,7 +394,7 @@ export function createScene() {
     const { compact, lite } = pose.layout;
     prec = lite ? 2 : 10;
     const pl = pose.layout.plane;
-    const key = `${pl.x}|${pl.y}|${pl.yaw}|${pl.w}|${pl.h}`;
+    const key = `${pl.x}|${pl.y}|${pl.yaw}|${pl.w}|${pl.h}|${pl.cols}x${pl.rows}`;
     if (key !== geoKey) {
       geoKey = key;
       geo = planeGeometry(pl);
@@ -397,8 +406,9 @@ export function createScene() {
     const wt = pose.work;
     // Released in order — core, then the planes, then the blocks — on one
     // clock, so the cluster reads as connected rather than fragmented.
+    const rt = pose.spread ?? wt;
     const release = (delay: number, dur: number) =>
-      easePrimary(seg(wt, WORK_IN.release[0] + delay, WORK_IN.release[0] + delay + dur));
+      easePrimary(seg(rt, WORK_IN.release[0] + delay, WORK_IN.release[0] + delay + dur));
     const cmCore = release(0, 0.85);
     const cmTetra = release(0.04, 0.81);
     const cmMedium = release(0.08, 0.78);
@@ -419,7 +429,11 @@ export function createScene() {
     };
     const toCell = (cell: number, p: V3, q: Q, s: V3, depart: number) => {
       if (wt <= 0) return { p, q, s, ink: 0, fade: 1 };
-      if (cell >= geo.centres.length) return null;
+      // More cubes than cells, or more than this surface asks for — the
+      // Featured Work notification is a small display, and only an arc of the
+      // ring goes to it. A cube with no cell is not dropped: it stays where
+      // it is, and the rest of Home keeps turning behind the notification.
+      if (cell >= Math.min(geo.centres.length, pose.feed ?? Infinity)) return { p, q, s, ink: 0, fade: 1 };
       const lock = lockTime(Math.floor(cell / geo.cols), cell % geo.cols, geo.cols, geo.rows);
       const fade = 1 - seg(wt, lock + 0.02, lock + 0.14);
       if (fade <= 0) return null;

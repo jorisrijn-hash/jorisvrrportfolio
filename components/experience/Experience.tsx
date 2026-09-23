@@ -293,9 +293,12 @@ function Stage() {
           while one hands over to the other. */}
       {inWork && Work ? (
         <Work
-          // The spotlight's surface IS this surface: one mount carries it
-          // from Featured Work into the full Work environment.
-          key={inSpotlight || state === "spotlight-to-work" ? `spotlight-${runId}` : `work-${runId}`}
+          // The spotlight's surface IS this surface: ONE mount carries it from
+          // Featured Work into the full Work environment. The key must not
+          // change when the state lands on "work", or React would replace the
+          // element that just finished travelling and play the formation
+          // again behind it.
+          key={`work-${runId}`}
           from={state === "about-to-work" ? "about" : "home"}
           leaving={state === "work-to-home" || state === "work-to-about" || state === "spotlight-to-home"}
           leavingTo={state === "work-to-about" ? "about" : "home"}
@@ -308,10 +311,13 @@ function Stage() {
         />
       ) : null}
 
-      {inSpotlight ? (
+      {/* Kept through the move into Work: the notification's frame lets go of
+          the display it was holding rather than being cut away from it. */}
+      {inSpotlight || state === "spotlight-to-work" ? (
         <Spotlight
           key={`spotlight-ui-${runId}`}
           closing={state === "spotlight-to-home"}
+          leaving={state === "spotlight-to-work"}
           onClose={closeSpotlight}
           onSeeAll={() => go("work")}
         />

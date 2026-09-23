@@ -161,16 +161,358 @@ const devCase = <T extends Partial<Project>>(sections: T): Partial<Project> =>
 
 export const PROJECTS: Project[] = [
   {
+    /*
+     * GOODREADS — an independent redesign, and the first real case study.
+     *
+     * Everything below is read off the project itself: the repository at
+     * github.com/jorisrijn-hash/goodreads (README, ARCHITECTURE.md, its nine
+     * architecture decision records, the Flyway migrations and the Java and
+     * TypeScript sources), the deployed application, and its live API. The
+     * numbers are measurements that already existed in the project's own
+     * documentation, or answers the running system gave on 2026-09-23.
+     *
+     * What is NOT here is as deliberate: no invented metric, no feature that
+     * is only planned, no claim about use. Ratings, reviews, social features
+     * and recommendations are named as out of scope because the project names
+     * them as out of scope.
+     */
     slug: "goodreads",
     number: "01",
     title: "Goodreads",
+    subtitle: "An independent Goodreads redesign: the core reading system, built end to end.",
     type: "Full-stack application",
     role: ["Full-stack development", "Product design"],
+    year: "2026",
+    status: "Phase 1 — core reading system",
     featured: true,
-    showcaseMedia: placeholder("01"),
+    technologies: [
+      "Java 25",
+      "Spring Boot 4.1",
+      "PostgreSQL 17",
+      "Flyway",
+      "TypeScript",
+      "React 19",
+      "Next.js 16",
+      "Tailwind CSS 4",
+      "Playwright",
+      "Vercel",
+      "Render",
+      "Supabase",
+    ],
+    liveUrl: "https://goodreads-rose.vercel.app",
+    githubUrl: "https://github.com/jorisrijn-hash/goodreads",
+
+    showcaseMedia: {
+      kind: "image",
+      src: "/work/goodreads-discover.jpg",
+      alt: "Discover: the catalogue as one surface, with a genre rail of real covers and a search field",
+      width: 1680,
+      height: 1074,
+    },
+    heroMedia: {
+      kind: "image",
+      src: "/work/goodreads-discover.jpg",
+      alt: "Discover: the catalogue as one surface, with a genre rail of real covers and a search field",
+      width: 1680,
+      height: 1074,
+    },
     thumbMedia: placeholderThumb("01"),
-    // Stack, dates, URLs and every case-study section are deliberately absent
-    // until the real project material is in.
+
+    context: [
+      "A rebuild of Goodreads as a product, taken as far as a working system: a reader can search a real catalogue, open a book, save it, set where they are in it, and keep a private record of their reading.",
+      "Everything a reader sees is served from this project's own PostgreSQL. The catalogue is built offline from Open Library (CC0) — 9,021 books, their authors, genres and covers — because an interface that waits on somebody else's API at request time is not a product, it is a proxy.",
+      "Phase 1 is the core reading loop — Discover and search, Book Detail, saving with a status, My Library, then reading progress and the journal. Ratings, reviews, social features, recommendations and the reading challenge are later milestones, and are deliberately not stubbed out.",
+    ],
+
+    problems: [
+      {
+        title: "Search that punishes the reader for a typo",
+        body: "Typo intolerance was the complaint the project set out to fix, and the data spike found the obvious data source has it too: of six common misspellings, four returned zero results from Open Library. A reader who mistypes a title gets an empty page and no way forward — so the catalogue had to recover the query itself, and say that it had.",
+        media: {
+          kind: "image",
+          src: "/work/goodreads-search.jpg",
+          alt: "The deployed search recovering a misspelling: showing results for a close match to \u201cthe grate gatsby\u201d",
+          width: 1680,
+          height: 1074,
+        },
+      },
+      {
+        title: "One book, returned ten times",
+        body: "Book data is published per edition, not per work. Measured across the sample: a median of 13 editions per work, a mean of 111.7, and one work with 6,109. Search results built straight from that are ten rows of the same novel, and the reader has to choose between printings before they can choose a book.",
+      },
+      {
+        title: "Metadata completeness is a property of curation, not of the provider",
+        body: "Harvesting recent books produced a catalogue full of holes: for 2023–2026 only 12.8% had a cover, 37.9% a page count and 5.0% a usable description. The same pipeline over popularity-curated books returned 99.7%, 98.6% and 80.0%. What goes into the catalogue decides what the interface can show, so selection became an engineering problem rather than a content one.",
+      },
+      {
+        title: "A shelf forgets what a reader did",
+        body: "Modelling reading state as shelves means moving a book between them, and a move loses what was attached to the old shelf: when it was started, when it was finished, why it was saved. The reading life is a history, and a data model that cannot keep one cannot show one.",
+      },
+    ],
+
+    requirements: {
+      functional: [
+        "Browse and search one catalogue from one surface, without an account.",
+        "A book page that is the hub the reading loop returns to.",
+        "Save a book with a reading state: want to read, currently reading, read, did not finish.",
+        "A library filtered by that state, with counts.",
+        "Record where the reader is in a book, and keep the history as a journal.",
+        "Accounts with email and password, and a one-click demo reader for visitors.",
+      ],
+      nonFunctional: [
+        "All business logic lives in Spring. Next.js renders, routes and composes — it never decides anything.",
+        "No external API is called while serving a request; the catalogue is ingested offline.",
+        "Search runs in PostgreSQL, and must recover typos the source data cannot.",
+        "Sessions are server-side and opaque; no token in localStorage, CSRF on every mutating route including login.",
+        "The schema moves forward only, through migrations that apply cleanly to an empty database.",
+        "Covers are served by us, not hot-linked from the source.",
+      ],
+    },
+
+    architecture: {
+      nodes: [
+        { id: "browser", label: "Browser", kind: "client", note: "session cookie, first-party" },
+        { id: "next", label: "Next.js 16 (Vercel)", kind: "service", note: "rendering, routing, /api/v1 proxy" },
+        { id: "spring", label: "Spring Boot 4.1 (Render)", kind: "service", note: "modular monolith — all domain rules" },
+        { id: "pg", label: "PostgreSQL 17", kind: "data", note: "pg_trgm, unaccent, Flyway" },
+        { id: "covers", label: "Object storage", kind: "data", note: "cover derivatives, served through our origin" },
+        { id: "ingest", label: "Ingest job", kind: "external", note: "offline task, never in a request path" },
+        { id: "ol", label: "Open Library", kind: "external", note: "CC0 catalogue source" },
+      ],
+      edges: [
+        { from: "browser", to: "next", label: "same-origin" },
+        { from: "next", to: "spring", label: "rewrite /api/v1" },
+        { from: "spring", to: "pg", label: "JDBC" },
+        { from: "next", to: "covers", label: "rewrite /covers" },
+        { from: "ol", to: "ingest", label: "harvest" },
+        { from: "ingest", to: "pg", label: "upsert" },
+        { from: "ingest", to: "covers", label: "derivatives" },
+      ],
+      note: "The rule that holds it together: Spring owns every domain decision — search ranking, valid status transitions, progress, authorisation. If a loop over domain objects appears in TypeScript, it belongs in Java.",
+    },
+
+    database: {
+      note: "The centre is library_item: exactly one row per reader and book, enforced by UNIQUE (user_id, book_id). Status is a state on that row, never a shelf — which is what lets notes, dates and history survive a change of status. progress_update is append-only and is the substrate for the journal; reading_event records the transitions, so the journal can say 'started reading' without inferring it from mutable columns. Dates are set when they first become true and are never cleared.",
+      entities: [
+        { name: "app_user", fields: ["id", "email UNIQUE", "username", "password_hash", "is_demo"], note: "one demo identity, enforced by a partial unique index" },
+        { name: "book", fields: ["id", "source_key UNIQUE", "slug UNIQUE", "title", "isbn13", "page_count", "cover_key", "search_vector", "search_text"], note: "one Open Library work is one book — no edition table" },
+        { name: "author", fields: ["id", "source_key UNIQUE", "slug UNIQUE", "name"] },
+        { name: "genre", fields: ["id", "slug UNIQUE", "name"], note: "a controlled taxonomy; a book carries at most three" },
+        { name: "library_item", fields: ["id", "user_id", "book_id", "status", "save_reason", "save_note", "current_page", "progress_percent", "started_at", "finished_at"], note: "UNIQUE (user_id, book_id)" },
+        { name: "progress_update", fields: ["id", "library_item_id", "page", "percent", "note", "created_at"], note: "append-only history" },
+        { name: "reading_event", fields: ["id", "library_item_id", "event_type", "from_status", "to_status", "created_at"], note: "SAVED, STARTED, FINISHED, ABANDONED, RESUMED, RESTARTED, STATUS_CHANGED" },
+      ],
+      relations: [
+        { from: "app_user", to: "library_item", kind: "1-n", note: "cascades on delete" },
+        { from: "book", to: "library_item", kind: "1-n" },
+        { from: "book", to: "author", kind: "n-n", note: "book_author" },
+        { from: "book", to: "genre", kind: "n-n", note: "book_genre, at most 3" },
+        { from: "library_item", to: "progress_update", kind: "1-n" },
+        { from: "library_item", to: "reading_event", kind: "1-n" },
+      ],
+    },
+
+    engineeringDecisions: [
+      {
+        id: "postgres-search",
+        area: "Search",
+        problem: "The catalogue had to survive a typo. Of six common misspellings, four returned nothing at all from the source data — and adding a search cluster for 9,021 books would have been a second system to run, deploy and keep in sync.",
+        decision: "Hybrid search inside PostgreSQL: full text first, trigram similarity as a fallback, and a prefix path for very short queries. No Elasticsearch.",
+        implementation: "An ISBN is detected and looked up exactly, because full text can never match it. Otherwise a tsvector index answers exact, partial, author, punctuation and accent queries. When that returns nothing the query is retried: under about five characters against a prefix index, and otherwise against a pg_trgm similarity index at an explicit low threshold. Normalisation (lowercase, accents, typographic apostrophes) happens in generated columns, so the database owns it and the query cannot forget it.",
+        result: "Verified against PostgreSQL 17.11: full text 0.083 ms, trigram 3.689 ms at 10,488 rows, and all four typos the source data missed return the right book first. A recovered query comes back with the text it corrected from, so the interface says 'showing results for a close match to…' instead of silently changing what was asked.",
+      },
+      {
+        id: "offline-ingest",
+        area: "External data",
+        problem: "The catalogue comes from Open Library, and the obvious build calls it per request. The spike measured a 2.17 s median for a single cover fetch, and the API asks callers to identify themselves and stay under a rate limit — neither belongs in a page load.",
+        decision: "Ingest the catalogue offline into our own PostgreSQL, and serve nothing from anyone else's API at request time.",
+        implementation: "A resumable, idempotent pipeline: harvest, filter, select, hydrate, normalise, map genres, fetch covers, validate, upsert. Every raw response is written to disk before anything touches it, so a re-run replays instead of re-fetching. API calls are serialised through one lock at one request per 350 ms with the contact address in the User-Agent; cover downloads take a separate path, eight threads with a 40 ms floor, because they are latency-bound rather than rate-bound. Quality gates are absolute — a title, an author, English, a real cover that downloads, 40–2000 pages, a mapped genre — and every rejection is counted by reason.",
+        result: "9,021 books with their authors, genres and three cover derivatives each, held entirely by us. Serving a reader never leaves our own infrastructure, and a book with no cover is rejected rather than shown with a hole in it.",
+      },
+      {
+        id: "no-edition",
+        area: "Data model",
+        problem: "Book data is published per edition. Grouping them under a canonical work was the plan — an edition picker under each book — and the fallback for missing page counts was to recover them from an edition that had one.",
+        decision: "One Open Library work is one book row, with the primary edition's fields denormalised onto it. No edition table, no picker.",
+        implementation: "The measurement killed the fallback before it was built: page-count recovery from editions was 0 of 35, because the work-level figure is derived from editions in the first place — when it is absent, no edition has one. Edition-level completeness is worse than work level, and physical_format is free text with 29 distinct values across 835 records.",
+        result: "The duplicate-results problem disappears rather than being solved: the source returns works, so nothing ever fans out. book.source_key remains the join point if editions are ever worth adding — and the catalogue's own numbers say what would have to change first.",
+      },
+      {
+        id: "sessions-csrf",
+        area: "Authentication",
+        problem: "A reader's library is private, the deployment target scales to zero, and a self-contained token cannot be revoked before it expires.",
+        decision: "Server-side sessions in PostgreSQL behind an opaque HttpOnly cookie. No JWT, nothing in localStorage, and CSRF protection on everything — including login.",
+        implementation: "Spring Session JDBC keeps sessions in the database that is already running, so a cold start does not sign every reader out and no Redis joins the stack. Passwords are hashed with Argon2id under a length-only policy. The session id and the CSRF token are both rotated on login, against fixation. CSRF is cookie-to-header: a cross-origin attacker can cause the cookie to be sent but cannot read it, so cannot produce the header. Exempting login is common and wrong — login-CSRF signs a victim into the attacker's account — so nothing is exempt. A wrong password and an unknown account return byte-identical responses.",
+        result: "The whole authentication loop is covered end to end on desktop and mobile viewports, including hostile returnTo targets and keyboard-only completion. The demo reader signs in with no password at all: the server authenticates a known identity whose stored hash no submitted password can produce, so a shared credential never exists to leak.",
+      },
+      {
+        id: "same-origin-proxy",
+        area: "API design",
+        problem: "The frontend is on Vercel and the API is on another host. Left alone that makes every authenticated request cross-site — and a SameSite=Lax cookie is simply not sent on a cross-site XHR. Reaching for SameSite=None turns the session into a third-party cookie, which browsers increasingly refuse outright.",
+        decision: "The browser never addresses the API host. It calls /api/v1/… and /covers/… on the frontend's own origin, and Next.js rewrites those to the API.",
+        implementation: "Two rewrite rules and one server-only environment variable. Nothing about the API is NEXT_PUBLIC_, deliberately: a NEXT_PUBLIC_ value is compiled into the browser bundle, and exposing the API host there is exactly what makes the cookie third-party. Server Components bypass the proxy and call the API origin directly, because a server calling its own public URL would loop back through the edge for nothing.",
+        result: "The session cookie is first-party, the CSRF cookie is readable by our own JavaScript because it is our own origin, and there is no CORS preflight on credentialed requests at all. Local development uses the same path, so what is tested is what ships. It is routing, not a second backend: the rewrite forwards bytes and has no request handler behind it.",
+      },
+    ],
+
+    codeExamples: [
+      {
+        filename: "backend/…/catalog/CatalogueRepository.java",
+        language: "java",
+        note: "The search cascade. Each fallback is only reached because the one before it returned nothing, and the recovered query is handed back so the interface can say what it corrected.",
+        highlight: [7, 15, 22, 26],
+        code: `public SearchResult search(BookSearchQuery query) {
+    if (!query.hasQuery()) {
+        return browse(query);
+    }
+    // An ISBN is an identifier, not text: look it up exactly. Full text would never
+    // match it, and the trigram fallback would return near-miss digit strings.
+    Optional<String> isbn = Isbn.toIsbn13(query.q());
+    if (isbn.isPresent()) {
+        SearchResult exact = runSearch(query, Mode.ISBN, isbn.get());
+        if (exact.total() > 0) {
+            return exact;
+        }
+    }
+    // Full text first: exact, partial, author and punctuation/accent queries all
+    // resolve here, and it is an order of magnitude faster than the fallback.
+    SearchResult fullText = runSearch(query, Mode.FULL_TEXT, query.q());
+    if (fullText.total() > 0) {
+        return fullText;
+    }
+    // Nothing matched, so the reader either mistyped or typed something too short
+    // for full text to stem. Short queries try a prefix match first -- "Dune" should
+    // find Dune, not a fuzzy neighbour -- and only then fall back to fuzzy matching.
+    for (Mode fallback : query.isShortQuery()
+            ? List.of(Mode.PREFIX, Mode.FUZZY_SHORT)
+            : List.of(Mode.TRIGRAM)) {
+        SearchResult recovered = runSearch(query, fallback, query.q());
+        if (recovered.total() > 0) {
+            return new SearchResult(recovered.books(), recovered.total(), query.q());
+        }
+    }
+    return new SearchResult(List.of(), 0, null);
+}`,
+      },
+      {
+        filename: "frontend/next.config.ts",
+        language: "ts",
+        note: "The whole same-origin proxy. Two rules, and a variable that is deliberately not NEXT_PUBLIC_ — that single detail is what keeps the session cookie first-party.",
+        highlight: [1, 6, 7],
+        code: `const API_ORIGIN = process.env.API_ORIGIN ?? "http://localhost:8080";
+const COVERS_BASE_URL = process.env.COVERS_BASE_URL ?? \`\${API_ORIGIN}/covers\`;
+
+const nextConfig: NextConfig = {
+  async rewrites() {
+    return [
+      { source: "/api/v1/:path*", destination: \`\${API_ORIGIN}/api/v1/:path*\` },
+      { source: "/covers/:path*", destination: \`\${COVERS_BASE_URL}/:path*\` },
+    ];
+  },
+};`,
+      },
+      {
+        filename: "backend/…/library/LibraryService.java",
+        language: "java",
+        note: "Saving a book is idempotent: PUT twice and the second call updates rather than failing. Two concurrent saves of the same book are decided by the unique constraint, and the loser re-reads the winner instead of handing the reader an error.",
+        highlight: [6, 13, 14, 16],
+        code: `public Entry save(long userId, String bookSlug, ReadingStatus status,
+                  SaveReason reason, String note) {
+    BookRow book = catalogue.findBySlug(bookSlug)
+            .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "No such book"));
+
+    Optional<LibraryItem> existing = items.findByUserIdAndBookId(userId, book.id());
+    LibraryItem item = existing.orElseGet(() -> LibraryItem.save(userId, book.id(), reason, note));
+    ReadingStatus before = existing.map(LibraryItem::getStatus).orElse(null);
+    ReadingEventType event = item.applyStatus(status, book.pageCount());
+
+    try {
+        items.save(item);
+    } catch (DataIntegrityViolationException e) {
+        // Two concurrent saves of the same book: the constraint held, so re-read the
+        // winner rather than failing the reader's request.
+        return new Entry(items.findByUserIdAndBookId(userId, book.id()).orElseThrow(), book);
+    }
+    record(item, event, before, status);
+    return new Entry(item, book);
+}`,
+      },
+    ],
+
+    product: {
+      body: [
+        "Discovery and search are one surface. A reader arriving with nothing in mind browses a genre rail built from real covers; a reader who knows what they want types it into the same page. There is no separate search results page to be thrown into and no mode to switch between — the same view answers both, which is why the API has one endpoint that browses without a query and searches with one.",
+        "Book Detail is the hub the loop returns to: what the book is, and the one action that matters. Saving it is a single press, and the reason and the note can be added afterwards or never — nothing stands between a reader and saving a book.",
+        "The library is filtered by reading state rather than by shelf, which is the interface consequence of the data model: the reader sees want to read, currently reading, read and did not finish, and moving between them keeps the dates and the notes that were already there.",
+        "Unfinished destinations are not shown as dead links. The journal exists in the schema and in the API before it exists in the navigation, so the interface never offers a door that opens onto nothing.",
+      ],
+      media: [
+        { kind: "image", src: "/work/goodreads-book.jpg", alt: "Book detail: the cover, one primary action, and the work's other books", width: 1680, height: 1074 },
+        { kind: "image", src: "/work/goodreads-home.jpg", alt: "The reader's hub, with the library summary by reading state", width: 1680, height: 1074 },
+      ],
+    },
+
+    challenges: [
+      {
+        title: "The session cookie that looked configured and was not",
+        problem: "Sessions worked, so the cookie was assumed to be right: HttpOnly, SameSite, the lot, set through the ordinary Spring Boot properties.",
+        approach: "Configure server.servlet.session.cookie.* and move on.",
+        wrong: "Spring Session takes cookie handling over from the servlet container and ignores those properties entirely. What was actually being sent was a cookie named SESSION with no HttpOnly flag and no SameSite attribute — found by reading the real Set-Cookie header rather than the configuration that was supposed to produce it.",
+        solution: "A CookieSerializer bean that declares the name and the attributes explicitly, and a test that asserts them on the response so a silent downgrade cannot happen again.",
+        learned: "Configuration is a claim about behaviour. The only evidence is the behaviour — here, one header.",
+      },
+      {
+        title: "Making short queries work without ruining long ones",
+        problem: "Trigram similarity rescues typos, but it is weak exactly where readers are casual: a four-character query like a shortened title scored 0.250, below the 0.3 threshold, so it returned nothing.",
+        approach: "Lower the similarity threshold globally so short queries clear the bar.",
+        wrong: "Measured, that inflated long-query matches from 2 to 10 — five times the noise on precisely the queries that had been working. One knob, tuned for the worst case, degraded the common one.",
+        solution: "Route by query length instead of lowering the bar: under about five characters the query goes to a prefix index first, and only then to a fuzzy pass with an explicit low threshold. Along the way, unaccent turned out to be STABLE rather than IMMUTABLE — passing the dictionary explicitly makes it deterministic, which is what allows the normalisation to live in a generated column and be indexed.",
+        learned: "A global threshold is rarely the right answer to a problem that only exists in part of the range.",
+      },
+      {
+        title: "A deployment that reported success and served nothing",
+        problem: "The first production deployment built successfully, reported READY, and returned 404 on every path including the home page.",
+        approach: "Read the build logs for a failure. There was none — the build genuinely succeeded.",
+        wrong: "The repository has the frontend in a subdirectory, and the platform's Root Directory setting lives in the dashboard, not in the repository. Left at the repository root it finds no framework, builds nothing, and deploys that nothing perfectly.",
+        solution: "Set the root directory to the frontend, and write the signature down in the deployment documentation: a READY deployment 404ing on / is a wrong root, not a broken app.",
+        learned: "A green deployment is not evidence that anything was deployed. The first request is.",
+      },
+    ],
+
+    result: {
+      body: [
+        "Search the catalogue, open a book, save it with a reading state and see it in the library: that runs end to end on the deployed system, and a visitor can enter it as a demo reader in one press, with no account and no password.",
+      "Reading progress and the journal exist in the schema and in the API. The journal is deliberately absent from the navigation until its interface is built — an unfinished destination is not shown as a dead link.",
+        "It is honest about what it is not. Ratings, reviews, social features, recommendations and the reading challenge are later milestones and are not stubbed out — nothing in the interface pretends they exist.",
+        "It is also honest about where it runs: the API is on a free tier that sleeps after fifteen idle minutes. Rather than hide that, pages that need it say the demo server is waking, poll in the background, and fill in by themselves.",
+      ],
+      metrics: [
+        { label: "Catalogue", value: "9,021 books", source: "live API /catalogue/stats, 2026-09-23 — with 7,984 authors and 25 genres" },
+        { label: "Full-text search", value: "0.083 ms", source: "EXPLAIN ANALYZE, PostgreSQL 17.11, bitmap index scan" },
+        { label: "Typo fallback", value: "3.689 ms", source: "pg_trgm GIN index chosen by the planner at 10,488 rows" },
+        { label: "Covers served by us", value: "27,330 files", source: "three derivatives per book, about 709 MB in object storage" },
+        { label: "Backend tests", value: "137", source: "JUnit, against a real local PostgreSQL" },
+        { label: "End-to-end tests", value: "39", source: "Playwright, run on desktop and mobile viewports" },
+        { label: "Cold start, free tier", value: "168–179 s", source: "measured in production; cached pages render in 0.6–2 s meanwhile" },
+      ],
+      media: [
+        { kind: "image", src: "/work/goodreads-library.jpg", alt: "My Library, filtered by reading state", width: 1680, height: 1074 },
+      ],
+    },
+
+    seo: {
+      title: "Goodreads, rebuilt — Java, Spring Boot and PostgreSQL case study",
+      description:
+        "An independent Goodreads redesign built as a working product: a 9,021-book catalogue ingested from Open Library, hybrid search in PostgreSQL that recovers typos, server-side sessions with CSRF, and a Spring Boot API behind a same-origin Next.js frontend.",
+      keywords: ["software engineering case study", "Spring Boot", "PostgreSQL full-text search", "pg_trgm", "Next.js", "Java 25"],
+    },
+    openGraph: {
+      title: "Goodreads, rebuilt — a full-stack case study",
+      description:
+        "A 9,021-book catalogue, hybrid PostgreSQL search that survives a typo, and a Spring Boot API that owns every domain decision.",
+      // a JPEG for the platforms that still refuse WebP previews
+      image: "/work/goodreads-og.jpg",
+    },
   },
   {
     slug: "bebo",

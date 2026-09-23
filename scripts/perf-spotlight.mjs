@@ -97,7 +97,7 @@ for (const [name, viewport, dpr, mobile, cpu] of PROFILES) {
   await waitState2("spotlight", 15000);
   m2 = await metrics2();
   await rec2();
-  await p2.locator(".spotlight__cta--all").click();
+  await p2.locator(".sp__cta[data-primary]").click();
   await waitState2("work", 15000);
   await p2.waitForTimeout(800);
   await stop2("to-work", m2);

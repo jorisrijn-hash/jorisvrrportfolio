@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Project } from "@/content/projects";
 import { PROJECTS, hasCaseStudy } from "@/content/projects";
+import { stillSet } from "@/content/work";
 import { useReducedMotion } from "@/lib/motion";
 import { useSound } from "@/lib/sound";
 import { CaseHero } from "./CaseHero";
@@ -60,13 +61,25 @@ export function CaseStudy({
     if (p.problems?.length) {
       add("problem", "The problem", (
         <ol className="case-problems">
-          {p.problems.map((q, i) => (
-            <li key={q.title}>
-              <span className="case-problems__n">{String(i + 1).padStart(2, "0")}</span>
-              <h3>{q.title}</h3>
-              <p>{q.body}</p>
-            </li>
-          ))}
+          {p.problems.map((q, i) => {
+            // A problem may carry its own evidence; most do not, and none is
+            // invented to fill the space.
+            const shot = stillSet(q.media, "(max-width: 900px) 100vw, min(1100px, 100vw - 120px)");
+            return (
+              <li key={q.title}>
+                <span className="case-problems__n">{String(i + 1).padStart(2, "0")}</span>
+                <h3>{q.title}</h3>
+                <p>{q.body}</p>
+                {shot ? (
+                  <figure className="case-problems__shot">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={shot.src} srcSet={shot.srcSet} sizes={shot.sizes} alt={q.media?.alt ?? ""} width={q.media?.width} height={q.media?.height} loading="lazy" decoding="async" />
+                    <figcaption>{q.media?.alt}</figcaption>
+                  </figure>
+                ) : null}
+              </li>
+            );
+          })}
         </ol>
       ));
     }
@@ -104,10 +117,26 @@ export function CaseStudy({
       add("product", "The product", (
         <div className="case-prose">
           {p.product.body?.map((line, i) => <p key={i}>{line}</p>)}
-          {p.product.media?.map((m) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img key={m.src} className="case-shot" src={m.src} alt={m.alt} width={m.width} height={m.height} loading="lazy" decoding="async" />
-          ))}
+          {p.product.media?.map((m) => {
+            // the encoded variants, chosen by the browser (content/work stillSet)
+            const src = stillSet(m, "(max-width: 900px) 100vw, min(1100px, 100vw - 120px)");
+            if (!src) return null;
+            return (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={m.src}
+                className="case-shot"
+                src={src.src}
+                srcSet={src.srcSet}
+                sizes={src.sizes}
+                alt={m.alt}
+                width={m.width}
+                height={m.height}
+                loading="lazy"
+                decoding="async"
+              />
+            );
+          })}
         </div>
       ));
     }

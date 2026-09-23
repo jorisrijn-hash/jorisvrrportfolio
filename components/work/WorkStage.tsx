@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
-  FED_CELLS, PLANE, PROJECTS, WORK_ABOUT, WORK_CUES_FROM_ABOUT, WORK_CUES_IN, WORK_CUES_OUT,
-  WORK_CUES_TO_ABOUT, WORK_IN, WORK_OUT, WORK_SWAP, lockTime, mediaStill, mediaWidth,
+  PLANE, PROJECTS, WORK_ABOUT, WORK_CUES_FROM_ABOUT, WORK_CUES_IN, WORK_CUES_OUT,
+  WORK_CUES_TO_ABOUT, WORK_IN, WORK_OUT, WORK_SWAP, fedCells, lockTime, mediaStill, mediaWidth,
 } from "@/content/work";
 import { ArrowUpRight } from "lucide-react";
 import { PANELS } from "@/content/about";
@@ -61,7 +61,7 @@ function block(r: number, c: number, cols: number, rows: number) {
 function buildCells(cols: number, rows: number) {
   const cellW = PLANE.w / cols;
   const cellH = PLANE.h / rows;
-  const fed = Math.round(FED_CELLS * ((cols * rows) / (PLANE.cols * PLANE.rows)));
+  const fed = fedCells(cols, rows);
   return Array.from({ length: cols * rows }, (_, k) => {
     const r = Math.floor(k / cols);
     const c = k % cols;
@@ -70,6 +70,10 @@ function buildCells(cols: number, rows: number) {
     const [px, py, pw, ph] = [PANELS.top, PANELS.meta, PANELS.body][b.i];
     const tw = pw / b.cols;
     const th = ph / b.rows;
+    // where this cell sits along a diagonal sweep of the plane (0 -> 1), and
+    // a small depth of its own, so the surface decomposes rather than folding
+    const wv = r2((c + r * 0.5) / ((cols - 1) + (rows - 1) * 0.5));
+    const wz = 5 + Math.round(hash(k * 7.7) * 9);
     const ad = r2((r + c * 0.5) * 0.012 * (PLANE.rows / rows));
     return {
       k, r, c,
@@ -88,6 +92,8 @@ function buildCells(cols: number, rows: number) {
       ry: r2((hash(k + 149) - 0.5) * 60),
       ad,
       bd: r2(0.23 - ad),
+      wv,
+      wz,
     };
   });
 }
@@ -127,9 +133,12 @@ function applyLayout(el: HTMLElement, L: Layout, spotlight = false) {
   s.setProperty("--stage-y", `${L.stageY * 100}%`);
   s.setProperty("--plane-x", `${r2(L.plane.x)}px`);
   s.setProperty("--plane-y", `${r2(L.plane.y)}px`);
-  s.setProperty("--plane-yaw", `${L.plane.yaw}deg`);
-  s.setProperty("--cols", String(L.plane.cols));
-  s.setProperty("--rows", String(L.plane.rows));
+  // The notification's display faces the camera and forms from a quarter of
+  // the tiles; the Work surface is turned and forms from all of them.
+  const grid = spotlight ? L.spotlight.plane : L.plane;
+  s.setProperty("--plane-yaw", `${grid.yaw}deg`);
+  s.setProperty("--cols", String(grid.cols));
+  s.setProperty("--rows", String(grid.rows));
   s.setProperty("--plane-w", `${r2(L.plane.w)}px`);
   s.setProperty("--plane-h", `${r2(L.plane.h)}px`);
   s.setProperty("--flat-x", `${r2(L.flat.x)}px`);
@@ -299,20 +308,20 @@ export function WorkStage({
   const [origin] = useState<Origin>(from);
   const [bornAs] = useState(variant);
   // The grid this screen forms the surface from (desktop 18x12, phone 9x6).
-  const [cells] = useState(() => {
-    const { cols, rows } = computeLayout().plane;
-    return buildCells(cols, rows);
+  const [grid] = useState(() => {
+    const L = computeLayout();
+    return bornAs === "spotlight" ? L.spotlight.plane : L.plane;
   });
-  const [wire] = useState(() => {
-    const { cols, rows } = computeLayout().plane;
-    return buildWire(cols, rows);
-  });
+  const [cells] = useState(() => buildCells(grid.cols, grid.rows));
+  const [wire] = useState(() => buildWire(grid.cols, grid.rows));
   // The formation's own attribute bookkeeping, lent to the switch so the two
   // can never contradict each other (filled by the clock effect below).
   const swap = useRef<{ out: () => void; in: () => void; done: () => void } | null>(null);
   const ready = useRef(false);        // the surface has finished forming
   const busy = useRef(false);         // a switch is running: refuse another
   const at = useRef(index);           // the live index, for the callbacks
+  const want = useRef<number | null>(null);   // the latest intent, mid-switch
+  const again = useRef<(i: number) => void>(() => {});  // this move, for the next one
   const timers = useRef<number[]>([]);
   const toWorkRef = useRef(toWork);
   useEffect(() => { toWorkRef.current = toWork; }, [toWork]);
@@ -368,9 +377,17 @@ export function WorkStage({
      * it. Nothing is rebuilt — it is the same grid, the same surface.
      */
     swap.current = {
-      out: () => { set(el, "data-solid", false); set(el, "data-seal", false); set(el, "data-swap"); },
+      // The stage is told too: the cursor takes a lighter weight while the
+      // surface is re-seating itself. It never stops tracking, and there is
+      // no spinner — it is a change of shape, not a loading state.
+      out: () => { set(el, "data-solid", false); set(el, "data-seal", false); set(el, "data-swap"); set(stage, "data-x-switch"); },
       in: () => { set(el, "data-swapin"); set(el, "data-seal"); },
-      done: () => { set(el, "data-swap", false); set(el, "data-swapin", false); set(el, "data-solid"); },
+      done: () => {
+        set(el, "data-swap", false);
+        set(el, "data-swapin", false);
+        set(el, "data-solid");
+        set(stage, "data-x-switch", false);
+      },
     };
 
     set(stage, bornAs === "spotlight" ? "data-x-spotlight" : "data-x-work");
@@ -546,6 +563,10 @@ export function WorkStage({
         } else if (!handedArrived && now - handedOn >= HANDOVER) {
           handedArrived = true;
           el.removeAttribute("data-variant");   // Work's own index resolves
+          // The surface has finished travelling: settle it like any other
+          // arrival, or the environment would reach Work unable to switch
+          // project (ready is what switchTo waits for).
+          settle();
           arrive.current();
         }
         return;
@@ -593,7 +614,7 @@ export function WorkStage({
       // One short analog moment, where abstract geometry becomes a display.
       if (sp && !vhsDone && t >= SPOTLIGHT.vhsAt) {
         vhsDone = true;
-        if (!stillAtMount) triggerVhs({ strength: 0.6 });
+        if (!stillAtMount) triggerVhs({ strength: SPOTLIGHT.vhs });
       }
       if (t >= end) {
         arrived = true;
@@ -622,7 +643,15 @@ export function WorkStage({
    */
   const switchTo = useCallback((next: number) => {
     const target = PROJECTS[next];
-    if (!target || next === at.current || busy.current || !ready.current) return;
+    if (!target || !ready.current) return;
+    // Already here: nothing happens. No motion, no sound.
+    if (next === at.current) return;
+    // Mid-switch, only the most recent intent is kept — five quick presses
+    // are one destination, not five animations queued behind each other.
+    if (busy.current) {
+      want.current = next;
+      return;
+    }
 
     // Reduced motion: the index simply reads differently now.
     if (stillAtMount) {
@@ -630,6 +659,14 @@ export function WorkStage({
       setIndex(next);
       return;
     }
+
+    // Which way the collection is being travelled: the wave through the
+    // tiles, the media drift and the type all follow it, and reverse for the
+    // other direction. Wrapping counts as the short way round.
+    const n = PROJECTS.length;
+    const forward = (next - at.current + n) % n <= n / 2;
+    const el = root.current;
+    el?.setAttribute("data-dir", forward ? "next" : "prev");
 
     busy.current = true;
     at.current = next;
@@ -639,25 +676,39 @@ export function WorkStage({
     if (src) new Image().src = src;
 
     swap.current?.out();
-    cue("release");
+    cue("release");                       // one light mechanical release
     timers.current.forEach(clearTimeout);
     timers.current = [
       window.setTimeout(() => {
-        // Under the tiles: the surface is already the new project here.
+        // Under the wave: the surface is already the new project here.
         setIndex(next);
-        triggerVhs({ strength: 0.3 });
-        cue("align");
+        // A blip at the frame the source changes, not a pass over the screen.
+        triggerVhs({ strength: 0.16 });
+        cue("row");                       // almost inaudible, textured
       }, WORK_SWAP.media),
-      window.setTimeout(() => { swap.current?.in(); cue("snap"); }, WORK_SWAP.geometry),
+      window.setTimeout(() => swap.current?.in(), WORK_SWAP.geometry),
       window.setTimeout(() => {
         swap.current?.done();
+        cue("snap");                      // the plane seals: one tactile lock
         busy.current = false;
         setSwitching(false);
+        el?.removeAttribute("data-dir");
+        // Whatever was asked for last, once it is safe to go there.
+        const queued = want.current;
+        want.current = null;
+        if (queued !== null && queued !== at.current) again.current(queued);
       }, WORK_SWAP.end),
     ];
   }, [cue, mw, stillAtMount]);
 
-  const step = (d: number) => switchTo((at.current + d + PROJECTS.length) % PROJECTS.length);
+  /** Stepping counts from wherever the collection is already heading, so two
+   *  quick presses of next mean two projects on — arrived at in one move. */
+  useEffect(() => { again.current = switchTo; }, [switchTo]);
+
+  const step = (d: number) => {
+    const from = want.current ?? at.current;
+    switchTo((from + d + PROJECTS.length) % PROJECTS.length);
+  };
 
   const hover = (e: React.PointerEvent) => {
     if (e.pointerType === "mouse" && !busy.current) cue("hover");
@@ -708,6 +759,8 @@ export function WorkStage({
                     ["--sz" as string]: `${cell.sz}px`,
                     ["--rx" as string]: `${cell.rx}deg`,
                     ["--ry" as string]: `${cell.ry}deg`,
+                    ["--wv" as string]: cell.wv,
+                    ["--wz" as string]: `${cell.wz}px`,
                     ["--ad" as string]: `${cell.ad}s`,
                     ["--bd" as string]: `${cell.bd}s`,
                   }}
@@ -763,9 +816,11 @@ export function WorkStage({
       <section className="work-info" aria-labelledby="work-title">
         <p className="work-info__eyebrow" style={{ ["--d" as string]: "0ms" }}>Neural Node · Work</p>
         <h1 id="work-title" className="work-info__heading" style={{ ["--d" as string]: "60ms" }}>
-          <span className="work-info__index">{project.id}</span>
+          {/* Both are masks the project moves through, so switching reads as
+              one system re-indexing rather than two words being replaced. */}
+          <span className="work-info__index"><span>{project.id}</span></span>
           <span className="work-info__slash" aria-hidden="true">/</span>
-          <span className="work-info__title">{project.title}</span>
+          <span className="work-info__title"><span>{project.title}</span></span>
         </h1>
         <dl className="work-info__meta" style={{ ["--d" as string]: "140ms" }}>
           {/* A row exists only when there is something true to put in it —
@@ -811,7 +866,9 @@ export function WorkStage({
             project, its number, and what it was. */}
         <ul
           className="work-index"
-          style={{ ["--d" as string]: "250ms" }}
+          /* --sel is which row the burgundy marker is on: it travels there
+             rather than disappearing from one row and appearing on another */
+          style={{ ["--d" as string]: "250ms", ["--sel" as string]: index }}
           aria-label="Projects"
           onKeyDown={(e) => {
             const d = e.key === "ArrowDown" || e.key === "ArrowRight" ? 1 : e.key === "ArrowUp" || e.key === "ArrowLeft" ? -1 : 0;
@@ -822,6 +879,7 @@ export function WorkStage({
             e.currentTarget.querySelectorAll<HTMLButtonElement>(".work-index__row")[next]?.focus();
           }}
         >
+          <span className="work-index__mark" aria-hidden="true" />
           {PROJECTS.map((p, i) => (
             <li key={p.id}>
               <button

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { IDLE_LOOP, XFER, XFER_CUES } from "@/content/transition";
 import { ABOUT_IN, ABOUT_OUT } from "@/content/about";
-import { WORK_IN, WORK_OUT } from "@/content/work";
+import { WORK_IN, WORK_OUT, fedCells } from "@/content/work";
 import { SPOTLIGHT } from "@/content/spotlight";
 import { OBJECT_COUNT, createScene, type DrawFace } from "@/lib/sculpture/scene";
 import { clamp01, seg } from "@/lib/sculpture/math";
@@ -207,6 +207,12 @@ export function HomeStage({
         t, loop, fit: layout.fit,
         // the spotlight's cubes land on the smaller, set-aside plane
         layout: spotlight ? { ...layout, plane: layout.spotlight.plane } : layout,
+        // The notification is a panel in the corner: the sculpture keeps its
+        // place and only the cubes with a cell leave it. A tenth of the
+        // reconfiguration is a shift of a few units, which is the whole of
+        // the environment's reaction.
+        spread: spotlight ? work * 0.1 : work,
+        feed: spotlight ? fedCells(layout.spotlight.plane.cols, layout.spotlight.plane.rows) : undefined,
         hover, collapse, work,
         tiltX: tilt.x, tiltY: tilt.y, shiftX: tilt.sx, shiftY: tilt.sy,
         idleW, camF, camX, camY, settle,

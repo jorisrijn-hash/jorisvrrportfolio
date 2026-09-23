@@ -137,7 +137,7 @@ pass("and it can get back to the work", direct.back === "/", direct.back ?? "");
 
 // ---- a project with no case study is not given an empty page
 const p3 = await ctx.newPage();
-await p3.goto(`${BASE}/work/goodreads`, { waitUntil: "networkidle" });
+await p3.goto(`${BASE}/work/bebo`, { waitUntil: "networkidle" });
 await p3.waitForTimeout(600);
 pass("no case study, no empty page", new URL(p3.url()).pathname === "/", p3.url());
 

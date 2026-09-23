@@ -66,28 +66,40 @@ pass("next moves the surface", second && second !== first, `${first} -> ${second
 pass("the environment is not rebuilt", (await mark()) === "the-one");
 pass("release hands back to the cells", Boolean(out) && !out.solid, out && `t=${out.t}ms`);
 pass("geometry closes after the media", Boolean(into) && into.t >= 300 && into.t <= 520, into && `t=${into.t}ms`);
-pass("sealed again inside 650-1100ms", Boolean(done) && done.t >= 650 && done.t <= 1100, done && `t=${done.t}ms`);
+pass("sealed again inside 850-1200ms", Boolean(done) && done.t >= 850 && done.t <= 1200, done && `t=${done.t}ms`);
 const after = await p.evaluate(() => {
   const el = document.querySelector(".work");
   return { solid: el.hasAttribute("data-solid"), swap: el.hasAttribute("data-swap"), cells: getComputedStyle(document.querySelector(".work-cells")).display };
 });
 pass("idle costs one layer again", after.solid && !after.swap && after.cells === "none", JSON.stringify(after));
 
-// ---- a second ask, mid-switch: ignored, exactly like nav mid-move
+// ---- asked three times over: one destination, not a queue of animations
 {
   const before = await title();
-  // Dispatched from inside the page: three asks 120ms apart, so the second
-  // and third really do land mid-switch (a driven click can take longer).
+  await p.evaluate(() => { window.__runs = 0; window.__at = []; window.__t0 = performance.now(); const el = document.querySelector(".work");
+    // A move ENDS and the next one BEGINS in the same tick, so both records
+    // arrive in one batch: count the additions by their old value, not by
+    // the element's state when the callback runs.
+    new MutationObserver((ms) => ms.forEach((m) => {
+      if (m.attributeName === "data-swap" && m.oldValue === null) { window.__runs++; window.__at.push(Math.round(performance.now() - window.__t0)); }
+    })).observe(el, { attributes: true, attributeOldValue: true, attributeFilter: ["data-swap"] });
+  });
+  // Dispatched from inside the page: three asks 120ms apart really do land
+  // mid-switch (a driven click can take longer than the switch itself).
   await p.evaluate(async () => {
     const btn = [...document.querySelectorAll(".work-ctl")].find((b) => b.getAttribute("aria-label") === "Next project");
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     btn.click(); await wait(120); btn.click(); await wait(120); btn.click();
   });
-  await p.waitForTimeout(1400);
+  await p.waitForTimeout(2600);
   const now = await title();
   const names = await p.evaluate(() => [...document.querySelectorAll(".work-index__t")].map((n) => n.textContent));
-  const step = (names.indexOf(now) - names.indexOf(before) + names.length) % names.length;
-  pass("a switch mid-switch is refused", step === 1, `${before} -> ${now} (moved ${step})`);
+  const moved = (names.indexOf(now) - names.indexOf(before) + names.length) % names.length;
+  const runs = await p.evaluate(() => window.__runs);
+  console.log("      raises at:", (await p.evaluate(() => window.__at || [])).join(", "), "ms");
+  pass("three quick asks land three on", moved === 3, `${before} -> ${now} (moved ${moved})`);
+  pass("and run two moves, not a queue of five", runs === 2, `${runs} moves`);
+  pass("never leaves the surface on a stale project", now === (await p.evaluate(() => document.querySelector(".work-index__row[data-current] .work-index__t")?.textContent)));
 }
 
 // ---- the phases, on screen

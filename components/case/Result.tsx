@@ -1,6 +1,7 @@
 "use client";
 
 import type { Project } from "@/content/projects";
+import { stillSet } from "@/content/work";
 
 /**
  * THE RESULT — what it does now, and what was measured.
@@ -32,10 +33,24 @@ export function ProjectResult({ result }: { result: NonNullable<Project["result"
 
       {result.media?.length ? (
         <div className="result__shots">
-          {result.media.map((m) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img key={m.src} src={m.src} alt={m.alt} width={m.width} height={m.height} loading="lazy" decoding="async" />
-          ))}
+          {result.media.map((m) => {
+            const src = stillSet(m, "(max-width: 900px) 100vw, min(1100px, 100vw - 120px)");
+            if (!src) return null;
+            return (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={m.src}
+                src={src.src}
+                srcSet={src.srcSet}
+                sizes={src.sizes}
+                alt={m.alt}
+                width={m.width}
+                height={m.height}
+                loading="lazy"
+                decoding="async"
+              />
+            );
+          })}
         </div>
       ) : null}
     </div>
