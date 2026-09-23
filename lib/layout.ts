@@ -16,7 +16,7 @@ import { PLANE } from "@/content/work";
  */
 export const COMPACT_QUERY = "(max-width: 900px), (max-aspect-ratio: 4/5)";
 
-export type PlaneSpec = { x: number; y: number; yaw: number; w: number; h: number };
+export type PlaneSpec = { x: number; y: number; yaw: number; w: number; h: number; cols: number; rows: number };
 
 /**
  * FEATURED WORK — the same surface as Work, smaller and set aside to leave
@@ -29,7 +29,7 @@ export type SpotlightSpec = { scale: number; dx: number; dy: number; plane: Plan
 
 const spotlightOf = (plane: PlaneSpec, scale: number, dx: number, dy: number): SpotlightSpec => ({
   scale, dx, dy,
-  plane: { x: plane.x * scale + dx, y: plane.y * scale + dy, yaw: plane.yaw, w: plane.w * scale, h: plane.h * scale },
+  plane: { ...plane, x: plane.x * scale + dx, y: plane.y * scale + dy, w: plane.w * scale, h: plane.h * scale },
 });
 
 export type Layout = {
@@ -84,7 +84,7 @@ export function computeLayout(): Layout {
 
   if (!compact) {
     const fit = Math.min(1.25, Math.max(0.5, Math.min(vw / 1920, vh / 950)));
-    const plane = { x: PLANE.x, y: PLANE.y, yaw: PLANE.yaw, w: PLANE.w, h: PLANE.h };
+    const plane = { x: PLANE.x, y: PLANE.y, yaw: PLANE.yaw, w: PLANE.w, h: PLANE.h, cols: PLANE.cols, rows: PLANE.rows };
     return {
       compact, lite: false, vw, vh, fit, stageY: 0.495,
       plane,
@@ -119,7 +119,11 @@ export function computeLayout(): Layout {
   const h = hs / fit;
   const y = (top - vh * stageY) / fit;
 
-  const plane = { x: (left - vw / 2) / fit, y, yaw: 6, w, h };
+  // A quarter of the cells on a phone: the surface still forms from tiles,
+  // but 54 of them rather than 216. Measured on a 4x-throttled phone, the
+  // cells (not the sculpture) were the whole cost of the formation — 607ms
+  // of style recalc, against 189ms with them hidden.
+  const plane = { x: (left - vw / 2) / fit, y, yaw: 6, w, h, cols: PLANE.cols / 2, rows: PLANE.rows / 2 };
   return {
     compact, lite: true, vw, vh, fit, stageY,
     plane,
@@ -133,3 +137,27 @@ export function computeLayout(): Layout {
     safe,
   };
 }
+
+/**
+ * THE CASE-STUDY HANDOVER.
+ *
+ * Opening a case study, the Work surface turns to face the camera and grows
+ * until it fills the screen — and the case study's hero then takes over that
+ * exact rectangle. Both show the same image at the same crop, because the
+ * plane and the media share one aspect ratio (840:537 = 1680:1074), so the
+ * moment one replaces the other is invisible.
+ *
+ * Returned in the same terms as the spotlight: a scale and an offset applied
+ * to the Work origin, in scene units.
+ */
+export const caseSurface = (L: Layout) => {
+  const scale = Math.max(L.vw / L.fit / L.plane.w, L.vh / L.fit / L.plane.h);
+  const cx = L.plane.x + L.plane.w / 2;
+  const cy = L.plane.y + L.plane.h / 2;
+  return {
+    scale,
+    // the plane's centre, brought to the centre of the viewport
+    dx: -cx * scale,
+    dy: (L.vh * (0.5 - L.stageY)) / L.fit - cy * scale,
+  };
+};

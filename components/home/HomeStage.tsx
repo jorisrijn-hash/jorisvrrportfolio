@@ -15,6 +15,9 @@ import { dev } from "@/lib/dev";
 const SVG = "http://www.w3.org/2000/svg";
 const GRAY = Array.from({ length: 256 }, (_, g) => `rgb(${g},${g},${g})`);
 const q50 = (v: number) => Math.round(v * 50) / 50;
+/** Lite screens quantise shading harder, for the same reason as `prec` in
+ *  scene.ts: a fill or fill-opacity write costs a style invalidation. */
+const q20 = (v: number) => Math.round(v * 20) / 20;
 const r1 = (n: number) => Math.round(n * 10) / 10;
 
 /** Seconds over which the idle loop eases in from the transition's stillness. */
@@ -81,15 +84,20 @@ export function HomeStage({
   still,
   crashing,
   mode,
+  paused = false,
   onArrive,
 }: {
   intro: boolean;
   still: boolean;
   crashing: boolean;
   mode: StageMode;
+  /** a case study has the screen: the scene is not visible, so stop drawing */
+  paused?: boolean;
   onArrive: () => void;
 }) {
   const svg = useRef<SVGSVGElement>(null);
+  const halted = useRef(paused);
+  useEffect(() => { halted.current = paused; }, [paused]);
   const faceGroup = useRef<SVGGElement>(null);
   const orbitPath = useRef<SVGPathElement>(null);
   const stemPath = useRef<SVGPathElement>(null);
@@ -194,6 +202,7 @@ export function HomeStage({
     const setAttr = (el: Element | null, name: string, v: string) => el?.setAttribute(name, v);
 
     const draw = (t: number, loop: number, glitch: number | null, collapse: number, work: number, spotlight = false) => {
+      const lite = layout.lite;
       const f = evaluate({
         t, loop, fit: layout.fit,
         // the spotlight's cubes land on the smaller, set-aside plane
@@ -230,7 +239,7 @@ export function HomeStage({
         }
 
         let d = face.d;
-        let g = Math.round(face.g);
+        let g = lite ? Math.round(face.g / 4) * 4 : Math.round(face.g);
         if (glitch !== null && face.pts.length) {
           let cy = 0;
           for (let j = 1; j < face.pts.length; j += 2) cy += face.pts[j];
@@ -250,9 +259,9 @@ export function HomeStage({
 
         if (d !== s.d) { s.d = d; s.el.setAttribute("d", d); }
         if (g !== s.g) { s.g = g; s.el.setAttribute("fill", GRAY[g]); }
-        const fa = q50(face.fa);
+        const fa = lite ? q20(face.fa) : q50(face.fa);
         if (fa !== s.fa) { s.fa = fa; s.el.setAttribute("fill-opacity", String(fa)); }
-        const sa = q50(face.sa);
+        const sa = lite ? q20(face.sa) : q50(face.sa);
         if (sa !== s.sa) { s.sa = sa; s.el.setAttribute("stroke-opacity", String(sa)); }
       }
 
@@ -301,6 +310,9 @@ export function HomeStage({
     let workAtLeave: number = SPOTLIGHT.outFrom;
 
     const frame = (now: number, dt: number) => {
+      // Nothing of this is on screen while a case study is open, and a
+      // projection nobody can see is the most expensive kind.
+      if (halted.current) return;
       // The crash freezes time where it is and tears the last pose.
       if (crash.current) {
         if (crashAt === null) {

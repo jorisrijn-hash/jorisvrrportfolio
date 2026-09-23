@@ -8,7 +8,7 @@
  * cells) both read these numbers, so the two can never drift apart.
  */
 
-import { PROJECTS as SOURCE, type Media, type Project } from "@/content/projects";
+import { hasCaseStudy, PROJECTS as SOURCE, type Media, type Project } from "@/content/projects";
 
 /**
  * The Work environment's view of a project. The data lives in
@@ -25,9 +25,10 @@ export type WorkItem = {
   /** a true system label: "Coming soon", or that the media is a stand-in */
   status?: string;
   media?: Media;
-  thumb?: Media;
   comingSoon?: boolean;
   slug: string;
+  /** there is a case study to open — never true just because a route exists */
+  caseStudy: boolean;
 };
 
 const item = (p: Project): WorkItem => ({
@@ -37,9 +38,9 @@ const item = (p: Project): WorkItem => ({
   year: p.year,
   status: p.status ?? (p.showcaseMedia?.isPlaceholder ? "Placeholder media" : undefined),
   media: p.showcaseMedia,
-  thumb: p.thumbMedia,
   comingSoon: p.comingSoon,
   slug: p.slug,
+  caseStudy: hasCaseStudy(p),
 });
 
 export const PROJECTS: WorkItem[] = SOURCE.map(item);
@@ -63,10 +64,29 @@ export const mediaWidth = (surfaceCssPx: number): MediaWidth =>
   surfaceCssPx * Math.min(typeof window === "undefined" ? 1 : window.devicePixelRatio || 1, 2) <= 960 ? 960 : 1680;
 
 /** The still a surface is assembled from — the poster, for video. */
-export const mediaStill = (p: WorkItem, w: MediaWidth) =>
-  p.media ? (p.media.kind === "video" ? p.media.poster : variant(p.media.src, `-${w}`)) : undefined;
+export const stillOf = (m: Media | undefined, w: MediaWidth) =>
+  m ? (m.kind === "video" ? m.poster : variant(m.src, `-${w}`)) : undefined;
 
-export const thumbSrc = (p: WorkItem) => (p.thumb ? variant(p.thumb.src, "") : undefined);
+export const mediaStill = (p: WorkItem, w: MediaWidth) => stillOf(p.media, w);
+
+/**
+ * The same media, as a responsive source set.
+ *
+ * The Work surface picks one file itself, because its cells and its <img>
+ * must ask for the identical URL. Anything rendered on the server cannot: it
+ * has no device pixel ratio to read, and guessing one makes the markup
+ * disagree with the browser. So a case study hands both widths to the
+ * browser and lets it choose.
+ */
+export const stillSet = (m: Media | undefined, sizes: string) => {
+  if (!m) return null;
+  if (m.kind === "video") return m.poster ? { src: m.poster, srcSet: undefined, sizes: undefined } : null;
+  return {
+    src: variant(m.src, "-960"),
+    srcSet: `${variant(m.src, "-960")} 960w, ${variant(m.src, "-1680")} 1680w`,
+    sizes,
+  };
+};
 
 /**
  * The media plane, in reference px around the viewport centre (1920x950).
@@ -94,8 +114,10 @@ export const WORK_IN = {
   end: 3.0,
 } as const;
 
-export const lockTime = (row: number, col: number) =>
-  WORK_IN.lockStart + row * WORK_IN.rowStep + col * WORK_IN.colStep;
+/** When a cell locks. The steps scale with the grid, so a coarser phone grid
+ *  sweeps over the same time as the desktop one. */
+export const lockTime = (row: number, col: number, cols: number = PLANE.cols, rows: number = PLANE.rows) =>
+  WORK_IN.lockStart + row * WORK_IN.rowStep * (PLANE.rows / rows) + col * WORK_IN.colStep * (PLANE.cols / cols);
 
 /**
  * work -> home: the formation played backward. The sculpture's formation clock
@@ -154,3 +176,23 @@ export const WORK_CUES_OUT = [
   { at: 0.55, cue: "align" },
   { at: 1.45, cue: "settle" },
 ] as const;
+
+/**
+ * SWITCHING ONE PROJECT FOR ANOTHER, in ms from the moment it is asked for.
+ *
+ * Not a cross-fade: the surface is geometry, so it releases, changes what it
+ * is showing while the tiles are still covering it, and re-seals. The phases
+ * overlap deliberately — the image is already the new one before the cells
+ * start closing, so the media resolves *through* the geometry rather than
+ * after it. Nothing overshoots: this is a display re-routing, not a bounce.
+ *
+ * The three moments the environment acts on; the phases between them belong
+ * to CSS, keyed to the attributes these raise ([data-swap], [data-swapin]).
+ *
+ *   0          release: the plane hands back to its cells, which lift and darken
+ *   media      the image underneath changes, hidden by the tiles
+ *   geometry   the cells begin to close, and the identity re-routes with them
+ *   ~620       the media is uncovered from inside the geometry (CSS)
+ *   end        sealed again: one plane, one layer
+ */
+export const WORK_SWAP = { media: 330, geometry: 370, end: 920 } as const;

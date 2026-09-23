@@ -141,11 +141,11 @@ const waitState = (p, s, timeout = 15000) =>
     scale: getComputedStyle(document.querySelector(".work")).getPropertyValue("--sp-scale").trim(),
     info: getComputedStyle(document.querySelector(".work-info")).display,
     title: document.querySelector(".work-info__title")?.textContent,
-    thumbs: document.querySelectorAll(".work-info__thumbs img").length,
+    index: document.querySelectorAll(".work-index__row").length,
     spotlight: document.querySelectorAll(".spotlight").length,
   }));
   pass("the same surface carries through (one mount)", carried === 1 && w.surfaces === 1);
-  pass("it arrives as the full Work environment", w.variant === null && w.scale === "1" && w.info !== "none" && w.title === "Goodreads" && w.thumbs === 4, JSON.stringify(w));
+  pass("it arrives as the full Work environment", w.variant === null && w.scale === "1" && w.info !== "none" && w.title === "Goodreads" && w.index === 4, JSON.stringify(w));
   pass("spotlight-only interface is gone", w.spotlight === 0);
   await p.context().close();
 }

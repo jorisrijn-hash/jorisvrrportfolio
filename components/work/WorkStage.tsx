@@ -1,16 +1,17 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   FED_CELLS, PLANE, PROJECTS, WORK_ABOUT, WORK_CUES_FROM_ABOUT, WORK_CUES_IN, WORK_CUES_OUT,
-  WORK_CUES_TO_ABOUT, WORK_IN, WORK_OUT, lockTime, mediaStill, mediaWidth, thumbSrc,
+  WORK_CUES_TO_ABOUT, WORK_IN, WORK_OUT, WORK_SWAP, lockTime, mediaStill, mediaWidth,
 } from "@/content/work";
+import { ArrowUpRight } from "lucide-react";
 import { PANELS } from "@/content/about";
 import { SPOTLIGHT } from "@/content/spotlight";
 import { addTick } from "@/lib/ticker";
 import { useSound } from "@/lib/sound";
 import { triggerVhs } from "@/lib/vhs";
-import { computeLayout, type Layout } from "@/lib/layout";
+import { caseSurface, computeLayout, type Layout } from "@/lib/layout";
 
 let preloaded = false;
 
@@ -18,19 +19,14 @@ let preloaded = false;
 export function preloadWork() {
   if (preloaded || typeof window === "undefined") return;
   preloaded = true;
-  // The project Work opens on, and the index thumbnails it shows — not the
-  // whole portfolio. (When switching exists: next, then previous, from here.)
+  // Only the project Work opens on. The others are asked for when the
+  // visitor switches to them (WorkStage.switchTo), so arriving at Work never
+  // downloads a portfolio's worth of images it may not show.
   const L = computeLayout();
-  const still = mediaStill(PROJECTS[0], mediaWidth(L.plane.w * L.fit));
+  const still = mediaStill(PROJECTS[Math.max(0, PROJECTS.findIndex((p) => p.media))], mediaWidth(L.plane.w * L.fit));
   if (still) new Image().src = still;
-  PROJECTS.forEach((p) => {
-    const t = thumbSrc(p);
-    if (t) new Image().src = t;
-  });
 }
 
-const CELL_W = PLANE.w / PLANE.cols;
-const CELL_H = PLANE.h / PLANE.rows;
 const r2 = (n: number) => Math.round(n * 100) / 100;
 const hash = (n: number) => {
   const x = Math.sin(n * 91.345 + 7.13) * 43758.5453;
@@ -39,10 +35,10 @@ const hash = (n: number) => {
 
 /** Which About panel a cell belongs to: rows 0-5 the statement, the lower
  *  half split between META (left) and LOG (right). */
-function block(r: number, c: number) {
-  const half = PLANE.rows / 2;
-  const mid = PLANE.cols / 2;
-  if (r < half) return { i: 0, r0: 0, c0: 0, rows: half, cols: PLANE.cols };
+function block(r: number, c: number, cols: number, rows: number) {
+  const half = rows / 2;
+  const mid = cols / 2;
+  if (r < half) return { i: 0, r0: 0, c0: 0, rows: half, cols };
   if (c < mid) return { i: 1, r0: half, c0: 0, rows: half, cols: mid };
   return { i: 2, r0: half, c0: mid, rows: half, cols: mid };
 }
@@ -56,43 +52,57 @@ function block(r: number, c: number) {
  *   sx..ry    its own scatter — the decompose beat between surface and panel
  *   ad/bd     its stagger toward About, and back
  */
-const CELLS = Array.from({ length: PLANE.cols * PLANE.rows }, (_, k) => {
-  const r = Math.floor(k / PLANE.cols);
-  const c = k % PLANE.cols;
-  const lock = lockTime(r, c);
-  const b = block(r, c);
-  const [px, py, pw, ph] = [PANELS.top, PANELS.meta, PANELS.body][b.i];
-  const tw = pw / b.cols;
-  const th = ph / b.rows;
-  const ad = r2((r + c * 0.5) * 0.012);
-  return {
-    k, r, c,
-    lock: r2(lock),
-    out: r2(Math.max(0, (WORK_OUT.from - (lock + 0.08)) / WORK_OUT.rate)),
-    fed: k < FED_CELLS,
-    glitch: r === 3 || r === 8,
-    ax: r2(px - WORK_ABOUT.flat.x + (c - b.c0) * tw - c * CELL_W),
-    ay: r2(py - WORK_ABOUT.flat.y + (r - b.r0) * th - r * CELL_H),
-    asx: r2((tw / CELL_W) * 1000) / 1000,
-    asy: r2((th / CELL_H) * 1000) / 1000,
-    sx: r2((hash(k) - 0.5) * 120),
-    sy: r2((hash(k + 31) - 0.5) * 80),
-    sz: r2(40 + hash(k + 67) * 180),
-    rx: r2((hash(k + 101) - 0.5) * 60),
-    ry: r2((hash(k + 149) - 0.5) * 60),
-    ad,
-    bd: r2(0.23 - ad),
-  };
-});
+/**
+ * The cells, for a given grid. Desktop keeps the measured 18x12; a phone
+ * forms the same surface from 9x6 (lib/layout PlaneSpec) — a quarter of the
+ * elements. Measured on a 4x-throttled phone, the cells were the entire cost
+ * of the formation: 607ms of style recalc against 189ms with them hidden.
+ */
+function buildCells(cols: number, rows: number) {
+  const cellW = PLANE.w / cols;
+  const cellH = PLANE.h / rows;
+  const fed = Math.round(FED_CELLS * ((cols * rows) / (PLANE.cols * PLANE.rows)));
+  return Array.from({ length: cols * rows }, (_, k) => {
+    const r = Math.floor(k / cols);
+    const c = k % cols;
+    const lock = lockTime(r, c, cols, rows);
+    const b = block(r, c, cols, rows);
+    const [px, py, pw, ph] = [PANELS.top, PANELS.meta, PANELS.body][b.i];
+    const tw = pw / b.cols;
+    const th = ph / b.rows;
+    const ad = r2((r + c * 0.5) * 0.012 * (PLANE.rows / rows));
+    return {
+      k, r, c,
+      lock: r2(lock),
+      out: r2(Math.max(0, (WORK_OUT.from - (lock + 0.08)) / WORK_OUT.rate)),
+      fed: k < fed,
+      glitch: r === Math.floor(rows / 4) || r === Math.floor((rows * 2) / 3),
+      ax: r2(px - WORK_ABOUT.flat.x + (c - b.c0) * tw - c * cellW),
+      ay: r2(py - WORK_ABOUT.flat.y + (r - b.r0) * th - r * cellH),
+      asx: r2((tw / cellW) * 1000) / 1000,
+      asy: r2((th / cellH) * 1000) / 1000,
+      sx: r2((hash(k) - 0.5) * 120),
+      sy: r2((hash(k + 31) - 0.5) * 80),
+      sz: r2(40 + hash(k + 67) * 180),
+      rx: r2((hash(k + 101) - 0.5) * 60),
+      ry: r2((hash(k + 149) - 0.5) * 60),
+      ad,
+      bd: r2(0.23 - ad),
+    };
+  });
+}
+type Cell = ReturnType<typeof buildCells>[number];
 
 /** Triangulated wireframe the cells assemble over, plus a few construction lines. */
-const WIRE = (() => {
+function buildWire(cols: number, rows: number) {
+  const cellW = PLANE.w / cols;
+  const cellH = PLANE.h / rows;
   let d = "";
-  for (let c = 0; c <= PLANE.cols; c++) d += `M${r2(c * CELL_W)} 0V${PLANE.h}`;
-  for (let r = 0; r <= PLANE.rows; r++) d += `M0 ${r2(r * CELL_H)}H${PLANE.w}`;
-  for (let r = 0; r < PLANE.rows; r++) {
-    for (let c = 0; c < PLANE.cols; c++) {
-      d += `M${r2(c * CELL_W)} ${r2((r + 1) * CELL_H)}L${r2((c + 1) * CELL_W)} ${r2(r * CELL_H)}`;
+  for (let c = 0; c <= cols; c++) d += `M${r2(c * cellW)} 0V${PLANE.h}`;
+  for (let r = 0; r <= rows; r++) d += `M0 ${r2(r * cellH)}H${PLANE.w}`;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      d += `M${r2(c * cellW)} ${r2((r + 1) * cellH)}L${r2((c + 1) * cellW)} ${r2(r * cellH)}`;
     }
   }
   const { w, h } = PLANE;
@@ -100,7 +110,7 @@ const WIRE = (() => {
   d += `M${r2(w * 0.32)} -90L${r2(w * 0.37)} ${h + 90}`;
   d += `M-100 ${h + 40}L${w + 90} -70`;
   return d;
-})();
+}
 
 /** Write the layout the CSS surface needs (desktop values are the CSS defaults). */
 function applyLayout(el: HTMLElement, L: Layout, spotlight = false) {
@@ -118,6 +128,8 @@ function applyLayout(el: HTMLElement, L: Layout, spotlight = false) {
   s.setProperty("--plane-x", `${r2(L.plane.x)}px`);
   s.setProperty("--plane-y", `${r2(L.plane.y)}px`);
   s.setProperty("--plane-yaw", `${L.plane.yaw}deg`);
+  s.setProperty("--cols", String(L.plane.cols));
+  s.setProperty("--rows", String(L.plane.rows));
   s.setProperty("--plane-w", `${r2(L.plane.w)}px`);
   s.setProperty("--plane-h", `${r2(L.plane.h)}px`);
   s.setProperty("--flat-x", `${r2(L.flat.x)}px`);
@@ -134,13 +146,14 @@ function applyLayout(el: HTMLElement, L: Layout, spotlight = false) {
 type CellTarget = { ax: number; ay: number; asx: number; asy: number; visible: boolean };
 
 function mapToPanels(el: HTMLElement, L: Layout): CellTarget[] {
+  const { cols, rows } = L.plane;
   const out: CellTarget[] = [];
   const panels = [...document.querySelectorAll<HTMLElement>(".about__panel")].slice(0, 3);
   if (panels.length < 3) return out;
   const cx = L.vw / 2;
   const cy = L.vh * L.stageY;
-  const cw = L.plane.w / PLANE.cols;
-  const ch = L.plane.h / PLANE.rows;
+  const cw = L.plane.w / cols;
+  const ch = L.plane.h / rows;
   const rects = panels.map((p) => {
     const r = p.getBoundingClientRect();
     const top = Math.max(r.top, 0);
@@ -155,9 +168,9 @@ function mapToPanels(el: HTMLElement, L: Layout): CellTarget[] {
     };
   });
   el.querySelectorAll<HTMLElement>(".work-cell").forEach((cell, k) => {
-    const r = Math.floor(k / PLANE.cols);
-    const c = k % PLANE.cols;
-    const b = block(r, c);
+    const r = Math.floor(k / cols);
+    const c = k % cols;
+    const b = block(r, c, cols, rows);
     const rect = rects[b.i];
     const tw = rect.w / b.cols;
     const th = rect.h / b.rows;
@@ -181,7 +194,7 @@ const HANDOVER = 900;
 const SEALED = "translate3d(0px, 0px, 0px) rotateX(0deg) rotateY(0deg) scale(1.002, 1.002)";
 const panelPose = (t: CellTarget) =>
   `translate3d(${t.ax}px, ${t.ay}px, 0px) rotateX(0deg) rotateY(0deg) scale(${t.asx}, ${t.asy})`;
-const scatterPose = (t: CellTarget, c: (typeof CELLS)[number]) =>
+const scatterPose = (t: CellTarget, c: Cell) =>
   `translate3d(${r2(t.ax * 0.35 + c.sx)}px, ${r2(t.ay * 0.35 + c.sy)}px, ${c.sz}px) ` +
   `rotateX(${c.rx}deg) rotateY(${c.ry}deg) scale(0.84, 0.84)`;
 
@@ -193,12 +206,12 @@ const scatterPose = (t: CellTarget, c: (typeof CELLS)[number]) =>
  * every frame (~3ms of style per frame, and dropped frames). Concrete numeric
  * keyframes hand the same motion to the compositor.
  */
-function runCellMove(el: HTMLElement, targets: CellTarget[], dir: "to" | "from") {
+function runCellMove(el: HTMLElement, targets: CellTarget[], dir: "to" | "from", grid: Cell[]) {
   if (!targets.length) return;
   const cells = el.querySelectorAll<HTMLElement>(".work-cell");
   cells.forEach((cell, k) => {
     const t = targets[k];
-    const c = CELLS[k];
+    const c = grid[k];
     if (!t || !c) return;
     const panel = panelPose(t);
     const mid = scatterPose(t, c);
@@ -249,6 +262,8 @@ export function WorkStage({
   onArrive,
   variant = "work",
   toWork = false,
+  toCase = false,
+  onOpenCase,
 }: {
   from?: Origin;
   leaving: boolean;
@@ -259,14 +274,20 @@ export function WorkStage({
   variant?: "work" | "spotlight";
   /** the spotlight carrying its surface on into the full Work environment */
   toWork?: boolean;
+  /** the surface is on its way to becoming a case-study hero */
+  toCase?: boolean;
+  /** open this project's case study from inside the environment */
+  onOpenCase?: (slug: string) => void;
 }) {
   const root = useRef<HTMLDivElement>(null);
   const drv = useRef<HTMLParagraphElement>(null);
   const { cue } = useSound();
 
-  // A single project for this checkpoint; switching will move this index.
-  // (The first with media: a project without any cannot form the surface.)
-  const [index] = useState(() => Math.max(0, PROJECTS.findIndex((p) => p.media)));
+  // The project on the surface. The environment is never rebuilt to change
+  // it: the same cells re-form around a different image (see switchTo).
+  // (Opens on the first with media: a project without any cannot form.)
+  const [index, setIndex] = useState(() => Math.max(0, PROJECTS.findIndex((p) => p.media)));
+  const [switching, setSwitching] = useState(false);
   const project = PROJECTS[index];
   // Chosen once for this screen; the cells and the <img> share it.
   const [mw] = useState(() => {
@@ -277,8 +298,26 @@ export function WorkStage({
 
   const [origin] = useState<Origin>(from);
   const [bornAs] = useState(variant);
+  // The grid this screen forms the surface from (desktop 18x12, phone 9x6).
+  const [cells] = useState(() => {
+    const { cols, rows } = computeLayout().plane;
+    return buildCells(cols, rows);
+  });
+  const [wire] = useState(() => {
+    const { cols, rows } = computeLayout().plane;
+    return buildWire(cols, rows);
+  });
+  // The formation's own attribute bookkeeping, lent to the switch so the two
+  // can never contradict each other (filled by the clock effect below).
+  const swap = useRef<{ out: () => void; in: () => void; done: () => void } | null>(null);
+  const ready = useRef(false);        // the surface has finished forming
+  const busy = useRef(false);         // a switch is running: refuse another
+  const at = useRef(index);           // the live index, for the callbacks
+  const timers = useRef<number[]>([]);
   const toWorkRef = useRef(toWork);
   useEffect(() => { toWorkRef.current = toWork; }, [toWork]);
+  const toCaseRef = useRef(toCase);
+  useEffect(() => { toCaseRef.current = toCase; }, [toCase]);
   const targets = useRef<CellTarget[]>([]);
   const [stillAtMount] = useState(still);
   const leavingRef = useRef(leaving);
@@ -303,7 +342,7 @@ export function WorkStage({
         if (t) cell.style.transform = panelPose(t);
       });
     }
-  }, [origin, bornAs]);
+  }, [origin, bornAs, cells]);
 
   useEffect(() => {
     const el = root.current;
@@ -322,6 +361,18 @@ export function WorkStage({
         target.removeAttribute(name);
       }
     };
+    /**
+     * Switching a project runs the last third of the formation backwards and
+     * forwards again: the single plane hands back to its cells (identical
+     * pixels), the image underneath them changes, and the cells re-seal onto
+     * it. Nothing is rebuilt — it is the same grid, the same surface.
+     */
+    swap.current = {
+      out: () => { set(el, "data-solid", false); set(el, "data-seal", false); set(el, "data-swap"); },
+      in: () => { set(el, "data-swapin"); set(el, "data-seal"); },
+      done: () => { set(el, "data-swap", false); set(el, "data-swapin", false); set(el, "data-solid"); },
+    };
+
     set(stage, bornAs === "spotlight" ? "data-x-spotlight" : "data-x-work");
     if (bornAs === "spotlight") el.setAttribute("data-variant", "spotlight");
 
@@ -348,6 +399,7 @@ export function WorkStage({
     /** Once settled, forget how the surface arrived, so every later move
      *  starts from the plain sealed state. */
     const settle = () => {
+      ready.current = true;
       set(el, "data-regroup", false);
       el.setAttribute("data-origin", "settled");
       // Hand the cells back to CSS, so the next move starts from the sealed state.
@@ -360,7 +412,8 @@ export function WorkStage({
     /** Step 1 of leaving: the single plane hands back to its sealed cells —
      *  identical pixels — so there is something to move on the next frame. */
     const unseat = (to: Target) => {
-      ["data-solid", "data-ui", "data-echo", "data-link", "data-glitch"].forEach((n) => set(el, n, false));
+      ready.current = false;
+      ["data-solid", "data-ui", "data-echo", "data-link", "data-glitch", "data-swap", "data-swapin"].forEach((n) => set(el, n, false));
       if (to === "about") targets.current = mapToPanels(el, layout);
     };
     /** Step 2: the move itself. */
@@ -368,7 +421,7 @@ export function WorkStage({
       if (to === "about") {
         set(el, "data-drift", false);
         set(el, "data-to-about");
-        runCellMove(el, targets.current, "to");
+        runCellMove(el, targets.current, "to", cells);
       } else {
         set(el, "data-leaving");
       }
@@ -414,7 +467,37 @@ export function WorkStage({
     let handedOn: number | null = null;
     let handedArrived = false;
 
+    let caseOn = false;
     const frame = (now: number) => {
+      // ---- the surface becomes a case-study hero ------------------------------
+      if (toCaseRef.current) {
+        if (!caseOn) {
+          caseOn = true;
+          ready.current = false;
+          // face the camera, and grow until the plane fills the screen; the
+          // case study's own hero takes over this exact rectangle.
+          const c = caseSurface(layout);
+          el.style.setProperty("--sp-scale", String(c.scale));
+          el.style.setProperty("--sp-x", `${Math.round(c.dx * 100) / 100}px`);
+          el.style.setProperty("--sp-y", `${Math.round(c.dy * 100) / 100}px`);
+          set(el, "data-to-case");
+          set(el, "data-drift", false);
+          cue("align");
+          triggerVhs({ strength: 0.35 });
+        }
+        return;
+      }
+      if (caseOn) {
+        // The case study has let go: the same rectangle travels back to its
+        // plane and takes up the environment's geometry again.
+        caseOn = false;
+        applyLayout(el, layout, false);
+        set(el, "data-to-case", false);
+        set(el, "data-drift");
+        ready.current = true;
+        cue("align");
+      }
+
       // ---- leaving ------------------------------------------------------------
       if (leavingRef.current && leftAt === null) {
         leftAt = now;
@@ -476,7 +559,7 @@ export function WorkStage({
         // Raised on the first frame, after the panel-shaped cells have painted.
         if (!on.has("w:data-regroup")) {
           set(el, "data-regroup");
-          runCellMove(el, targets.current, "from");
+          runCellMove(el, targets.current, "from", cells);
         }
         if (t >= WORK_ABOUT.seal) set(el, "data-seal");
         if (t >= WORK_ABOUT.ui) set(el, "data-ui");
@@ -522,14 +605,74 @@ export function WorkStage({
     const stop = addTick(frame);
     return () => {
       stop();
+      swap.current = null;
+      ready.current = false;
       cleanup();
     };
-  }, [cue, stillAtMount, origin, bornAs]);
+  }, [cue, stillAtMount, origin, bornAs, cells]);
+
+  // Clear the switch's timers if the environment leaves mid-switch.
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+
+  /**
+   * Move the surface to another project. The environment stays exactly where
+   * it is — the same cells, the same plane, the same camera — and only what
+   * they are showing changes. Refused while the surface is still forming or
+   * already switching, the way the state machine refuses navigation mid-move.
+   */
+  const switchTo = useCallback((next: number) => {
+    const target = PROJECTS[next];
+    if (!target || next === at.current || busy.current || !ready.current) return;
+
+    // Reduced motion: the index simply reads differently now.
+    if (stillAtMount) {
+      at.current = next;
+      setIndex(next);
+      return;
+    }
+
+    busy.current = true;
+    at.current = next;
+    setSwitching(true);
+    // Ask for the new still now, so it is decoded before the tiles uncover it.
+    const src = mediaStill(target, mw);
+    if (src) new Image().src = src;
+
+    swap.current?.out();
+    cue("release");
+    timers.current.forEach(clearTimeout);
+    timers.current = [
+      window.setTimeout(() => {
+        // Under the tiles: the surface is already the new project here.
+        setIndex(next);
+        triggerVhs({ strength: 0.3 });
+        cue("align");
+      }, WORK_SWAP.media),
+      window.setTimeout(() => { swap.current?.in(); cue("snap"); }, WORK_SWAP.geometry),
+      window.setTimeout(() => {
+        swap.current?.done();
+        busy.current = false;
+        setSwitching(false);
+      }, WORK_SWAP.end),
+    ];
+  }, [cue, mw, stillAtMount]);
+
+  const step = (d: number) => switchTo((at.current + d + PROJECTS.length) % PROJECTS.length);
+
+  const hover = (e: React.PointerEvent) => {
+    if (e.pointerType === "mouse" && !busy.current) cue("hover");
+  };
 
   const total = String(PROJECTS.length).padStart(2, "0");
 
   return (
-    <div ref={root} className="work" data-origin={origin} style={{ ["--media" as string]: `url(${still_})` }}>
+    <div
+      ref={root}
+      className="work"
+      data-origin={origin}
+      data-empty={project.media ? undefined : true}
+      style={{ ["--media" as string]: still_ ? `url(${still_})` : "none" }}
+    >
       <div className="work-3d">
         <div className="work-origin">
           <div className="work-plane">
@@ -539,13 +682,13 @@ export function WorkStage({
               preserveAspectRatio="none"
               aria-hidden="true"
             >
-              <path d={WIRE} fill="none" stroke="#7d7d7d" strokeWidth="0.7" strokeOpacity="0.45" vectorEffect="non-scaling-stroke" />
+              <path d={wire} fill="none" stroke="#7d7d7d" strokeWidth="0.7" strokeOpacity="0.45" vectorEffect="non-scaling-stroke" />
             </svg>
 
             <div className="work-ghost" aria-hidden="true" />
 
             <div className="work-cells" aria-hidden="true">
-              {CELLS.map((cell) => (
+              {cells.map((cell) => (
                 <i
                   key={cell.k}
                   className="work-cell"
@@ -572,30 +715,39 @@ export function WorkStage({
               ))}
             </div>
 
-            <figure className="work-media" data-cursor="view">
-              {project.media?.kind === "video" ? (
-                <video
-                  src={project.media!.src}
-                  poster={project.media!.poster}
-                  preload="metadata"
-                  muted
-                  loop
-                  playsInline
-                  autoPlay
-                  aria-label={project.media!.alt}
-                />
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={still_}
-                  decoding="async"
-                  width={project.media?.width}
-                  height={project.media?.height}
-                  alt={project.media?.alt ?? ""}
-                  draggable={false}
-                />
-              )}
-            </figure>
+            {project.media ? (
+              <figure className="work-media" data-cursor="view">
+                {project.media.kind === "video" ? (
+                  <video
+                    src={project.media.src}
+                    poster={project.media.poster}
+                    preload="metadata"
+                    muted
+                    loop
+                    playsInline
+                    autoPlay
+                    aria-label={project.media.alt}
+                  />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={still_}
+                    decoding="async"
+                    width={project.media.width}
+                    height={project.media.height}
+                    alt={project.media.alt ?? ""}
+                    draggable={false}
+                  />
+                )}
+              </figure>
+            ) : (
+              /* Nothing invented in its place: the surface stays a surface,
+                 and says what it is waiting for. */
+              <p className="work-soon" aria-hidden="true">
+                <span>{"// Coming soon"}</span>
+                <span>{project.title}</span>
+              </p>
+            )}
           </div>
 
           <div className="work-echo" data-e="a" aria-hidden="true"><i /></div>
@@ -616,21 +768,75 @@ export function WorkStage({
           <span className="work-info__title">{project.title}</span>
         </h1>
         <dl className="work-info__meta" style={{ ["--d" as string]: "140ms" }}>
-          {/* A row exists only when there is something true to put in it. */}
-          <div><dt>Discipline</dt><dd>{project.discipline}</dd></div>
+          {/* A row exists only when there is something true to put in it —
+              and "Discipline: Coming soon" is not a discipline. */}
+          {project.comingSoon ? null : <div><dt>Discipline</dt><dd>{project.discipline}</dd></div>}
           {project.year ? <div><dt>Year</dt><dd>{project.year}</dd></div> : null}
           {project.status ? <div><dt>Status</dt><dd>{project.status}</dd></div> : null}
         </dl>
-        <p className="work-info__indexlabel" style={{ ["--d" as string]: "200ms" }}>
+        {/* Opening the case study is an action on the project, not on the
+            environment — so it sits with the identity, not in the chrome. */}
+        <div className="work-cta" style={{ ["--d" as string]: "190ms" }}>
+          {project.caseStudy ? (
+            <a
+              className="work-cta__open"
+              href={`/work/${project.slug}`}
+              data-cursor="view"
+              onPointerEnter={hover}
+              onClick={(e) => {
+                if (!onOpenCase || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                e.preventDefault();
+                cue("select");
+                onOpenCase(project.slug);
+              }}
+            >
+              Open case study
+              <ArrowUpRight size={12} strokeWidth={1.6} aria-hidden="true" />
+            </a>
+          ) : (
+            // No page is claimed until one exists. Not a disabled control:
+            // there is nothing here to operate, only something to read.
+            <p className="work-cta__open" data-pending>
+              Case study
+              <span>{project.comingSoon ? "// Coming soon" : "// In preparation"}</span>
+            </p>
+          )}
+        </div>
+
+        <p className="work-info__indexlabel" style={{ ["--d" as string]: "220ms" }}>
           Index · {project.id} / {total}
         </p>
-        <ul className="work-info__thumbs" style={{ ["--d" as string]: "240ms" }} aria-label="Projects">
+
+        {/* The collection, readable without touching the arrows: every
+            project, its number, and what it was. */}
+        <ul
+          className="work-index"
+          style={{ ["--d" as string]: "250ms" }}
+          aria-label="Projects"
+          onKeyDown={(e) => {
+            const d = e.key === "ArrowDown" || e.key === "ArrowRight" ? 1 : e.key === "ArrowUp" || e.key === "ArrowLeft" ? -1 : 0;
+            if (!d) return;
+            e.preventDefault();
+            const next = (at.current + d + PROJECTS.length) % PROJECTS.length;
+            switchTo(next);
+            e.currentTarget.querySelectorAll<HTMLButtonElement>(".work-index__row")[next]?.focus();
+          }}
+        >
           {PROJECTS.map((p, i) => (
-            <li key={p.id} data-current={i === index || undefined} aria-current={i === index || undefined}>
-              {thumbSrc(p) ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={thumbSrc(p)} alt="" decoding="async" width={320} height={205} draggable={false} />
-              ) : null}
+            <li key={p.id}>
+              <button
+                type="button"
+                className="work-index__row"
+                data-current={i === index || undefined}
+                aria-current={i === index ? "true" : undefined}
+                data-cursor="view"
+                onPointerEnter={hover}
+                onClick={() => { cue("select"); switchTo(i); }}
+              >
+                <span className="work-index__n">{p.id}</span>
+                <span className="work-index__t">{p.title}</span>
+                <span className="work-index__d">{p.comingSoon ? "Coming soon" : p.discipline}</span>
+              </button>
             </li>
           ))}
         </ul>
@@ -648,10 +854,29 @@ export function WorkStage({
         </div>
         <div className="work-foot__row" style={{ ["--d" as string]: "340ms" }}>
           <span className="work-foot__name">{project.title}</span>
-          {/* Inert until project switching is built. */}
           <span className="work-foot__ctl">
-            <button type="button" className="work-ctl" aria-label="Previous project" aria-disabled="true" data-cursor="prev">‹</button>
-            <button type="button" className="work-ctl" aria-label="Next project" aria-disabled="true" data-cursor="next">›</button>
+            <button
+              type="button"
+              className="work-ctl"
+              aria-label="Previous project"
+              aria-disabled={switching || undefined}
+              data-cursor="prev"
+              onPointerEnter={hover}
+              onClick={() => step(-1)}
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              className="work-ctl"
+              aria-label="Next project"
+              aria-disabled={switching || undefined}
+              data-cursor="next"
+              onPointerEnter={hover}
+              onClick={() => step(1)}
+            >
+              ›
+            </button>
           </span>
         </div>
       </footer>

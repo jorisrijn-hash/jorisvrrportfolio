@@ -1937,6 +1937,24 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
 }
 .work:not([data-variant="spotlight"]) .work-origin { transition: transform 900ms var(--ease-inout); }
 
+/* ---- the surface becomes a case study -----------------------------------
+   It turns to face the camera and grows until it fills the screen. The case
+   study's hero then takes over that rectangle exactly (lib/layout
+   caseSurface), so the handover is a change of owner, not a dissolve. */
+.work[data-to-case] .work-origin { transition: transform 760ms var(--ease-inout); }
+.work[data-to-case] .work-plane {
+  animation: none;
+  transform: translate3d(var(--plane-x), var(--plane-y), 0) rotateY(0deg);
+  transition: transform 760ms var(--ease-inout);
+}
+.work[data-to-case] :is(.work-info, .work-foot, .work-labels, .work-echo, .work-ghost, .work-wire) {
+  opacity: 0;
+  transition: opacity 240ms var(--ease-out);
+  pointer-events: none;
+}
+/* the plane's own vignette and drift stop: this is a photograph now */
+.work[data-to-case] .work-plane::before, .work[data-to-case] .work-plane::after { opacity: 0; transition: opacity 240ms var(--ease-out); }
+
 /* While it is a spotlight, Work's own index, labels and echo tiles stay out
    of it: the composition is the surface, the identity and the actions. */
 .work[data-variant] :is(.work-info, .work-foot, .work-labels, .work-echo) { display: none; }
@@ -2016,8 +2034,9 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
   position: absolute;
   inset: 0;
   display: grid;
-  grid-template-columns: repeat(18, 1fr);
-  grid-template-rows: repeat(12, 1fr);
+  /* the grid the surface forms from; lib/layout sets it per screen */
+  grid-template-columns: repeat(var(--cols, 18), 1fr);
+  grid-template-rows: repeat(var(--rows, 12), 1fr);
   transform-style: preserve-3d;
 }
 
@@ -2026,7 +2045,7 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
   display: block;
   background-image: var(--media);
   background-size: var(--plane-w) var(--plane-h);
-  background-position: calc(var(--c) * var(--plane-w) / -18) calc(var(--r) * var(--plane-h) / -12);
+  background-position: calc(-1 * var(--c) * var(--plane-w) / var(--cols, 18)) calc(-1 * var(--r) * var(--plane-h) / var(--rows, 12));
   transform-origin: 50% 0;
   transform: rotateX(-35deg) scale(0.955);
   opacity: 0;
@@ -2082,6 +2101,62 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
 /* Hand over to one plane (identical pixels) so idle costs one layer, not 216. */
 .work[data-solid] .work-cells,
 .work[data-solid] .work-wire { display: none; }
+
+/* ---- switching project --------------------------------------------------
+   The environment is not rebuilt: the plane hands back to its cells, the
+   image underneath them changes while they are covering it, and they seal
+   onto it again. Released with their own scatter delays (--ad), re-sealed
+   with the other set (--bd), so the release and the return do not rhyme.
+   Nothing overshoots — a display re-routes, it does not bounce. */
+.work[data-swap] .work-cell {
+  opacity: 1;
+  transform: scale(0.968) translateZ(12px);
+  transition: transform 300ms var(--ease-inout) calc(var(--ad) * 0.35), opacity 120ms linear;
+}
+.work[data-swap] .work-cell::before { opacity: 0.55; transition: opacity 220ms var(--ease-out); }
+.work[data-swap] .work-cell::after {
+  transform: scaleY(1);
+  opacity: 0.92;
+  transition:
+    transform 250ms var(--ease-inout) calc(var(--ad) * 0.35),
+    opacity 250ms var(--ease-inout) calc(var(--ad) * 0.35);
+}
+.work[data-swapin] .work-cell {
+  transform: scale(1.002) translateZ(0);
+  transition: transform 430ms var(--ease-out) calc(var(--bd) * 0.42);
+}
+.work[data-swapin] .work-cell::before { opacity: 0; transition: opacity 340ms var(--ease-out) calc(var(--bd) * 0.42); }
+.work[data-swapin] .work-cell::after {
+  transform: scaleY(0);
+  opacity: 0;
+  transition:
+    transform 460ms var(--ease-out) calc(var(--bd) * 0.42 + 60ms),
+    opacity 460ms var(--ease-out) calc(var(--bd) * 0.42 + 60ms);
+}
+/* the tilted copies let go, and come back with the new image */
+.work[data-swap] .work-echo { opacity: 0; transition: opacity 200ms var(--ease-out); }
+.work[data-swapin] .work-echo { opacity: 0.42; transition: opacity 520ms var(--ease-out) 260ms; }
+
+/* The identity re-routes while the surface is covered, and settles after it:
+   name first, then the metadata, so the project reads before its details. */
+.work[data-swap] :is(.work-info__heading, .work-info__meta, .work-cta, .work-info__indexlabel, .work-foot__name, .work-foot__count) {
+  opacity: 0;
+  transform: translateY(-5px);
+  transition: opacity 170ms var(--ease-out), transform 170ms var(--ease-out);
+}
+.work[data-swapin] :is(.work-info__heading, .work-info__meta, .work-cta, .work-info__indexlabel, .work-foot__name, .work-foot__count) {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 380ms var(--ease-out) var(--sd, 120ms),
+    transform 380ms var(--ease-out) var(--sd, 120ms);
+}
+.work[data-swapin] .work-info__heading { --sd: 60ms; }
+.work[data-swapin] .work-foot__name,
+.work[data-swapin] .work-foot__count { --sd: 140ms; }
+.work[data-swapin] .work-cta { --sd: 200ms; }
+.work[data-swapin] .work-info__meta { --sd: 250ms; }
+.work[data-swapin] .work-info__indexlabel { --sd: 280ms; }
 
 .work-media { position: absolute; inset: 0; margin: 0; pointer-events: auto; opacity: 0; }
 .work-media img,
@@ -2190,10 +2265,107 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
   color: #a8a8a8;
 }
 
-.work-info__thumbs { margin: 10px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-.work-info__thumbs li { position: relative; aspect-ratio: 1.564; overflow: hidden; border-radius: 3px; opacity: 0.5; }
-.work-info__thumbs li[data-current] { opacity: 1; outline: 1px solid rgb(0 0 0 / 0.32); outline-offset: 3px; }
-.work-info__thumbs img { width: 100%; height: 100%; display: block; object-fit: cover; }
+/* ---- the collection, as type --------------------------------------------
+   Not a gallery: thumbnails would compete with the one surface the
+   environment exists to show. A line per project — number, name, what it
+   was — and the active one carries the mark. */
+.work-index { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 1px; }
+.work-index li { display: block; }
+.work-index__row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 30px 1fr auto;
+  align-items: baseline;
+  gap: 12px;
+  padding: 9px 10px 9px 12px;
+  position: relative;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  opacity: 0.52;
+  transition: opacity 320ms var(--ease-out), background-color 320ms var(--ease-out);
+}
+/* the mark: it grows down the active line rather than appearing on it */
+.work-index__row::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 1px;
+  background: var(--color-burgundy);
+  transform: scaleY(0);
+  transform-origin: 50% 0;
+  transition: transform 420ms var(--ease-inout);
+}
+.work-index__row:hover { opacity: 0.8; background: rgb(0 0 0 / 0.02); }
+.work-index__row:focus-visible { outline: 1px solid var(--color-burgundy); outline-offset: -1px; }
+.work-index__row[data-current] { opacity: 1; background: rgb(0 0 0 / 0.03); }
+.work-index__row[data-current]::before { transform: scaleY(1); }
+.work-index__n { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.16em; color: #9a9a9a; }
+.work-index__t {
+  font-family: var(--font-display);
+  font-size: 15px;
+  letter-spacing: -0.005em;
+  color: #4a4a4a;
+  transition: color 320ms var(--ease-out);
+}
+.work-index__row[data-current] .work-index__t { color: #1d1d1f; }
+.work-index__d {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #a4a4a4;
+  text-align: right;
+}
+
+/* ---- opening the case study --------------------------------------------- */
+.work-cta { margin-top: 20px; }
+.work-cta__open {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 9px 14px;
+  border: 1px solid rgb(0 0 0 / 0.12);
+  border-radius: 3px;
+  background: rgb(255 255 255 / 0.4);
+  font-family: var(--font-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: #4d4d4d;
+  transition: border-color 320ms var(--ease-out), color 320ms var(--ease-out), background-color 320ms var(--ease-out);
+}
+a.work-cta__open:hover { border-color: var(--color-burgundy); color: #141416; background: rgb(255 255 255 / 0.72); }
+a.work-cta__open:focus-visible { outline: 1px solid var(--color-burgundy); outline-offset: 2px; }
+/* nothing to open yet: it says so, and stays flat */
+.work-cta__open[data-pending] { border-style: dashed; color: #9a9a9a; background: transparent; }
+.work-cta__open[data-pending] span { color: var(--color-burgundy); opacity: 0.7; letter-spacing: 0.2em; }
+
+/* ---- a project with nothing to show yet --------------------------------- */
+.work-soon {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 10px;
+  background: #ededef;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.06);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  opacity: 0;
+  transition: opacity 520ms var(--ease-out);
+}
+.work[data-empty][data-seal] .work-soon { opacity: 1; }
+.work-soon span:first-child { font-size: 9px; letter-spacing: 0.3em; color: var(--color-burgundy); }
+.work-soon span:last-child { font-size: 11px; letter-spacing: 0.24em; color: #8d8d8d; }
+/* nothing to seal onto: the tiles simply retract */
+.work[data-empty] .work-cell { background-image: none; }
 
 .work-foot { position: absolute; right: 54px; bottom: 25px; width: 440px; pointer-events: auto; }
 .work-foot__row { display: flex; justify-content: space-between; align-items: center; }
@@ -2240,6 +2412,9 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
 
 @media (prefers-reduced-motion: reduce) {
   .work-cell, .work-cell::before, .work-cell::after, .work-info > *, .work-foot > *, .work-echo, .work-label { transition: none; }
+  .work[data-swap] .work-cell, .work[data-swapin] .work-cell,
+  .work[data-swap] .work-cell::after, .work[data-swapin] .work-cell::after,
+  .work[data-swap] :is(.work-info__heading, .work-info__meta, .work-cta, .work-info__indexlabel, .work-foot__name, .work-foot__count) { transition: none; }
   .work[data-solid] .work-plane, .work-echo > i, .work-foot__segments i[data-current]::after { animation: none; }
 }
 
@@ -2561,8 +2736,19 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
   .work-info__title { font-size: clamp(22px, 6.6vw, 32px); }
   .work-info__meta { margin-top: 14px; gap: 7px; min-height: 59px; }
   .work-info__meta > div { grid-template-columns: 88px 1fr; }
-  .work-info__indexlabel { margin-top: 18px; text-align: left; }
-  .work-info__thumbs { gap: 8px; }
+  /* The foot already carries 01 / 04, so the label goes and the list keeps
+     the room. Each line is a number and a name: the discipline is in the
+     metadata above for whichever project is on the surface. */
+  .work-info__indexlabel { display: none; }
+  .work-cta { margin-top: 14px; }
+  .work-cta__open { padding: 8px 12px; }
+  .work-index { margin-top: 14px; }
+  .work-index__d { display: none; }
+  .work-index__row { grid-template-columns: 26px 1fr; padding: 6px 8px 6px 10px; gap: 10px; }
+  .work-index__t { font-size: 13px; }
+  /* its own mark shows where in the collection we are */
+  .work-foot__segments { display: none; }
+  .work-foot__row + .work-foot__row { margin-top: 10px; }
 
   .work-foot {
     left: calc(16px + var(--safe-l));
@@ -2574,7 +2760,7 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
   .work-ctl { width: 44px; height: 44px; }
 
   @media (max-height: 760px) {
-    .work-info__thumbs,
+    .work-index,
     .work-info__indexlabel,
     .work-info__meta > div:nth-child(3) { display: none; }
     /* two rows are the design here, so the block reserves two */
@@ -2813,3 +2999,42 @@ html[data-sculpt-hover] .cursor[data-state="default"] .cursor__ring { opacity: 0
 .experience.no-micro .home-hud__rule::after,
 .experience.no-micro .reg-marks i[data-c="br"],
 .experience.no-micro .wash-layer { animation: none; }
+
+/* =========================================================================
+   A CASE STUDY HAS THE SCREEN
+
+   The environment is not torn down when a case study opens: it stays mounted
+   behind the document so that closing hands the surface straight back to it,
+   in the state it was left in. What it does stop doing is existing visually —
+   hidden outright once the document is up (which also stops its animations),
+   and the sculpture stops being drawn at all (HomeStage `paused`).
+   ========================================================================= */
+.experience[data-case="open"] :is(.sculpture, .resting, .wash-layer, .home-hud, .hud-corner, .work, .atmosphere) {
+  display: none;
+}
+/* While the surface is growing into the hero, the interface around it steps
+   back: for that second the screen is the work, and nothing else. */
+.experience[data-case] :is(.home-hud, .hud-corner, .state-label) {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 260ms var(--ease-out);
+}
+.experience[data-case="closing"] :is(.home-hud, .hud-corner, .state-label) {
+  opacity: 1;
+  transition: opacity 420ms var(--ease-out) 160ms;
+}
+
+/* Opening and closing, the surface is the transition — so it stays. */
+.experience[data-case] .case { animation: case-in 260ms var(--ease-out) both; }
+@keyframes case-in { from { opacity: 0; } to { opacity: 1; } }
+.experience[data-case="closing"] .case {
+  animation: none;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 220ms var(--ease-out), transform 220ms var(--ease-out);
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .experience[data-case] .case { animation: none; }
+  .experience[data-case="closing"] .case { transition: none; }
+}

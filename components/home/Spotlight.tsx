@@ -46,11 +46,11 @@ export function Spotlight({
     return () => window.removeEventListener("resize", measure);
   }, []);
 
-  // Focus the surfaced project once, so a keyboard lands inside it; Escape is
-  // handled by the stage (Experience), which owns the state.
-  useEffect(() => {
-    if (!closing) root.current?.focus({ preventScroll: true });
-  }, [closing]);
+  // Focus is NOT taken. This surfaces itself, unasked, while the interface
+  // stays usable — so it joins the tab order and announces itself politely
+  // instead of interrupting whatever the visitor was doing. Escape still
+  // closes it (the stage owns that), and tabbing or clicking into it works
+  // normally.
 
   const hover = (e: React.PointerEvent) => {
     if (e.pointerType === "mouse") cue("hover");
@@ -66,7 +66,7 @@ export function Spotlight({
       className="spotlight"
       data-closing={closing || undefined}
       aria-label={`Featured work: ${p.title}`}
-      tabIndex={-1}
+      aria-live="polite"
     >
       <p className="spotlight__system">
         <span className="spotlight__rule" aria-hidden="true" />

@@ -142,18 +142,20 @@ const ORBIT_CUBE = 16;
 // orbit cube j in cell 68 + j (row-major), which WorkStage mirrors exactly.
 // The plane comes from the layout (desktop: the measured reference plane;
 // compact: a flatter plane sized to the screen), so its geometry is derived.
-type PlaneGeo = { q: Q; cw: number; ch: number; centres: V3[] };
+type PlaneGeo = { q: Q; cw: number; ch: number; cols: number; rows: number; centres: V3[] };
 function planeGeometry(p: PlaneSpec): PlaneGeo {
   const yaw = deg(p.yaw);
-  const cw = p.w / PLANE.cols;
-  const ch = p.h / PLANE.rows;
+  const cw = p.w / p.cols;
+  const ch = p.h / p.rows;
   return {
     q: qAxis(0, 1, 0, -yaw),   // local x -> (cos, 0, sin): right edge away
     cw,
     ch,
-    centres: Array.from({ length: PLANE.cols * PLANE.rows }, (_, k) => {
-      const u = ((k % PLANE.cols) + 0.5) * cw;
-      return [p.x + Math.cos(yaw) * u, p.y + (Math.floor(k / PLANE.cols) + 0.5) * ch, Math.sin(yaw) * u] as V3;
+    cols: p.cols,
+    rows: p.rows,
+    centres: Array.from({ length: p.cols * p.rows }, (_, k) => {
+      const u = ((k % p.cols) + 0.5) * cw;
+      return [p.x + Math.cos(yaw) * u, p.y + (Math.floor(k / p.cols) + 0.5) * ch, Math.sin(yaw) * u] as V3;
     }),
   };
 }
@@ -354,7 +356,15 @@ export type Pose = {
   settle: number;
 };
 
-const r1 = (n: number) => Math.round(n * 10) / 10;
+/**
+ * Geometry is emitted to this precision. In Chromium `d` is a CSS property,
+ * so every path write invalidates that element's style: on a phone, the
+ * formation was writing ~110 of them a frame and paying 649ms of style recalc
+ * for it. Half-pixel precision there leaves most paths byte-identical between
+ * frames, and HomeStage skips writes that would not change the attribute.
+ */
+let prec = 10;
+const r1 = (n: number) => Math.round(n * prec) / prec;
 
 export function createScene() {
   const tetras = buildTetras();
@@ -373,6 +383,7 @@ export function createScene() {
   return function evaluate(pose: Pose): Frame {
     const { t, loop, hover } = pose;
     const { compact, lite } = pose.layout;
+    prec = lite ? 2 : 10;
     const pl = pose.layout.plane;
     const key = `${pl.x}|${pl.y}|${pl.yaw}|${pl.w}|${pl.h}`;
     if (key !== geoKey) {
@@ -408,7 +419,8 @@ export function createScene() {
     };
     const toCell = (cell: number, p: V3, q: Q, s: V3, depart: number) => {
       if (wt <= 0) return { p, q, s, ink: 0, fade: 1 };
-      const lock = lockTime(Math.floor(cell / PLANE.cols), cell % PLANE.cols);
+      if (cell >= geo.centres.length) return null;
+      const lock = lockTime(Math.floor(cell / geo.cols), cell % geo.cols, geo.cols, geo.rows);
       const fade = 1 - seg(wt, lock + 0.02, lock + 0.14);
       if (fade <= 0) return null;
       const u = easeSecondary(seg(wt, depart, lock));
@@ -472,6 +484,13 @@ export function createScene() {
       return 186 + 58 * lam + 8 * Math.max(0, -nn[2]);
     };
 
+    /**
+     * Lite screens draw a small block as a single face. Below ~8px a cube's
+     * shading cannot be read in motion, and each extra face is another path
+     * write — which in Chromium is another style invalidation.
+     */
+    const flatAt = lite ? 16 : 0;
+
     /** Transform, cull, shade and emit one convex mesh. */
     const emit = (
       id: number, mesh: Mesh, p: V3, q: Q, s: V3, group: M3,
@@ -492,11 +511,15 @@ export function createScene() {
       const fog = clamp01((zc - 150) / 1500) * 0.7 * style.m;
       const near = clamp01((-zc - 350) / 600) * 0.5 * style.m;
 
+      const single = flatAt > 0 && Math.max(s[0], s[1], s[2]) * h < flatAt;
+      let drawn = 0;
       mesh.faces.forEach((f, i) => {
+        if (single && drawn) return;
         const a = W[f[0]];
         const n = vCross(vSub(W[f[1]], a), vSub(W[f[2]], a));
         // Visible when the outward normal points back toward the camera.
         if (vDot(n, [a[0], a[1], a[2] + F]) >= 0) return;
+        drawn++;
 
         let g = lerp(style.g0, shade(n), style.m);
         g = lerp(g, FOG_TONE, fog);
@@ -615,7 +638,13 @@ export function createScene() {
     // Drifts exactly two element spacings per loop, so the loop seam is
     // invisible: at the wrap every cube stands where its neighbour was.
     const ringDrift = ((2 * TAU) / RING_COUNT) * (loop / IDLE_LOOP);
+    // On lite screens half the ring dissolves as the surface forms rather
+    // than flying to its cell: those cells already form without a cube there
+    // (the far orbit is dropped on lite), and it halves the per-frame path
+    // writes through the most expensive part of the move.
+    const thin = lite && wt > 0 ? 1 - smooth(seg(wt, 0.05, 0.4)) : 1;
     for (let i = 0; i < RING_COUNT; i++) {
+      if (lite && i % 2 === 1 && thin <= 0.01) continue;
       const c = inOut(seg(t, XFER.expand[0] + 0.18 * (i / RING_COUNT), XFER.expand[1] + 0.18 * (i / RING_COUNT)));
       const angle = lerp(ringStart[i], ringHome[i], c) + ringDrift * c;
       const r = lerp(R_DASH, RING_R, c);
@@ -625,10 +654,11 @@ export function createScene() {
       const p: V3 = [local[0] + centre[0], local[1] + centre[1], local[2] + centre[2]];
       const q = qMul(plane, qAxis(0, 0, 1, angle + Math.PI / 2));
       const s: V3 = [lerp(5, RING_CUBE, c), lerp(1, RING_CUBE, c), lerp(1, RING_CUBE, c)];
-      const to = toCell(i, p, q, s, 0.2 + 0.28 * (i / RING_COUNT));
+      // lite draws every other ring cube, so they pack into the coarser grid
+      const to = toCell(lite ? i >> 1 : i, p, q, s, 0.2 + 0.28 * (i / RING_COUNT));
       if (!to) continue;
       emit(ID_RING + i, CUBE, to.p, to.q, to.s, secondary, {
-        g0: 216, m: c, fa: to.fade, sa: 0, strokeFace: -2, ink: to.ink,
+        g0: 216, m: c, fa: to.fade * (lite && i % 2 === 1 ? thin : 1), sa: 0, strokeFace: -2, ink: to.ink,
       });
     }
 

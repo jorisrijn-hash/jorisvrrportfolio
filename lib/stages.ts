@@ -9,6 +9,7 @@ import { useSyncExternalStore } from "react";
  *   boot    the loading sequence (and Motion, which only it uses)
  *   about   the globe (d3-geo, topojson) and the About page
  *   work    the featured-work surface
+ *   case    a case study and its sections
  *
  * Not React.lazy: a lazy component suspends for a render even once its code
  * is in, which would mount a stage a frame after its state change and shift
@@ -20,6 +21,7 @@ type Mods = {
   boot: typeof import("@/components/boot/BootSequence");
   about: typeof import("@/components/about/AboutStage");
   work: typeof import("@/components/work/WorkStage");
+  case: typeof import("@/components/case/CaseStudy");
 };
 type Name = keyof Mods;
 
@@ -27,6 +29,7 @@ const importers: { [K in Name]: () => Promise<Mods[K]> } = {
   boot: () => import("@/components/boot/BootSequence"),
   about: () => import("@/components/about/AboutStage"),
   work: () => import("@/components/work/WorkStage"),
+  case: () => import("@/components/case/CaseStudy"),
 };
 
 const loaded: Partial<Mods> = {};
