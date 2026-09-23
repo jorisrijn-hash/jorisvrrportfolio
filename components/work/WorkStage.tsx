@@ -6,8 +6,10 @@ import {
   WORK_CUES_TO_ABOUT, WORK_IN, WORK_OUT, lockTime, mediaStill, mediaWidth, thumbSrc,
 } from "@/content/work";
 import { PANELS } from "@/content/about";
+import { SPOTLIGHT } from "@/content/spotlight";
 import { addTick } from "@/lib/ticker";
 import { useSound } from "@/lib/sound";
+import { triggerVhs } from "@/lib/vhs";
 import { computeLayout, type Layout } from "@/lib/layout";
 
 let preloaded = false;
@@ -101,10 +103,16 @@ const WIRE = (() => {
 })();
 
 /** Write the layout the CSS surface needs (desktop values are the CSS defaults). */
-function applyLayout(el: HTMLElement, L: Layout) {
+function applyLayout(el: HTMLElement, L: Layout, spotlight = false) {
   // Lite screens take the simplified Work <-> About handover (experience.css).
   el.toggleAttribute("data-lite", L.lite);
   const s = el.style;
+  // The spotlight is this surface scaled about the stage centre and set
+  // aside; the sculpture's cubes fly to exactly the same rectangle
+  // (lib/layout SpotlightSpec). Going on to Work animates it back to 1.
+  s.setProperty("--sp-scale", spotlight ? String(L.spotlight.scale) : "1");
+  s.setProperty("--sp-x", `${spotlight ? r2(L.spotlight.dx) : 0}px`);
+  s.setProperty("--sp-y", `${spotlight ? r2(L.spotlight.dy) : 0}px`);
   s.setProperty("--fit", String(L.fit));
   s.setProperty("--stage-y", `${L.stageY * 100}%`);
   s.setProperty("--plane-x", `${r2(L.plane.x)}px`);
@@ -165,6 +173,10 @@ function mapToPanels(el: HTMLElement, L: Layout): CellTarget[] {
   });
   return out;
 }
+
+/** How long the spotlight's surface takes to become the Work plane (matches
+ *  the CSS transition on .work-origin). */
+const HANDOVER = 900;
 
 const SEALED = "translate3d(0px, 0px, 0px) rotateX(0deg) rotateY(0deg) scale(1.002, 1.002)";
 const panelPose = (t: CellTarget) =>
@@ -235,12 +247,18 @@ export function WorkStage({
   leavingTo = "home",
   still,
   onArrive,
+  variant = "work",
+  toWork = false,
 }: {
   from?: Origin;
   leaving: boolean;
   leavingTo?: Target;
   still: boolean;
   onArrive: () => void;
+  /** "spotlight": the same surface, smaller and set aside, formed faster */
+  variant?: "work" | "spotlight";
+  /** the spotlight carrying its surface on into the full Work environment */
+  toWork?: boolean;
 }) {
   const root = useRef<HTMLDivElement>(null);
   const drv = useRef<HTMLParagraphElement>(null);
@@ -258,6 +276,9 @@ export function WorkStage({
   const still_ = mediaStill(project, mw) ?? "";
 
   const [origin] = useState<Origin>(from);
+  const [bornAs] = useState(variant);
+  const toWorkRef = useRef(toWork);
+  useEffect(() => { toWorkRef.current = toWork; }, [toWork]);
   const targets = useRef<CellTarget[]>([]);
   const [stillAtMount] = useState(still);
   const leavingRef = useRef(leaving);
@@ -273,7 +294,7 @@ export function WorkStage({
     const el = root.current;
     if (!el) return;
     const L = computeLayout();
-    applyLayout(el, L);
+    applyLayout(el, L, bornAs === "spotlight");
     if (origin === "about") {
       // Arriving from About: the cells start as the panels they replace.
       targets.current = mapToPanels(el, L);
@@ -282,7 +303,7 @@ export function WorkStage({
         if (t) cell.style.transform = panelPose(t);
       });
     }
-  }, [origin]);
+  }, [origin, bornAs]);
 
   useEffect(() => {
     const el = root.current;
@@ -301,12 +322,16 @@ export function WorkStage({
         target.removeAttribute(name);
       }
     };
-    set(stage, "data-x-work");
+    set(stage, bornAs === "spotlight" ? "data-x-spotlight" : "data-x-work");
+    if (bornAs === "spotlight") el.setAttribute("data-variant", "spotlight");
 
     let layout = computeLayout();
+    // Spotlight until it hands its surface on to Work; then the same
+    // rectangle animates back to the Work plane (CSS transition).
+    let spotlight = bornAs === "spotlight";
     const measure = () => {
       layout = computeLayout();
-      applyLayout(el, layout);
+      applyLayout(el, layout, spotlight);
       if (drv.current) drv.current.textContent = `Drv:// Viewport map ${window.innerWidth}x${window.innerHeight}`;
     };
     measure();
@@ -352,6 +377,8 @@ export function WorkStage({
     // Reduced motion: settled states at once, no frame loop.
     if (stillAtMount) {
       ["data-form", "data-seal", "data-ui", "data-echo", "data-solid"].forEach((n) => set(el, n));
+      // no frame loop here, so the identity beside the surface is revealed now
+      if (bornAs === "spotlight") set(stage, "data-sp-ui");
       settle();
       arrive.current();
       let left = false;
@@ -379,8 +406,13 @@ export function WorkStage({
     let leftArrived = false;
     let cueIn = 0;
     let cueOut = 0;
-    const cuesIn = origin === "about" ? WORK_CUES_FROM_ABOUT : WORK_CUES_IN;
-    const end = origin === "about" ? WORK_ABOUT.end : WORK_IN.end;
+    const sp = bornAs === "spotlight";
+    const rate = sp ? SPOTLIGHT.rate : 1;
+    const cuesIn = sp ? SPOTLIGHT.cues : origin === "about" ? WORK_CUES_FROM_ABOUT : WORK_CUES_IN;
+    const end = sp ? SPOTLIGHT.end : origin === "about" ? WORK_ABOUT.end : WORK_IN.end;
+    let vhsDone = false;
+    let handedOn: number | null = null;
+    let handedArrived = false;
 
     const frame = (now: number) => {
       // ---- leaving ------------------------------------------------------------
@@ -417,9 +449,28 @@ export function WorkStage({
         return;
       }
 
+      // ---- the spotlight hands its surface on to Work --------------------------
+      if (sp && toWorkRef.current) {
+        if (handedOn === null) {
+          handedOn = now;
+          spotlight = false;
+          applyLayout(el, layout, false);       // the surface travels to the Work plane
+          el.setAttribute("data-variant", "to-work");   // its index waits for it
+          set(stage, "data-x-spotlight", false);
+          set(stage, "data-sp-ui", false);
+          set(stage, "data-x-work");
+          cue("align");
+        } else if (!handedArrived && now - handedOn >= HANDOVER) {
+          handedArrived = true;
+          el.removeAttribute("data-variant");   // Work's own index resolves
+          arrive.current();
+        }
+        return;
+      }
+
       // ---- arriving -----------------------------------------------------------
       if (arrived) return;
-      const t = (now - start) / 1000;
+      const t = ((now - start) / 1000) * rate;
 
       if (origin === "about") {
         // Raised on the first frame, after the panel-shaped cells have painted.
@@ -454,6 +505,13 @@ export function WorkStage({
         if (t - cuesIn[cueIn].at < 0.25) cue(cuesIn[cueIn].cue);
         cueIn++;
       }
+      // The identity beside the surface resolves once the surface has locked.
+      if (sp && t >= WORK_IN.ui) set(stage, "data-sp-ui");
+      // One short analog moment, where abstract geometry becomes a display.
+      if (sp && !vhsDone && t >= SPOTLIGHT.vhsAt) {
+        vhsDone = true;
+        if (!stillAtMount) triggerVhs({ strength: 0.6 });
+      }
       if (t >= end) {
         arrived = true;
         settle();
@@ -466,7 +524,7 @@ export function WorkStage({
       stop();
       cleanup();
     };
-  }, [cue, stillAtMount, origin]);
+  }, [cue, stillAtMount, origin, bornAs]);
 
   const total = String(PROJECTS.length).padStart(2, "0");
 

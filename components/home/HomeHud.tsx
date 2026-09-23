@@ -35,6 +35,10 @@ const STATE_LABEL: Partial<Record<State, string>> = {
   "to-home": "Routing → Home",
   "work-to-about": "Routing → About",
   "about-to-work": "Routing → Work",
+  "to-spotlight": "Featured work",
+  spotlight: "Featured · 01",
+  "spotlight-to-home": "Routing → Home",
+  "spotlight-to-work": "Routing → Work",
 };
 
 const DOCK_INDEX = { home: 0, work: 1, about: 2 } as const;

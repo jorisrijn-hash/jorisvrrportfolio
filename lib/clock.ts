@@ -28,6 +28,19 @@ export function useSessionFlag(key: string): boolean | null {
   );
 }
 
+/** Read a session flag outside React (the spotlight's once-per-session gate). */
+export function sessionFlag(key: string): boolean {
+  if (flagCache.has(key)) return flagCache.get(key) as boolean;
+  let v = false;
+  try {
+    v = window.sessionStorage.getItem(key) === "1";
+  } catch {
+    /* blocked storage — treat as unset */
+  }
+  flagCache.set(key, v);
+  return v;
+}
+
 export function setSessionFlag(key: string, value: boolean) {
   flagCache.set(key, value);
   try {

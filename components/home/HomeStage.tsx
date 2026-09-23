@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { IDLE_LOOP, XFER, XFER_CUES } from "@/content/transition";
 import { ABOUT_IN, ABOUT_OUT } from "@/content/about";
 import { WORK_IN, WORK_OUT } from "@/content/work";
+import { SPOTLIGHT } from "@/content/spotlight";
 import { OBJECT_COUNT, createScene, type DrawFace } from "@/lib/sculpture/scene";
 import { clamp01, seg } from "@/lib/sculpture/math";
 import { addTick } from "@/lib/ticker";
@@ -33,7 +34,9 @@ const CRASH_RAMP = 1.1;
 
 export type StageMode =
   | "home" | "to-about" | "about" | "to-home"
-  | "home-to-work" | "work" | "work-to-home" | "work-to-about" | "about-to-work";
+  | "home-to-work" | "work" | "work-to-home" | "work-to-about" | "about-to-work"
+  // Featured Work: the same formation, faster and on the smaller plane
+  | "to-spotlight" | "spotlight" | "spotlight-to-home" | "spotlight-to-work";
 
 type Slot = { el: SVGPathElement; d: string; g: number; fa: number; sa: number };
 
@@ -190,9 +193,12 @@ export function HomeStage({
     let lastOpacity = -1;
     const setAttr = (el: Element | null, name: string, v: string) => el?.setAttribute(name, v);
 
-    const draw = (t: number, loop: number, glitch: number | null, collapse: number, work: number) => {
+    const draw = (t: number, loop: number, glitch: number | null, collapse: number, work: number, spotlight = false) => {
       const f = evaluate({
-        t, loop, fit: layout.fit, layout, hover, collapse, work,
+        t, loop, fit: layout.fit,
+        // the spotlight's cubes land on the smaller, set-aside plane
+        layout: spotlight ? { ...layout, plane: layout.spotlight.plane } : layout,
+        hover, collapse, work,
         tiltX: tilt.x, tiltY: tilt.y, shiftX: tilt.sx, shiftY: tilt.sy,
         idleW, camF, camX, camY, settle,
       });
@@ -291,6 +297,8 @@ export function HomeStage({
     let modeAt = start;
     let hidden = false;
     let skip = false;
+    let lastWork = 0;
+    let workAtLeave: number = SPOTLIGHT.outFrom;
 
     const frame = (now: number, dt: number) => {
       // The crash freezes time where it is and tears the last pose.
@@ -325,6 +333,9 @@ export function HomeStage({
       // About: fold into the centre, and back out.
       const m = modeRef.current;
       if (m !== lastMode) {
+        // A close reverses from the pose the entrance had reached, not from
+        // a reset: the spotlight can be dismissed while it is still forming.
+        if (m === "spotlight-to-home") workAtLeave = lastWork;
         lastMode = m;
         modeAt = now;
       }
@@ -337,17 +348,25 @@ export function HomeStage({
       else if (m === "to-home" || m === "about-to-work") collapse = 1 - seg(tm, ABOUT_OUT.collapse[0], ABOUT_OUT.collapse[1]);
 
       // Featured work: the formation clock, and the same clock run backward.
+      // The spotlight is that clock at SPOTLIGHT.rate, onto a smaller plane.
       let work = 0;
+      const inSpotlight = m === "to-spotlight" || m === "spotlight" || m === "spotlight-to-home" || m === "spotlight-to-work";
       if (m === "home-to-work") work = Math.min(WORK_IN.end, tm);
       else if (m === "work" || m === "work-to-about" || m === "about-to-work") work = WORK_IN.end;
       else if (m === "work-to-home") work = Math.max(0, WORK_OUT.from - tm * WORK_OUT.rate);
+      else if (m === "to-spotlight") work = Math.min(SPOTLIGHT.end, tm * SPOTLIGHT.rate);
+      else if (m === "spotlight" || m === "spotlight-to-work") work = SPOTLIGHT.end;
+      else if (m === "spotlight-to-home") {
+        // Closing mid-entrance starts from wherever the formation had got to.
+        work = Math.max(0, Math.min(SPOTLIGHT.outFrom, workAtLeave) - tm * WORK_OUT.rate * SPOTLIGHT.outRate);
+      }
       const interactive = m === "home";
 
       // ---- one blend, one camera, one settle ---------------------------------
       // A move never cancels the idle loop: its influence eases down over
       // ~300ms and back up afterwards, so the transition starts from exactly
       // the pose the object is in. Work rests at 0.4 — quieter, not frozen.
-      const resting = m === "home" || m === "work" || m === "about";
+      const resting = m === "home" || m === "work" || m === "about" || m === "spotlight";
       const idleTarget = !resting ? 0.25 : m === "home" ? 1 : 0.4;
       idleW += (idleTarget - idleW) * (1 - Math.exp(-dt / (resting ? 260 : 110)));
 
@@ -426,7 +445,8 @@ export function HomeStage({
       // always run at full rate.
       if (layout.lite && arrivedAt !== null && m === "home" && (skip = !skip)) return;
 
-      draw(Math.min(t, XFER.end), loop, null, collapse, work);
+      lastWork = work;
+      draw(Math.min(t, XFER.end), loop, null, collapse, work, inSpotlight);
     };
 
     const stop = addTick(frame);

@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { ExperienceProvider, useExperience } from "@/lib/experience";
 import { dev } from "@/lib/dev";
-import { useSessionFlag, setSessionFlag } from "@/lib/clock";
+import { useSessionFlag, setSessionFlag, sessionFlag } from "@/lib/clock";
 import { useReducedMotion } from "@/lib/motion";
 import { StaticComposition } from "./StaticComposition";
 import { Atmosphere } from "@/components/atmosphere/Atmosphere";
@@ -14,6 +14,8 @@ import { BootControls } from "@/components/hud/BootControls";
 import { CustomCursor } from "@/components/cursor/CustomCursor";
 import { HomeStage, type StageMode } from "@/components/home/HomeStage";
 import { HomeHud } from "@/components/home/HomeHud";
+import { Spotlight } from "@/components/home/Spotlight";
+import { SPOTLIGHT } from "@/content/spotlight";
 import { CrashSequence } from "@/components/home/CrashSequence";
 import { load, loadWhenIdle, useStage } from "@/lib/stages";
 import { useSound } from "@/lib/sound";
@@ -21,7 +23,9 @@ import { useSound } from "@/lib/sound";
 const SESSION_KEY = "jvr.booted";
 
 const ABOUT_STATES = ["to-about", "about", "to-home", "work-to-about", "about-to-work"];
-const WORK_STATES = ["home-to-work", "work", "work-to-home", "work-to-about", "about-to-work"];
+const WORK_STATES = ["home-to-work", "work", "work-to-home", "work-to-about", "about-to-work", "spotlight-to-work"];
+/** Featured Work: the Work surface, scaled and set aside. */
+const SPOTLIGHT_STATES = ["to-spotlight", "spotlight", "spotlight-to-home"];
 
 export function Experience() {
   return (
@@ -32,10 +36,16 @@ export function Experience() {
 }
 
 function Stage() {
-  const { state, busy, runId, begin, skipToHome, ready, arrive, reboot, go } = useExperience();
+  const { state, busy, runId, begin, skipToHome, ready, arrive, reboot, go, spotlight, closeSpotlight } = useExperience();
   const seen = useSessionFlag(SESSION_KEY);
   const reduced = useReducedMotion();
   const still = reduced && !dev("FORCE_INTRO");
+
+  const inAbout = ABOUT_STATES.includes(state);
+  const inSpotlight = SPOTLIGHT_STATES.includes(state);
+  const inWork = WORK_STATES.includes(state) || inSpotlight;
+  const atHome = state === "loading-to-home" || state === "home" || state === "crash" || inAbout || inWork;
+
 
   // Heavy stages arrive when wanted (lib/stages): the boot sequence while the
   // gate is up, Work and About once Home has settled.
@@ -52,6 +62,43 @@ function Stage() {
     }
   }, [state, warm]);
 
+  // Home has settled: after a beat, the system surfaces one piece of work.
+  // Once per session, never while the tab is hidden (the wait resumes when it
+  // comes back), and never again once it has been closed or navigated away
+  // from. The wait is also when the spotlight's preview quietly decodes.
+  useEffect(() => {
+    if (state !== "home") return;
+    if (sessionFlag(SPOTLIGHT.sessionKey)) return;
+    let timer = 0;
+    const start = () => {
+      window.clearTimeout(timer);
+      if (document.visibilityState !== "visible") return;
+      timer = window.setTimeout(() => {
+        setSessionFlag(SPOTLIGHT.sessionKey, true);
+        spotlight();
+      }, SPOTLIGHT.delay);
+    };
+    void load("work").then((m) => m.preloadWork(), () => {});
+    start();
+    document.addEventListener("visibilitychange", start);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", start);
+    };
+  }, [state, spotlight]);
+
+  // Escape closes the spotlight, wherever focus is.
+  useEffect(() => {
+    if (!inSpotlight) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeSpotlight();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [inSpotlight, closeSpotlight]);
+
+
+
   // Returning within the same session skips both the gate and the sequence.
   // A replay (runId > 0) always shows them.
   useEffect(() => {
@@ -67,9 +114,7 @@ function Stage() {
   // siblings during the crash, and sharing a bare runId key made React lose
   // track of HomeStage — it was never unmounted and its frozen drawing stayed
   // on screen under the next run.
-  const inAbout = ABOUT_STATES.includes(state);
-  const inWork = WORK_STATES.includes(state);
-  const atHome = state === "loading-to-home" || state === "home" || state === "crash" || inAbout || inWork;
+
   const mode: StageMode = inAbout || inWork ? (state as StageMode) : "home";
 
   // Atmosphere reacts to transitions through this one attribute; the dev
@@ -119,12 +164,25 @@ function Stage() {
           while one hands over to the other. */}
       {inWork && Work ? (
         <Work
-          key={`work-${runId}`}
+          // The spotlight's surface IS this surface: one mount carries it
+          // from Featured Work into the full Work environment.
+          key={inSpotlight || state === "spotlight-to-work" ? `spotlight-${runId}` : `work-${runId}`}
           from={state === "about-to-work" ? "about" : "home"}
-          leaving={state === "work-to-home" || state === "work-to-about"}
+          leaving={state === "work-to-home" || state === "work-to-about" || state === "spotlight-to-home"}
           leavingTo={state === "work-to-about" ? "about" : "home"}
           still={still}
           onArrive={arrive}
+          variant={inSpotlight || state === "spotlight-to-work" ? "spotlight" : "work"}
+          toWork={state === "spotlight-to-work"}
+        />
+      ) : null}
+
+      {inSpotlight ? (
+        <Spotlight
+          key={`spotlight-ui-${runId}`}
+          closing={state === "spotlight-to-home"}
+          onClose={closeSpotlight}
+          onSeeAll={() => go("work")}
         />
       ) : null}
 
