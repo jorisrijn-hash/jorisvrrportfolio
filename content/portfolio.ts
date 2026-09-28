@@ -169,12 +169,11 @@ export const CONTACT = {
   cta: { label: "Get in touch", href: `mailto:${SITE.email}` },
 } as const;
 
-/** Channels. GitHub is verified (github.com/jorisrijn-hash, public);
- *  LinkedIn is confirmed; Instagram carries over from the previous site. */
+/** Channels. LinkedIn is the one that matters here; Instagram carries over
+ *  from the previous site. */
 export const LINKS = [
   { label: "Email", value: SITE.email, href: `mailto:${SITE.email}` },
-  { label: "LinkedIn", value: "in/jorisvnrijn", href: SOCIALS.find((s) => s.id === "linkedin")!.href },
-  { label: "GitHub", value: "jorisrijn-hash", href: "https://github.com/jorisrijn-hash" },
+  { label: "LinkedIn", value: "in/jorisvnrijn", href: "https://www.linkedin.com/in/jorisvnrijn/" },
   { label: "Instagram", value: "@jorisvrr", href: SOCIALS.find((s) => s.id === "instagram")!.href },
 ] as const;
 

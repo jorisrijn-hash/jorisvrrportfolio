@@ -185,17 +185,23 @@ html.site, .site body { height: auto; overflow: visible auto; overflow-x: clip; 
 .mq[data-depth="1"] .mq__track > span { color: #2c2c28; }
 .hero__lines .mq:nth-child(even) { opacity: 0.88; }
 
-/* the object in the middle of the words */
-.hero__object {
+/* the portrait, set into the middle of the words */
+.hero__portrait {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: clamp(170px, 18vw, 296px);
-  filter: drop-shadow(0 26px 50px rgb(19 19 17 / 0.16));
+  width: clamp(180px, 20vw, 330px);
   transform: translate3d(calc(-50% + var(--px, 0px)), calc(-50% + var(--py, 0px)), 0);
   transition: transform 900ms var(--ease);
   z-index: 2;
   pointer-events: none;
+}
+.hero__portrait img {
+  width: 100%;
+  height: auto;
+  /* it sits ON the type rather than floating above it: no shadow, no frame,
+     just the photograph and its own edge */
+  filter: grayscale(1) contrast(1.02);
 }
 .hero__corners { position: absolute; inset: auto 0 0 0; padding: 0 var(--gutter) clamp(20px, 3vh, 34px); display: flex; justify-content: space-between; align-items: end; gap: 20px; }
 .hero__status { display: inline-flex; align-items: center; gap: 8px; }
@@ -408,7 +414,9 @@ html.site, .site body { height: auto; overflow: visible auto; overflow-x: clip; 
   .focus__keys { opacity: 1; transform: none; max-width: none; margin-left: 0; justify-content: flex-start; text-align: left; flex: 1 1 auto; gap: 6px 16px; }
   .focus__list:hover .focus__row:not([data-open]) .focus__title { opacity: 1; }
   .footer__lines h2:nth-child(2), .footer__lines h2:nth-child(3) { padding-left: 0; }
-  .hero__object { width: clamp(150px, 42vw, 240px); }
+  /* smaller on a phone: the lines are the hero, and the portrait sits in
+     them rather than over them */
+  .hero__portrait { width: clamp(126px, 37vw, 210px); }
   .project__meta > div { grid-template-columns: 64px 1fr; gap: 12px; }
 }
 @media (max-width: 560px) {
@@ -427,6 +435,6 @@ html.site, .site body { height: auto; overflow: visible auto; overflow-x: clip; 
   [data-reveal] { opacity: 1 !important; transform: none !important; transition: none !important; }
   .mask > span { transform: none !important; transition: none !important; }
   .dot { animation: none; }
-  .hero__object { transition: none; }
+  .hero__portrait { transition: none; }
   .project__figure img { transform: none; transition: none; }
 }

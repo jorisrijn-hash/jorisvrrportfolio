@@ -1,5 +1,5 @@
 import { HERO_LINES, IDENTITY } from "@/content/portfolio";
-import { HeroObject } from "./HeroObject";
+import { HeroPortrait } from "./HeroPortrait";
 
 /**
  * HERO — four statements running across the screen, and one object in the
@@ -36,7 +36,7 @@ export function Hero() {
         {IDENTITY.name} — {IDENTITY.discipline}. Software engineer and full-stack developer.
       </h1>
 
-      <HeroObject />
+      <HeroPortrait />
 
       <div className="hero__corners">
         <p className="m">
