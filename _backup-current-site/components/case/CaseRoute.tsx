@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { PROJECT_BY_SLUG } from "@/content/projects";
+import { CustomCursor } from "@/components/cursor/CustomCursor";
 import { CaseStudy } from "./CaseStudy";
 
 /**
@@ -24,6 +25,7 @@ export function CaseRoute({ slug }: { slug: string }) {
         arrival="direct"
         onOpen={(next) => router.push(`/work/${next}`)}
       />
+      <CustomCursor />
     </div>
   );
 }

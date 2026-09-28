@@ -49,9 +49,7 @@
   --color-racing: #19382a;
 
   /* ---- TYPE ----------------------------------------------------------- */
-  /* the wordmark only; the site's voice is --font-sans (app/site.css) */
   --font-display: var(--font-1955), "Helvetica Neue", Arial, sans-serif;
-  --font-sans: var(--font-archivo), "Helvetica Neue", Arial, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, monospace;
 
   /* The reference HUD is almost entirely tiny mono. */

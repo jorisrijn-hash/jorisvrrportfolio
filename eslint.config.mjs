@@ -12,4 +12,6 @@ const config = [
   },
 ];
 
+const ignores = { ignores: ["_backup-current-site/**", ".next/**"] };
+
 export default config;

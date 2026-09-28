@@ -5,6 +5,7 @@ import type { Project } from "@/content/projects";
 import { PROJECTS, hasCaseStudy } from "@/content/projects";
 import { stillSet } from "@/content/work";
 import { useReducedMotion } from "@/lib/motion";
+import { useSound } from "@/lib/sound";
 import { CaseHero } from "./CaseHero";
 import { ArchitectureDiagram, DataDiagram } from "./Diagrams";
 import { Decisions } from "./Decisions";
@@ -42,6 +43,7 @@ export function CaseStudy({
 }) {
   const p = project;
   const reduced = useReducedMotion();
+  const { cue } = useSound();
   const root = useRef<HTMLElement>(null);
 
   // ---- the sections this project actually has ------------------------------
@@ -190,7 +192,8 @@ export function CaseStudy({
     const target = document.getElementById(id);
     if (!scroller || !target) return;
     e.preventDefault();
-        scroller.setAttribute("data-jump", "");
+    cue("select");
+    scroller.setAttribute("data-jump", "");
     target.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
     window.setTimeout(() => scroller.removeAttribute("data-jump"), reduced ? 60 : 900);
     try { window.history.replaceState(null, "", `#${id}`); } catch {}

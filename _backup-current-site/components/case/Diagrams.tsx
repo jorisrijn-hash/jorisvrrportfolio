@@ -2,12 +2,9 @@
 
 import { useEffect, useState } from "react";
 import type { Architecture, DatabaseModel } from "@/content/projects";
+import { COMPACT_QUERY } from "@/lib/layout";
 
-
-/** One screen test, shared by both diagrams: wide enough to draw across.
- *  The same query the stylesheet uses for the compact composition. */
-const COMPACT_QUERY = "(max-width: 900px)";
-
+/** One screen test, shared by both diagrams: wide enough to draw across. */
 function useCompact() {
   const [compact, setCompact] = useState(false);
   useEffect(() => {

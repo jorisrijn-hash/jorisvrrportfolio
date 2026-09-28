@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Decision } from "@/content/projects";
+import { useSound } from "@/lib/sound";
 
 /**
  * ENGINEERING DECISIONS — the reasoning, not the stack.
@@ -13,6 +14,7 @@ import type { Decision } from "@/content/projects";
  */
 export function Decisions({ items }: { items: Decision[] }) {
   const [open, setOpen] = useState<string | null>(items[0]?.id ?? null);
+  const { cue } = useSound();
 
   return (
     <div className="dec">
@@ -26,8 +28,8 @@ export function Decisions({ items }: { items: Decision[] }) {
               aria-expanded={d.id === open}
               aria-controls={`dec-${d.id}`}
               data-cursor="view"
-              
-              onClick={() => { setOpen(d.id === open ? null : d.id); }}
+              onPointerEnter={(e) => { if (e.pointerType === "mouse") cue("hover"); }}
+              onClick={() => { cue(d.id === open ? "release" : "select"); setOpen(d.id === open ? null : d.id); }}
             >
               <span className="dec__n">{String(i + 1).padStart(2, "0")}</span>
               <span className="dec__area">{d.area}</span>
@@ -43,7 +45,7 @@ export function Decisions({ items }: { items: Decision[] }) {
               type="button"
               className="dec__head"
               aria-expanded={d.id === open}
-              onClick={() => { setOpen(d.id === open ? null : d.id); }}
+              onClick={() => { cue(d.id === open ? "release" : "select"); setOpen(d.id === open ? null : d.id); }}
             >
               <span className="dec__n">{String(i + 1).padStart(2, "0")}</span>
               <span className="dec__title">{d.area}</span>

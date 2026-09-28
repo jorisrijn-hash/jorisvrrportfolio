@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { ArrowRight } from "lucide-react";
 import { hasCaseStudy, type Project } from "@/content/projects";
 import { stillSet } from "@/content/work";
+import { useSound } from "@/lib/sound";
 
 /**
  * THE NEXT PROJECT — the end of a case study is a way into another one.
@@ -15,6 +16,7 @@ import { stillSet } from "@/content/work";
  */
 export function NextProject({ project: p, onOpen }: { project: Project; onOpen?: (slug: string) => void }) {
   const ref = useRef<HTMLElement>(null);
+  const { cue } = useSound();
   const ready = hasCaseStudy(p);
   const src = stillSet(p.heroMedia ?? p.showcaseMedia, "(max-width: 900px) 100vw, min(42vw, 420px)");
 
@@ -61,14 +63,15 @@ export function NextProject({ project: p, onOpen }: { project: Project; onOpen?:
     "data-cursor": "view" as const,
     onPointerMove: track,
     onPointerLeave: reset,
+    onPointerEnter: (e: React.PointerEvent) => { if (e.pointerType === "mouse") cue("hover"); },
   };
 
   return (
     <section ref={ref} className="next" data-ready={ready || undefined}>
       {ready && onOpen ? (
-        <button type="button" {...shared} onClick={() => { onOpen(p.slug); }}>{body}</button>
+        <button type="button" {...shared} onClick={() => { cue("select"); onOpen(p.slug); }}>{body}</button>
       ) : (
-        <a {...shared} href={ready ? `/work/${p.slug}` : "/"} >{body}</a>
+        <a {...shared} href={ready ? `/work/${p.slug}` : "/"} onClick={() => cue("select")}>{body}</a>
       )}
     </section>
   );

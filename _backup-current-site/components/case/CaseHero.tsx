@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowUpRight } from "lucide-react";
 import type { Project } from "@/content/projects";
 import { stillSet } from "@/content/work";
 import { useReducedMotion } from "@/lib/motion";
+import { useSound } from "@/lib/sound";
 
 /**
  * THE HERO — what the Work surface becomes.
@@ -24,12 +25,14 @@ export function CaseHero({
   arrival: "carried" | "direct";
   onBack?: () => void;
 }) {
+  const { cue } = useSound();
   const reduced = useReducedMotion();
   const fig = useRef<HTMLElement>(null);
   const media = p.heroMedia ?? p.showcaseMedia;
   // The column this figure fills, so the browser can pick the file.
   const src = stillSet(media, "(max-width: 900px) 100vw, min(1100px, 100vw - 120px)");
-  
+  const hover = (e: React.PointerEvent) => { if (e.pointerType === "mouse") cue("hover"); };
+
   /**
    * Carried arrival: the Work surface has just grown to fill the screen, and
    * this figure is standing in the same pixels. Measure where the figure
@@ -57,12 +60,30 @@ export function CaseHero({
   return (
     <header className="case-hero" data-arrival={arrival}>
       <div className="case-hero__bar">
-        {/* There is no environment behind this any more: leaving a case study
-            goes back to the work on the home page. */}
-        <Link className="case-back" href="/#work" onClick={onBack}>
-          <ArrowLeft size={12} strokeWidth={1.6} aria-hidden="true" />
-          Work
-        </Link>
+        {onBack ? (
+          <button type="button" className="case-back" data-cursor="back" onPointerEnter={hover} onClick={() => { cue("release"); onBack(); }}>
+            <ArrowLeft size={12} strokeWidth={1.6} aria-hidden="true" />
+            Work
+          </button>
+        ) : (
+          // Reached by its own URL: leaving is a real navigation back into
+          // the environment. The flag is the promise this link makes — the
+          // experience reads it and goes on to Work rather than stopping at
+          // Home (components/experience/Experience.tsx).
+          <Link
+            className="case-back"
+            href="/"
+            data-cursor="back"
+            onPointerEnter={hover}
+            onClick={() => {
+              cue("release");
+              try { sessionStorage.setItem("jvr.open", "work"); } catch {}
+            }}
+          >
+            <ArrowLeft size={12} strokeWidth={1.6} aria-hidden="true" />
+            Work
+          </Link>
+        )}
         <p className="case-hero__system">
           {"Case study"} <span aria-hidden="true">·</span> {p.number}
         </p>
@@ -84,12 +105,12 @@ export function CaseHero({
         {p.liveUrl || p.githubUrl ? (
           <p className="case-hero__links">
             {p.liveUrl ? (
-              <a href={p.liveUrl} target="_blank" rel="noreferrer noopener" data-cursor="view">
+              <a href={p.liveUrl} target="_blank" rel="noreferrer noopener" data-cursor="view" onPointerEnter={hover}>
                 Live<ArrowUpRight size={11} strokeWidth={1.6} aria-hidden="true" />
               </a>
             ) : null}
             {p.githubUrl ? (
-              <a href={p.githubUrl} target="_blank" rel="noreferrer noopener" data-cursor="view">
+              <a href={p.githubUrl} target="_blank" rel="noreferrer noopener" data-cursor="view" onPointerEnter={hover}>
                 Source<ArrowUpRight size={11} strokeWidth={1.6} aria-hidden="true" />
               </a>
             ) : null}

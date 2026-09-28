@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { display, mono, sans } from "./fonts";
+import { display, mono } from "./fonts";
+import { SoundProvider } from "@/lib/sound";
 import "./globals.css";
 
 // Icons come from the file conventions in app/: favicon.ico, icon.png and
@@ -9,20 +10,18 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://jorisvrr.com"),
 
   title: {
-    default: "Joris van Rijn — Software Engineering & Digital Systems",
+    default: "Joris van Rijn — ICT, Business & Digital Product",
     template: "%s — Joris van Rijn",
   },
 
   description:
-    "Portfolio of Joris van Rijn — an HBO-ICT software engineering student building digital products and systems: full-stack and backend development, APIs, data, and the business thinking around them.",
+    "Portfolio of Joris van Rijn, an HBO-ICT Business & Data Management student focused on digital products, UI/UX, business optimization, data and software development.",
 
   keywords: [
     "Joris van Rijn",
     "Joris van Rijn portfolio",
     "HBO ICT",
-    "software engineering",
-    "full-stack developer",
-    "backend development",
+    "Business & Data Management",
     "ICT portfolio",
     "digital product design",
     "UI UX design",
@@ -56,9 +55,9 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "https://jorisvrr.com",
     siteName: "Joris van Rijn",
-    title: "Joris van Rijn — Software Engineering & Digital Systems",
+    title: "Joris van Rijn — ICT, Business & Digital Product",
     description:
-      "HBO-ICT software engineering student building digital products and systems — full-stack and backend development, APIs, data, and the business thinking around them.",
+      "HBO-ICT Business & Data Management student working across digital products, UI/UX, business optimization, data and software development.",
     images: [
       {
         url: "/og-image.jpg",
@@ -71,9 +70,9 @@ export const metadata: Metadata = {
 
   twitter: {
     card: "summary_large_image",
-    title: "Joris van Rijn — Software Engineering & Digital Systems",
+    title: "Joris van Rijn — ICT, Business & Digital Product",
     description:
-      "Full-stack and backend development, digital products, data and systems.",
+      "Digital products, UI/UX, business optimization, data and software development.",
     images: ["/og-image.jpg"],
   },
 
@@ -100,10 +99,12 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${sans.variable} ${display.variable} ${mono.variable}`}>
+    <html lang="en" className={`${display.variable} ${mono.variable}`}>
       <body>
-        <a className="skip-link" href="#about">Skip to content</a>
-        {children}
+        <SoundProvider>
+          <a className="skip-link" href="#main">Skip to content</a>
+          <main id="main">{children}</main>
+        </SoundProvider>
       </body>
     </html>
   );
