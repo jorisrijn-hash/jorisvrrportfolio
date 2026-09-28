@@ -28,12 +28,17 @@ export const IDENTITY = {
   domain: SITE.domain,
 } as const;
 
-/** The lines that run across the hero. Alternating direction, in this order. */
+/**
+ * The lines that run across the hero. They are the hero — not a heading
+ * inside it — so there are five of them and they divide the whole height
+ * between them, running in alternating directions at different speeds.
+ */
 export const HERO_LINES = [
   { text: "SOFTWARE ENGINEER", dir: 1 },
   { text: "FULL-STACK DEVELOPER", dir: -1 },
   { text: "DIGITAL SYSTEMS", dir: 1 },
-  { text: "BUSINESS × TECHNOLOGY", dir: -1 },
+  { text: "PRODUCT DEVELOPMENT", dir: -1 },
+  { text: "BUSINESS × TECHNOLOGY", dir: 1 },
 ] as const;
 
 export const ABOUT = {
@@ -41,7 +46,7 @@ export const ABOUT = {
   heading: "About",
   lead: "I build digital products and software at the intersection of technology, business and design.",
   body: [
-    "I study HBO-ICT at De Haagse Hogeschool, on the software engineering track. What interests me is the system behind a product — the interfaces, the APIs, the data, the processes, and the way people actually end up using it.",
+    "I study HBO-ICT, on the software engineering track. What interests me is the system behind a product — the interfaces, the APIs, the data, the processes, and the way people actually end up using it.",
     "My background is in visual design and filmmaking, which is where I learned to communicate an idea. It gives me a different way into development: I care how something is built, but also why it exists, what it costs the business, and how the finished thing feels to use.",
   ],
   /** Metadata, not a skills résumé: no bars, no percentages, no years. */
@@ -51,9 +56,14 @@ export const ABOUT = {
   ],
 } as const;
 
+/**
+ * The chapter marker for the work. It is small, it stays pinned in the middle
+ * of the screen, and the projects move past it — so it is a label on a
+ * sequence rather than a headline above a list.
+ */
 export const WORK_INTRO = {
-  heading: "Selected work",
-  note: "Two projects — one client, one my own",
+  marker: "Selected work",
+  note: "One client, one my own",
 } as const;
 
 /**
@@ -127,43 +137,19 @@ export const STATEMENT = {
 export const FOCUS = {
   label: "(02)",
   heading: "What I work with",
+  hint: "click me",
   items: [
-    { id: "software", title: "Software", keywords: ["Java", "React", "Next.js", "APIs", "Backend", "Full-stack"] },
-    { id: "products", title: "Digital products", keywords: ["Web applications", "Interfaces", "Prototypes", "Product thinking"] },
-    { id: "data", title: "Data & systems", keywords: ["SQL", "Supabase", "Data modelling", "System architecture"] },
-    { id: "ux", title: "UX / UI", keywords: ["User flows", "Wireframes", "Interaction", "Design systems"] },
-    { id: "business", title: "Business", keywords: ["Business analysis", "Process optimization", "Digital strategy", "Stakeholders"] },
-  ],
-} as const;
-
-export const PROCESS = {
-  label: "(03)",
-  heading: ["From problem", "to system", "to product."],
-  steps: [
-    { n: "01", title: "Understand", text: "What is actually happening, and for whom?" },
-    { n: "02", title: "Structure", text: "What does the system need to be true?" },
-    { n: "03", title: "Build", text: "How can technology solve it, concretely?" },
-    { n: "04", title: "Refine", text: "Does it work when someone really uses it?" },
-  ],
-} as const;
-
-export const CURRENTLY = {
-  label: "Currently",
-  school: "De Haagse Hogeschool",
-  programme: "HBO-ICT — Software Engineering",
-  years: "2026 — 2030",
-  place: "Den Haag, Netherlands",
-  focus: [
-    "Software engineering",
-    "Backend development",
-    "Full-stack development",
-    "Data & systems",
-    "Digital product development",
+    { id: "software", title: "Software", line: "Where most of my time goes: writing it, breaking it, reading other people's.", keywords: ["Java", "React", "Next.js", "APIs", "Full-stack"] },
+    { id: "products", title: "Digital products", line: "Something a person opens and gets somewhere with. The rest is scaffolding.", keywords: ["Web applications", "Interfaces", "Prototypes", "Product thinking"] },
+    { id: "systems", title: "Systems", line: "How the parts are allowed to talk to each other, decided on purpose.", keywords: ["Architecture", "APIs", "State", "Deployment"] },
+    { id: "data", title: "Data", line: "The shape of the thing underneath. Get it wrong and everything above it bends.", keywords: ["SQL", "PostgreSQL", "Supabase", "Data modelling"] },
+    { id: "interfaces", title: "Interfaces", line: "Where the system meets somebody who did not build it.", keywords: ["User flows", "Interaction", "Design systems", "Prototyping"] },
+    { id: "business", title: "Business × technology", line: "What it is for, what it costs, and whether it was worth building.", keywords: ["Business analysis", "Process optimization", "Stakeholders"] },
   ],
 } as const;
 
 export const CONTACT = {
-  label: "(04)",
+  label: "(03)",
   heading: ["Have a project", "or an opportunity?"],
   body: "I'm looking for an internship where I can grow through real software development — building things that people actually use, in a team that builds them properly.",
   cta: { label: "Get in touch", href: `mailto:${SITE.email}` },

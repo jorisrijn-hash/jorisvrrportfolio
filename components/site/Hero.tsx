@@ -2,13 +2,16 @@ import { HERO_LINES, IDENTITY } from "@/content/portfolio";
 import { HeroPortrait } from "./HeroPortrait";
 
 /**
- * HERO — four statements running across the screen, and one object in the
- * middle of them.
+ * HERO — the typography is the environment.
  *
- * Each line is a track holding the phrase twice and sliding exactly half its
- * own width, so the loop closes on itself with no seam and no JavaScript.
- * The lines run in opposite directions at different speeds; the page clips
- * them, so nothing ever scrolls sideways.
+ * Five statements divide the whole height of the screen between them and run
+ * past both edges, in alternating directions at different speeds. Nothing is
+ * centred in a container and nothing sits "inside" the hero: the words are
+ * the hero, the portrait interrupts them, and the four corners are as small
+ * as they can be and still be read.
+ *
+ * Each line is a track holding its phrase twice and travelling exactly half
+ * its own width, so the loop closes on itself. No JavaScript is involved.
  */
 export function Hero() {
   return (
@@ -20,12 +23,11 @@ export function Hero() {
             className="mq"
             data-dir={line.dir}
             data-depth={i % 2}
-            style={{ ["--dur" as string]: `${34 + i * 7}s` }}
+            style={{ ["--dur" as string]: `${38 + i * 9}s` }}
           >
             <div className="mq__track">
-              {/* two halves, identical: the animation travels exactly one */}
-              <span>{`${line.text} · `.repeat(4)}</span>
-              <span>{`${line.text} · `.repeat(4)}</span>
+              <span>{`${line.text} · `.repeat(5)}</span>
+              <span>{`${line.text} · `.repeat(5)}</span>
             </div>
           </div>
         ))}
@@ -39,9 +41,7 @@ export function Hero() {
       <HeroPortrait />
 
       <div className="hero__corners">
-        <p className="m">
-          {IDENTITY.location} · Software engineering
-        </p>
+        <p className="m">{IDENTITY.location} · Software engineering</p>
         <p className="m hero__status">
           <span className="dot" aria-hidden="true" />
           {IDENTITY.status}

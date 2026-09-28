@@ -143,21 +143,34 @@ html.site, .site body { height: auto; overflow: visible auto; overflow-x: clip; 
 .nav__links a:hover::after, .nav__links a:focus-visible::after { transform: none; }
 
 /* =========================================================================
-   HERO
+   HERO — the typography IS the hero
+
+   Five lines divide the height between them (each one a row of a grid that
+   fills the screen), and each is sized to its own row rather than to a
+   guessed pixel value, so the block fills the viewport at any aspect. They
+   run past both edges; the page clips them.
    ========================================================================= */
 .hero {
   position: relative;
-  min-height: 100svh;
+  height: 100svh;
   display: grid;
-  align-content: center;
-  overflow: clip;              /* the lines run past the edges, the page does not */
-  padding-block: clamp(110px, 17vh, 200px);
+  /* a grid track is as wide as its widest item unless it is told otherwise,
+     and the marquee tracks are thousands of pixels wide */
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto 1fr auto;
+  overflow: clip;
+  padding-block: clamp(58px, 7vh, 88px) clamp(52px, 6vh, 76px);
 }
-.hero__lines { display: grid; gap: clamp(2px, 0.9vh, 14px); }
+.hero__lines {
+  grid-row: 2;
+  min-width: 0;
+  display: grid;
+  grid-auto-rows: 1fr;              /* the five lines share the height */
+  align-content: stretch;
+}
 
-/* One line of the marquee. The track holds two identical halves and slides by
-   exactly half its width, so the loop has no seam. */
-.mq { display: flex; overflow: clip; }
+/* one line: a track holding the phrase twice, sliding exactly one copy */
+.mq { display: flex; align-items: center; overflow: clip; min-width: 0; }
 .mq__track {
   display: flex;
   flex: none;
@@ -167,50 +180,50 @@ html.site, .site body { height: auto; overflow: visible auto; overflow-x: clip; 
 .mq[data-dir="-1"] .mq__track { animation-direction: reverse; }
 .mq__track > span {
   flex: none;
-  padding-right: 0.2em;
+  padding-right: 0.18em;
   font-family: var(--font-sans);
   font-weight: 800;
   font-stretch: 62%;
-  font-size: clamp(48px, 9.2vw, 152px);
-  line-height: 0.94;
+  /* whichever is smaller: a fifth of the screen's height, or a width that
+     still shows more than one word */
+  font-size: min(13vw, 15.4vh);
+  line-height: 0.92;
   letter-spacing: -0.005em;
   text-transform: uppercase;
   white-space: nowrap;
 }
-/* the second and fourth lines are set a little wider and lighter, so the
-   block reads as a composition rather than four of the same line */
-.hero__lines .mq:nth-child(even) .mq__track > span { font-weight: 600; font-stretch: 78%; }
 @keyframes mq { to { transform: translate3d(-50%, 0, 0); } }
-/* the second and fourth lines sit back a little, so the block has depth */
-.mq[data-depth="1"] .mq__track > span { color: #2c2c28; }
-.hero__lines .mq:nth-child(even) { opacity: 0.88; }
+/* alternate lines are set wider and lighter, so the five read as a
+   composition rather than as five of the same line */
+.hero__lines .mq:nth-child(even) .mq__track > span { font-weight: 600; font-stretch: 80%; color: #3a3a35; }
 
-/* the portrait, set into the middle of the words */
+/* the portrait: an interruption in the words, not the subject of the hero */
 .hero__portrait {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: clamp(180px, 20vw, 330px);
+  width: clamp(112px, 10.5vw, 168px);
   transform: translate3d(calc(-50% + var(--px, 0px)), calc(-50% + var(--py, 0px)), 0);
   transition: transform 900ms var(--ease);
   z-index: 2;
   pointer-events: none;
 }
-.hero__portrait img {
-  width: 100%;
-  height: auto;
-  /* it sits ON the type rather than floating above it: no shadow, no frame,
-     just the photograph and its own edge */
-  filter: grayscale(1) contrast(1.02);
+.hero__portrait img { width: 100%; height: auto; filter: grayscale(1) contrast(1.02); }
+
+.hero__corners {
+  grid-row: 3;
+  padding-inline: var(--gutter);
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 20px;
 }
-.hero__corners { position: absolute; inset: auto 0 0 0; padding: 0 var(--gutter) clamp(20px, 3vh, 34px); display: flex; justify-content: space-between; align-items: end; gap: 20px; }
 .hero__status { display: inline-flex; align-items: center; gap: 8px; }
 .dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: var(--racing);
-  box-shadow: 0 0 0 0 rgb(25 56 42 / 0.5);
   animation: pulse 3.2s var(--ease-inout) infinite;
 }
 @keyframes pulse {
@@ -243,24 +256,67 @@ html.site, .site body { height: auto; overflow: visible auto; overflow-x: clip; 
 .stack li { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-soft); }
 
 /* =========================================================================
-   WORK
-   ========================================================================= */
-.workintro { display: grid; justify-items: center; text-align: center; gap: 18px; }
-.workintro h2 { font-size: clamp(48px, 11vw, 190px); }
+   SELECTED WORK — a pinned chapter marker, and work that moves past it
 
-.project { padding-block: clamp(60px, 9vh, 120px); }
-.project__top { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; padding-bottom: 14px; }
-.project h3 { font-size: clamp(46px, 10.5vw, 178px); margin-top: clamp(18px, 3vh, 44px); }
-.project__body { display: grid; grid-template-columns: 1.55fr 1fr; gap: clamp(28px, 5vw, 90px); align-items: start; margin-top: clamp(30px, 5vh, 64px); }
-.project__figure { margin: 0; position: relative; overflow: hidden; background: var(--paper-deep); }
-.project__figure img { width: 100%; height: auto; display: block; transform: scale(1.04); transition: transform 1400ms var(--ease); }
-.project:hover .project__figure img { transform: scale(1); }
-.project__figure figcaption { padding-top: 10px; }
-.project__side { display: grid; gap: clamp(22px, 3vh, 34px); align-content: start; }
-.project__summary { color: var(--ink-soft); max-width: 46ch; }
-.project__meta { display: grid; gap: 12px; }
-.project__meta > div { display: grid; grid-template-columns: 74px 1fr; gap: 16px; align-items: baseline; padding-bottom: 12px; border-bottom: 1px solid var(--rule); }
-.project__meta dd { margin: 0; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; color: var(--ink); }
+   The marker is sticky at the middle of the screen for the whole section and
+   blends against whatever is behind it, so it survives crossing a
+   photograph. The projects are given room: a screen for the name, a screen
+   for the image, a screen for what is true about it.
+   ========================================================================= */
+.work { position: relative; padding-block: clamp(80px, 12vh, 160px); }
+
+.work__marker {
+  position: sticky;
+  top: 50svh;
+  z-index: 3;
+  height: 0;                         /* takes no space in the flow */
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  pointer-events: none;
+  mix-blend-mode: difference;
+  color: #f2f1ed;
+}
+.work__marker .m { color: inherit; }
+.work__count { display: inline-flex; gap: 6px; }
+.work__count span { opacity: 0.35; transition: opacity 620ms var(--ease); }
+.work__count span[data-at] { opacity: 1; }
+.work__slash { opacity: 0.35 !important; }
+
+.work__project { padding-block: clamp(90px, 16vh, 220px); }
+.work__num { margin-bottom: clamp(18px, 3vh, 34px); }
+.work__title { font-size: clamp(52px, 12.5vw, 220px); }
+.work__kind { margin-top: clamp(20px, 3.4vh, 42px); }
+
+/* the image arrives by uncovering itself, and settles out of a slow scale */
+.work__figure {
+  width: min(1680px, 100vw - var(--gutter) * 2);
+  margin: clamp(56px, 10vh, 130px) auto 0;
+  overflow: hidden;
+  background: var(--paper-deep);
+}
+.work__figure img {
+  width: 100%;
+  height: auto;
+  display: block;
+  transform: scale(1.06);
+  transition: transform 1600ms var(--ease);
+}
+.work__figure[data-reveal="in"] img { transform: scale(1); }
+.work__caption { margin-top: 12px; }
+
+.work__read {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(28px, 5vw, 90px);
+  align-items: start;
+  margin-top: clamp(56px, 10vh, 130px);
+}
+.work__summary { color: var(--ink-soft); max-width: 44ch; font-size: clamp(16px, 1.3vw, 20px); line-height: 1.55; }
+.work__meta { display: grid; gap: 12px; }
+.work__meta > div { display: grid; grid-template-columns: 78px 1fr; gap: 16px; align-items: baseline; padding-bottom: 12px; border-bottom: 1px solid var(--rule); }
+.work__meta dd { margin: 0; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; color: var(--ink); }
+.work__read > p:last-child { grid-column: 2; }
 
 /* the one button shape the site uses */
 .action {
@@ -268,7 +324,7 @@ html.site, .site body { height: auto; overflow: visible auto; overflow-x: clip; 
   align-items: center;
   gap: 12px;
   padding: 14px 20px;
-  border: 1px solid var(--ink);
+  border: 1px solid currentColor;
   font-family: var(--font-mono);
   font-size: 10px;
   letter-spacing: 0.22em;
@@ -276,88 +332,136 @@ html.site, .site body { height: auto; overflow: visible auto; overflow-x: clip; 
   position: relative;
   overflow: hidden;
   isolation: isolate;
+  transition: color 420ms var(--ease);
 }
 .action::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: var(--ink);
+  background: currentColor;
   transform: scaleX(0);
   transform-origin: 0 50%;
   transition: transform 520ms var(--ease);
   z-index: -1;
 }
 .action:hover, .action:focus-visible { color: var(--paper); }
-.action:hover::before, .action:focus-visible::before { transform: none; }
+.action:hover::before, .action:focus-visible::before { transform: none; background: var(--ink); }
 .action svg { transition: transform 420ms var(--ease); }
 .action:hover svg { transform: translateX(4px); }
 
 /* =========================================================================
-   STATEMENT
+   STATEMENT — read by scrolling, not shown
+
+   The two halves are a screen apart. Each line drifts sideways at its own
+   rate as the section travels (`--p` from the scroll driver), so the
+   sentence is still moving while it is being read, and settles as it goes.
    ========================================================================= */
-.statement p.d { font-size: clamp(38px, 7.4vw, 124px); }
+.statement { --p: 0; padding-block: clamp(120px, 26vh, 300px); }
+.statement__half { width: var(--col); margin-inline: auto; }
+.statement__half[data-half="1"] { margin-top: clamp(150px, 32vh, 360px); }
+.statement p.d { font-size: clamp(38px, 7.6vw, 132px); }
+/* the drift: the first line leads, the second follows a beat behind */
+.statement .mask > span {
+  transform: translate3d(calc((1 - var(--p)) * (34px + var(--i, 0) * 46px)), 102%, 0);
+}
+.statement .mask[data-reveal="in"] > span {
+  /* still moving while it is read: each line drifts at its own rate with the
+     scroll, and settles as the section passes */
+  transform: translate3d(calc((0.5 - var(--p)) * (30px + var(--i, 0) * 44px)), 0, 0);
+  transition: transform 1200ms var(--ease) calc(var(--i, 0) * 90ms);
+}
 .statement__b { color: var(--ink-faint); }
-.statement__body { max-width: 50ch; margin-left: auto; margin-top: clamp(36px, 6vh, 80px); color: var(--ink-soft); }
+.statement__body { max-width: 46ch; margin-top: clamp(60px, 12vh, 140px); color: var(--ink-soft); }
 
 /* =========================================================================
-   FOCUS — the big interactive categories
+   WHAT I WORK WITH — typography that reacts
+
+   Six words stepped across the page. The one under the pointer comes
+   forward and says what it means; the rest step back. A small mark trails
+   the pointer while one is open.
    ========================================================================= */
-.focus__list { display: grid; gap: clamp(6px, 1vh, 16px); margin-top: clamp(40px, 6vh, 80px); }
-.focus__row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: clamp(14px, 2vw, 34px);
-  padding-block: clamp(6px, 1.2vh, 16px);
-  /* one height whatever the row holds, so opening a category moves the
-     keywords in rather than moving the whole list down */
-  min-height: clamp(66px, 8.4vw, 124px);
-  border-top: 1px solid var(--rule);
+.focus__field {
   position: relative;
+  width: var(--col);
+  margin: clamp(40px, 8vh, 110px) auto 0;
+  display: grid;
+  gap: clamp(2px, 1.2vh, 18px);
 }
-.focus__row:last-child { border-bottom: 1px solid var(--rule); }
-/* the composition: rows step across the page rather than stacking flush left */
-.focus__row:nth-child(2) { padding-left: 12%; }
-.focus__row:nth-child(3) { padding-left: 5%; }
-.focus__row:nth-child(4) { padding-left: 20%; }
-.focus__row:nth-child(5) { padding-left: 8%; }
-.focus__title {
-  font-family: var(--font-sans);
-  font-weight: 800;
-  font-stretch: 66%;
-  font-size: clamp(30px, 5.2vw, 88px);
-  line-height: 1;
-  letter-spacing: -0.035em;
-  text-transform: uppercase;
+.focus__word {
+  position: relative;
+  display: grid;
+  grid-template-columns: max-content auto;
+  align-items: center;
+  column-gap: clamp(14px, 2vw, 30px);
+  gap: 10px;
+  padding-block: clamp(4px, 0.8vh, 12px);
+  text-align: left;
+  width: 100%;
+}
+/* the composition: each word starts further in than the last, then steps back */
+.focus__word:nth-child(2) { padding-left: 0; }
+.focus__word:nth-child(3) { padding-left: 9%; }
+.focus__word:nth-child(4) { padding-left: 3%; }
+.focus__word:nth-child(5) { padding-left: 15%; }
+.focus__word:nth-child(6) { padding-left: 7%; }
+.focus__word:nth-child(7) { padding-left: 19%; }
+
+.focus__w {
+  display: block;
+  font-size: clamp(34px, 7vw, 116px);
   color: var(--ink);
-  transition: color 420ms var(--ease), opacity 420ms var(--ease);
+  transition: transform 720ms var(--ease), color 480ms var(--ease), opacity 480ms var(--ease);
+  transform-origin: 0 50%;
 }
-.focus__keys { display: flex; flex-wrap: wrap; gap: 6px 18px; max-width: 42ch; opacity: 0; transform: translateX(-8px); transition: opacity 460ms var(--ease), transform 520ms var(--ease); }
-.focus__row[data-open] .focus__keys { opacity: 1; transform: none; }
-.focus__row[data-open] .focus__title { color: var(--burgundy); }
-.focus__list:hover .focus__row:not([data-open]) .focus__title { opacity: 0.32; }
-/* The row IS the control — a button with `display: contents` inside it is
-   skipped by the keyboard, so the row carries the behaviour itself. */
-.focus__row { width: 100%; text-align: left; }
-.focus__keys { margin-left: auto; justify-content: flex-end; flex: 0 1 min(340px, 34vw); text-align: right; }
+/* the field dims around whichever word is live */
+.focus__field[data-live] .focus__word:not([data-open]) .focus__w { opacity: 0.34; }
+.focus__word[data-open] .focus__w { transform: translateX(clamp(8px, 1.4vw, 26px)); color: var(--burgundy); }
 
-/* =========================================================================
-   PROCESS
-   ========================================================================= */
-.process h2 { font-size: clamp(40px, 7.6vw, 128px); }
-.process__steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: clamp(20px, 3vw, 48px); margin-top: clamp(48px, 8vh, 110px); }
-.process__step { display: grid; gap: 12px; align-content: start; padding-top: 16px; border-top: 1px solid var(--ink); }
-.process__step h3 { font-family: var(--font-sans); font-weight: 600; font-size: clamp(18px, 1.7vw, 26px); letter-spacing: -0.01em; }
-.process__step p { color: var(--ink-soft); font-size: 14px; max-width: 26ch; }
+.focus__said {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 8px;
+  max-width: 54ch;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 520ms var(--ease), transform 620ms var(--ease);
+}
+.focus__word[data-open] .focus__said { opacity: 1; transform: none; }
+.focus__line { font-size: clamp(14px, 1.15vw, 18px); color: var(--ink-soft); max-width: 46ch; }
+.focus__keys { display: flex; flex-wrap: wrap; gap: 6px 18px; }
 
-/* =========================================================================
-   CURRENTLY
-   ========================================================================= */
-.currently { display: grid; grid-template-columns: 1.4fr 1fr; gap: clamp(30px, 5vw, 90px); align-items: end; }
-.currently h2 { font-size: clamp(34px, 5.6vw, 92px); }
-.currently__rows { display: grid; gap: 10px; margin-top: 26px; }
-.currently__focus { display: grid; gap: 10px; }
-.currently__focus li { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-soft); padding-bottom: 10px; border-bottom: 1px solid var(--rule); }
+/* the one interaction hint on the page */
+.focus__hint {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: start;
+  white-space: nowrap;
+  color: var(--ink-faint);
+  opacity: 0;
+  animation: hint 5s var(--ease) 1.2s 3 both;
+}
+@keyframes hint { 0%, 100% { opacity: 0; } 25%, 70% { opacity: 1; } }
+.focus__field[data-live] .focus__hint { opacity: 0 !important; animation: none; }
+
+/* the mark that trails the pointer */
+.focus__mark {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  color: var(--burgundy);
+  opacity: 0;
+  transform: translate3d(var(--mx, 0px), var(--my, 0px), 0) scale(0.6);
+  transition: opacity 420ms var(--ease), transform 620ms var(--ease);
+  pointer-events: none;
+  z-index: 2;
+}
+.focus__field[data-live] .focus__mark {
+  opacity: 0.85;
+  transform: translate3d(var(--mx, 0px), var(--my, 0px), 0) scale(1);
+}
 
 /* =========================================================================
    CONTACT
@@ -370,58 +474,126 @@ html.site, .site body { height: auto; overflow: visible auto; overflow-x: clip; 
 .contact__links a:hover span:last-child { color: var(--burgundy); }
 
 /* =========================================================================
-   THE ENDING — the page turns black under the last two sections.
-   ========================================================================= */
-.night {
-  position: relative;
-  background: var(--night);
-  color: var(--night-ink);
-  --ink: var(--night-ink);
-  --ink-soft: #8f8f88;
-  --ink-faint: #6a6a64;
-  --rule: rgb(242 241 237 / 0.16);
-}
-/* the transition itself: the black rises out of the page as it is reached */
-.dusk { height: clamp(140px, 22vh, 280px); background: linear-gradient(180deg, var(--paper), var(--night)); }
+   THE DESCENT — the page changes state rather than fading out
 
-.footer { padding-block: clamp(80px, 12vh, 160px); }
-.footer__lines h2 { font-size: clamp(64px, 17vw, 300px); }
+   One progress value (`--n`, written by the scroll driver) carries the last
+   stretch of the page from its light state into its dark one. The background
+   moves continuously with it; the things that would be unreadable halfway
+   through — text, rules, the small interface — switch on thresholds instead,
+   quickly, which reads as the interface changing state rather than as a
+   dissolve. The grain comes up as it goes.
+   ========================================================================= */
+.descent {
+  --n: 0;
+  position: relative;
+  isolation: isolate;               /* so the layer below has a context to sit in */
+  color: var(--ink);
+  transition: color 420ms var(--ease);
+}
+.descent > * { position: relative; z-index: 1; }
+/* The dark is a layer over the whole viewport, not a background on this
+   block: a block background would draw a hard line across the page where the
+   descent begins. As a fixed layer it simply rises behind everything, and at
+   --n 0 it is not there at all. */
+.descent::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;                       /* behind the sections, over the paper */
+  background: var(--night);
+  opacity: var(--n);
+  pointer-events: none;
+}
+/* the stretch the change happens in: empty on purpose */
+.fall { height: clamp(300px, 70vh, 760px); }
+
+/* the grain that arrives with the dark */
+.descent::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  background-image: url("/grain.png");
+  background-size: 180px 180px;
+  opacity: calc(var(--n) * 0.055);
+  mix-blend-mode: overlay;
+}
+
+/* stage one: the lines and edges give up first */
+.descent[data-rules="night"] {
+  --rule: rgb(242 241 237 / 0.18);
+  --ink-faint: #74746e;
+}
+/* stage two: the type turns over, quickly, while the ground is still moving */
+.descent[data-ink="night"] {
+  --ink: var(--night-ink);
+  --ink-soft: #97978f;
+  --paper: var(--night);
+  --burgundy: #b4636f;              /* the accent has to survive the dark too */
+}
+.descent[data-ink="night"] .action:hover,
+.descent[data-ink="night"] .action:focus-visible { color: var(--night); }
+.descent[data-ink="night"] .action:hover::before { background: var(--night-ink); }
+
+/* =========================================================================
+   THE CLOSING SCENE — the end of the journey, not a different colour block
+   ========================================================================= */
+.footer { padding-block: clamp(90px, 16vh, 200px) clamp(40px, 7vh, 80px); }
+.footer > .wrap { width: var(--col); margin-inline: auto; }
+.footer__lines h2 { font-size: clamp(58px, 16vw, 280px); }
 .footer__lines h2:nth-child(2) { padding-left: 8%; }
 .footer__lines h2:nth-child(3) { padding-left: 18%; }
-.footer__grid { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 40px; margin-top: clamp(60px, 10vh, 120px); padding-top: 26px; border-top: 1px solid var(--rule); }
+.footer__grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 40px;
+  margin-top: clamp(70px, 12vh, 150px);
+  padding-top: 26px;
+  border-top: 1px solid var(--rule);
+}
 .footer__col { display: grid; gap: 10px; align-content: start; }
 .footer__col a { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }
 .footer__col a:hover { color: #fff; }
-.footer__bottom { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; margin-top: clamp(40px, 6vh, 72px); }
+.footer__bottom { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; margin-top: clamp(44px, 7vh, 80px); }
 
 /* =========================================================================
    RESPONSIVE — the desktop composition is experimental; this is not.
    ========================================================================= */
 @media (max-width: 900px) {
   :root { --rhythm: clamp(72px, 10vh, 120px); }
+
   /* the hero is the one place a phone should not be quieter: the lines scale
-     with the screen instead of falling back to a desktop minimum */
-  .hero { padding-block: clamp(80px, 12vh, 130px); }
-  .mq__track > span { font-size: clamp(42px, 16.5vw, 108px); }
+     with the screen rather than falling back to a desktop minimum */
+  .hero { padding-block: clamp(56px, 9vh, 92px) clamp(46px, 7vh, 72px); }
+  .mq__track > span { font-size: min(17vw, 13vh); }
+  .hero__portrait { width: clamp(96px, 26vw, 150px); }
   .m { letter-spacing: 0.16em; }
-  .about__grid, .project__body, .currently { grid-template-columns: 1fr; }
-  .about__body { margin-left: 0; }
-  .process__steps { grid-template-columns: 1fr 1fr; gap: 28px 20px; }
-  .statement__body, .about__body { margin-left: 0; }
-  /* no hover on a phone, so every category is simply open, and the keywords
-     sit under their title rather than across the page */
-  .focus__row { flex-direction: column; align-items: flex-start; gap: 10px; padding-left: 0 !important; min-height: 0; padding-block: 18px; }
-  .focus__keys { opacity: 1; transform: none; max-width: none; margin-left: 0; justify-content: flex-start; text-align: left; flex: 1 1 auto; gap: 6px 16px; }
-  .focus__list:hover .focus__row:not([data-open]) .focus__title { opacity: 1; }
+
+  .about__grid, .work__read { grid-template-columns: 1fr; }
+  .about__body, .statement__body { margin-left: 0; }
+  .work__read > p:last-child { grid-column: 1; }
+  .work__meta > div { grid-template-columns: 66px 1fr; gap: 12px; }
+
+  /* the chapter marker moves out of the type's way and reads as a status
+     line along the bottom of the screen — still pinned, still a marker */
+  .work__marker { top: calc(100svh - 30px); justify-content: flex-start; padding-left: var(--gutter); }
+
+  /* no hover on a phone, so every word is open and the keywords sit under
+     their own title */
+  .focus__word { grid-template-columns: 1fr; padding-block: 16px; }
+  .focus__said { opacity: 1; transform: none; }
+  .focus__field[data-live] .focus__word:not([data-open]) .focus__w { opacity: 1; }
+  .focus__word:nth-child(n) { padding-left: 0; }
+  .focus__hint, .focus__mark { display: none; }
+
   .footer__lines h2:nth-child(2), .footer__lines h2:nth-child(3) { padding-left: 0; }
-  /* smaller on a phone: the lines are the hero, and the portrait sits in
-     them rather than over them */
-  .hero__portrait { width: clamp(126px, 37vw, 210px); }
-  .project__meta > div { grid-template-columns: 64px 1fr; gap: 12px; }
 }
+
 @media (max-width: 560px) {
-  .process__steps { grid-template-columns: 1fr; }
-  .hero__corners { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .hero__corners { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .work__marker { top: calc(100svh - 34px); }
 }
 
 /* =========================================================================

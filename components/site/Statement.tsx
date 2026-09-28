@@ -1,23 +1,30 @@
 import { STATEMENT } from "@/content/portfolio";
 
-/** The turn: from what I have built to why I build it that way. */
+/**
+ * The turn in the page.
+ *
+ * Not one giant quote that appears: the two halves are a screen apart, each
+ * line drifts sideways at its own rate as the section travels (the `--p` the
+ * scroll driver writes), and the second sentence is only reached after the
+ * first has gone by. It is read the way it is scrolled.
+ */
 export function Statement() {
   return (
-    <section className="section statement">
-      <div className="wrap">
-        {/* The second sentence opens grey and lands dark, so the page reads
-            the turn rather than being told about it. */}
-        {STATEMENT.lines.map((block, b) => (
-          <p key={b} className="d" data-reveal style={{ ["--delay" as string]: `${b * 120}ms` }}>
+    <section className="statement" data-track>
+      {STATEMENT.lines.map((block, b) => (
+        <div key={b} className="statement__half" data-half={b}>
+          <p className="d">
             {block.map((line, i) => (
-              <span key={line} className="mask">
+              // the mask carries the reveal, not the span inside it: an
+              // element clipped out of its own parent never intersects
+              <span key={line} className="mask" data-reveal style={{ ["--i" as string]: i }}>
                 <span className={b === 1 && i === 0 ? "statement__b" : undefined}>{line}</span>
               </span>
             ))}
           </p>
-        ))}
-        <p className="statement__body" data-reveal>{STATEMENT.body}</p>
-      </div>
+        </div>
+      ))}
+      <p className="statement__body wrap" data-reveal>{STATEMENT.body}</p>
     </section>
   );
 }

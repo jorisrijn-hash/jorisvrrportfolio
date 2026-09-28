@@ -7,7 +7,7 @@ import { FOOTER, IDENTITY, LINKS } from "@/content/portfolio";
  */
 export function Footer() {
   return (
-    <footer className="night footer">
+    <footer className="footer">
       <div className="wrap">
         <div className="footer__lines">
           {FOOTER.lines.map((line, i) => (
