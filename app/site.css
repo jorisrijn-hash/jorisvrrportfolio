@@ -846,7 +846,7 @@ html[data-nav="on-dark"] .nav { color: var(--night-ink); text-shadow: 0 0 7px rg
   color: var(--ink);
   mix-blend-mode: difference;
   filter: invert(1);              /* difference + invert: legible on both worlds */
-  transition: opacity 260ms var(--ease);
+  transition: opacity 420ms var(--ease);
 }
 .cross[data-on] { opacity: 1; }
 /* There is one pointer on screen. In the hero the portrait is it, so the
