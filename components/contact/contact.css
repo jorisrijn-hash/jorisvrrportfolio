@@ -262,50 +262,124 @@
    SCROLL DOWN — the one nudge on the page
 
    The form is what /contact is for, and it is two compositions below the
-   introduction. This says so, in the corner the first composition leaves
-   empty, and stops saying it the moment the form is on screen.
+   introduction. A faint line in a bottom corner was not read, so this is a
+   rail on the right edge, held at the middle of the screen: the words set
+   vertically, and a tick running down a hairline under them.
+
+   It sits OUTSIDE the page gutter, in the margin, so it is never over the
+   field descriptions that reach the right edge of composition 02.
    ========================================================================= */
 .cue {
   position: fixed;
-  left: var(--gutter);
-  bottom: max(clamp(20px, 3.4vh, 34px), env(safe-area-inset-bottom, 0px));
+  right: clamp(10px, 1.5vw, 24px);
+  top: 50%;
   z-index: 50;
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  color: var(--ink-faint);
+  display: grid;
+  justify-items: center;
+  gap: 14px;
   /* it points at something; it is never in the way of it */
   pointer-events: none;
-  animation: cue-blink 1600ms var(--ease-inout) infinite;
+  color: var(--ink);
+  transform: translateY(-50%);
+  animation: cue-pulse 1700ms var(--ease-inout) infinite;
   transition: opacity 520ms var(--ease), transform 620ms var(--ease);
 }
-@keyframes cue-blink {
+/* shallower than a blink: it has to stay readable at the bottom of the
+   cycle, which is the whole reason this was rebuilt */
+@keyframes cue-pulse {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.35; }
+  50% { opacity: 0.55; }
 }
-.cue__a { display: block; animation: cue-fall 1600ms var(--ease-inout) infinite; }
-@keyframes cue-fall {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(3px); }
+.cue__t {
+  writing-mode: vertical-rl;
+  font-size: 11px;
+  letter-spacing: 0.3em;
+  color: inherit;
+}
+/* the hairline, and the tick that keeps running down it */
+.cue__rail {
+  position: relative;
+  display: block;
+  width: 1px;
+  height: clamp(44px, 7vh, 68px);
+  background: var(--rule);
+  overflow: hidden;
+}
+.cue__tick {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 1px;
+  height: 40%;
+  background: currentColor;
+  animation: cue-run 1700ms var(--ease-inout) infinite;
+}
+@keyframes cue-run {
+  0%   { transform: translateY(-100%); }
+  100% { transform: translateY(250%); }
 }
 /* arrived: it has nothing left to say */
 .cue[data-done] {
   opacity: 0;
-  transform: translateY(8px);
+  transform: translateY(calc(-50% + 10px));
   animation: none;
 }
-.cue[data-done] .cue__a { animation: none; }
+.cue[data-done] .cue__tick { animation: none; }
 
 /* The ground moves from paper to night underneath it, and a mid grey has
    nothing to borrow contrast from. These are the same four stages the
    navigation reads, written by the one scroll driver. */
 html[data-nav="on-light"] .cue { color: var(--ink); }
 html[data-nav="on-dark"] .cue,
-html[data-nav="night"] .cue { color: #8f8f88; }
+html[data-nav="night"] .cue { color: var(--night-ink); }
+
+/* Below this the page gutter is narrow enough that composition 02's
+   descriptions run within a few pixels of where the rail would stand, so the
+   cue comes back to the bottom edge and lies down instead of competing for a
+   margin that is not there. */
+@media (max-width: 1199px) {
+  .cue {
+    right: auto;
+    left: 50%;
+    top: auto;
+    bottom: max(clamp(18px, 3vh, 30px), env(safe-area-inset-bottom, 0px));
+    grid-auto-flow: column;
+    align-items: center;
+    gap: 11px;
+    transform: translateX(-50%);
+  }
+  .cue__t { writing-mode: horizontal-tb; font-size: 10px; letter-spacing: 0.24em; }
+  /* The page runs under it here rather than past it in a margin, so it is
+     given a short fade of its own to sit on, exactly as the navigation is at
+     the top of a narrow screen. Nothing collides; text leaves under an edge. */
+  .cue::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    width: 100vw;
+    top: -34px;
+    bottom: calc(-1 * clamp(18px, 3vh, 30px) - 40px);
+    z-index: -1;
+    pointer-events: none;
+    transform: translateX(-50%);
+    background: linear-gradient(to top, var(--paper) 46%, rgb(242 241 237 / 0));
+  }
+  html[data-nav="on-dark"] .cue::before,
+  html[data-nav="night"] .cue::before {
+    background: linear-gradient(to top, var(--night) 46%, rgb(10 10 9 / 0));
+  }
+  .cue__rail { width: clamp(30px, 9vw, 48px); height: 1px; }
+  .cue__tick { width: 40%; height: 1px; animation-name: cue-run-x; }
+  @keyframes cue-run-x {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(250%); }
+  }
+  .cue[data-done] { transform: translateX(-50%) translateY(10px); }
+}
 
 @media (prefers-reduced-motion: reduce) {
-  /* the cue stays; only the blinking goes */
-  .cue, .cue__a { animation: none !important; opacity: 1; }
+  /* the cue stays, and stays legible; only the movement goes */
+  .cue, .cue__tick { animation: none !important; opacity: 1; }
   .cue { transition: none; }
-  .cue[data-done] { opacity: 0; transform: none; }
+  .cue__tick { height: 100%; }
+  .cue[data-done] { opacity: 0; }
 }

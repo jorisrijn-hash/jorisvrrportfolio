@@ -1,19 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { REACH } from "@/content/contact";
 
 /**
  * SCROLL DOWN.
  *
  * The one nudge on the page. The form is the point of /contact and it is two
- * compositions below the introduction, so something has to say that there is
- * more underneath. It is a line of the same small mono the rest of the site
- * labels things with, in the corner the composition leaves empty, and it goes
- * as soon as the form it is pointing at is on screen.
+ * compositions below the introduction, so something has to say there is more
+ * underneath — and say it loudly enough to actually be read, which the first
+ * attempt at this, faint and in a bottom corner, was not.
  *
- * It never takes a pointer event, so it cannot block anything and the
- * crosshair passes straight over it.
+ * It is a rail on the right edge, held at the middle of the screen where the
+ * eye already is: the words set vertically, and a tick running down a
+ * hairline under them. It sits outside the page's gutter, so it is in the
+ * margin rather than over anything, and it never takes a pointer event, so
+ * it cannot block anything and the crosshair passes straight over it.
  *
  * It is hidden from assistive technology on purpose: the form is an ordinary
  * part of the document below this one, and a screen reader is already being
@@ -21,25 +23,25 @@ import { REACH } from "@/content/contact";
  */
 export function ScrollCue() {
   const [done, setDone] = useState(false);
-  const ref = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
     const form = document.getElementById("write");
     if (!form) return;
     const io = new IntersectionObserver(
       ([e]) => setDone(e.isIntersecting),
-      // a little before it arrives, so the cue is gone by the time there is
-      // something to read rather than fading out over it
-      { rootMargin: "0px 0px -25% 0px", threshold: 0 },
+      // it holds until the form is properly arriving, not merely near
+      { rootMargin: "0px 0px -10% 0px", threshold: 0 },
     );
     io.observe(form);
     return () => io.disconnect();
   }, []);
 
   return (
-    <p ref={ref} className="cue m" data-done={done || undefined} aria-hidden="true">
-      {REACH.cue}
-      <span className="cue__a">↓</span>
-    </p>
+    <div className="cue" data-done={done || undefined} aria-hidden="true">
+      <span className="cue__t m">{REACH.cue}</span>
+      <span className="cue__rail">
+        <span className="cue__tick" />
+      </span>
+    </div>
   );
 }
