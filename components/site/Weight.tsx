@@ -73,11 +73,24 @@ export function Weight() {
     const onScroll = () => { if (!driving) target = window.scrollY; };
     const onResize = () => { target = Math.min(max(), window.scrollY); };
 
+    /* A link asks the page to travel; the page travels the way it always
+       does. Sections are measured at the moment of the request, so sticky
+       elements, the change of state and any viewport all land correctly. */
+    const onGoto = (e: Event) => {
+      const id = (e as CustomEvent<{ id: string }>).detail?.id;
+      const el = id === "top" ? null : document.getElementById(id);
+      const y = el ? window.scrollY + el.getBoundingClientRect().top : 0;
+      target = Math.min(max(), Math.max(0, y));
+      start();
+    };
+    window.addEventListener("site:goto", onGoto);
+
     window.addEventListener("wheel", onWheel, { passive: false });
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onResize, { passive: true });
 
     return () => {
+      window.removeEventListener("site:goto", onGoto);
       window.removeEventListener("wheel", onWheel);
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onResize);

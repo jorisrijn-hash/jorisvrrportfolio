@@ -183,7 +183,7 @@ export const PROJECTS: Project[] = [
     type: "Full-stack application",
     role: ["Full-stack development", "Product design"],
     year: "2026",
-    status: "Phase 1 — core reading system",
+    status: "Phase 1, core reading system",
     featured: true,
     technologies: [
       "Java 25",
@@ -220,14 +220,14 @@ export const PROJECTS: Project[] = [
 
     context: [
       "A rebuild of Goodreads as a product, taken as far as a working system: a reader can search a real catalogue, open a book, save it, set where they are in it, and keep a private record of their reading.",
-      "Everything a reader sees is served from this project's own PostgreSQL. The catalogue is built offline from Open Library (CC0) — 9,021 books, their authors, genres and covers — because an interface that waits on somebody else's API at request time is not a product, it is a proxy.",
-      "Phase 1 is the core reading loop — Discover and search, Book Detail, saving with a status, My Library, then reading progress and the journal. Ratings, reviews, social features, recommendations and the reading challenge are later milestones, and are deliberately not stubbed out.",
+      "Everything a reader sees is served from this project's own PostgreSQL. The catalogue is built offline from Open Library (CC0), 9,021 books, their authors, genres and covers, because an interface that waits on somebody else's API at request time is not a product, it is a proxy.",
+      "Phase 1 is the core reading loop, Discover and search, Book Detail, saving with a status, My Library, then reading progress and the journal. Ratings, reviews, social features, recommendations and the reading challenge are later milestones, and are deliberately not stubbed out.",
     ],
 
     problems: [
       {
         title: "Search that punishes the reader for a typo",
-        body: "Typo intolerance was the complaint the project set out to fix, and the data spike found the obvious data source has it too: of six common misspellings, four returned zero results from Open Library. A reader who mistypes a title gets an empty page and no way forward — so the catalogue had to recover the query itself, and say that it had.",
+        body: "Typo intolerance was the complaint the project set out to fix, and the data spike found the obvious data source has it too: of six common misspellings, four returned zero results from Open Library. A reader who mistypes a title gets an empty page and no way forward, so the catalogue had to recover the query itself, and say that it had.",
         media: {
           kind: "image",
           src: "/work/goodreads-search.jpg",
@@ -260,7 +260,7 @@ export const PROJECTS: Project[] = [
         "Accounts with email and password, and a one-click demo reader for visitors.",
       ],
       nonFunctional: [
-        "All business logic lives in Spring. Next.js renders, routes and composes — it never decides anything.",
+        "All business logic lives in Spring. Next.js renders, routes and composes, it never decides anything.",
         "No external API is called while serving a request; the catalogue is ingested offline.",
         "Search runs in PostgreSQL, and must recover typos the source data cannot.",
         "Sessions are server-side and opaque; no token in localStorage, CSRF on every mutating route including login.",
@@ -273,7 +273,7 @@ export const PROJECTS: Project[] = [
       nodes: [
         { id: "browser", label: "Browser", kind: "client", note: "session cookie, first-party" },
         { id: "next", label: "Next.js 16 (Vercel)", kind: "service", note: "rendering, routing, /api/v1 proxy" },
-        { id: "spring", label: "Spring Boot 4.1 (Render)", kind: "service", note: "modular monolith — all domain rules" },
+        { id: "spring", label: "Spring Boot 4.1 (Render)", kind: "service", note: "modular monolith, all domain rules" },
         { id: "pg", label: "PostgreSQL 17", kind: "data", note: "pg_trgm, unaccent, Flyway" },
         { id: "covers", label: "Object storage", kind: "data", note: "cover derivatives, served through our origin" },
         { id: "ingest", label: "Ingest job", kind: "external", note: "offline task, never in a request path" },
@@ -288,14 +288,14 @@ export const PROJECTS: Project[] = [
         { from: "ingest", to: "pg", label: "upsert" },
         { from: "ingest", to: "covers", label: "derivatives" },
       ],
-      note: "The rule that holds it together: Spring owns every domain decision — search ranking, valid status transitions, progress, authorisation. If a loop over domain objects appears in TypeScript, it belongs in Java.",
+      note: "The rule that holds it together: Spring owns every domain decision, search ranking, valid status transitions, progress, authorisation. If a loop over domain objects appears in TypeScript, it belongs in Java.",
     },
 
     database: {
-      note: "The centre is library_item: exactly one row per reader and book, enforced by UNIQUE (user_id, book_id). Status is a state on that row, never a shelf — which is what lets notes, dates and history survive a change of status. progress_update is append-only and is the substrate for the journal; reading_event records the transitions, so the journal can say 'started reading' without inferring it from mutable columns. Dates are set when they first become true and are never cleared.",
+      note: "The centre is library_item: exactly one row per reader and book, enforced by UNIQUE (user_id, book_id). Status is a state on that row, never a shelf, which is what lets notes, dates and history survive a change of status. progress_update is append-only and is the substrate for the journal; reading_event records the transitions, so the journal can say 'started reading' without inferring it from mutable columns. Dates are set when they first become true and are never cleared.",
       entities: [
         { name: "app_user", fields: ["id", "email UNIQUE", "username", "password_hash", "is_demo"], note: "one demo identity, enforced by a partial unique index" },
-        { name: "book", fields: ["id", "source_key UNIQUE", "slug UNIQUE", "title", "isbn13", "page_count", "cover_key", "search_vector", "search_text"], note: "one Open Library work is one book — no edition table" },
+        { name: "book", fields: ["id", "source_key UNIQUE", "slug UNIQUE", "title", "isbn13", "page_count", "cover_key", "search_vector", "search_text"], note: "one Open Library work is one book, no edition table" },
         { name: "author", fields: ["id", "source_key UNIQUE", "slug UNIQUE", "name"] },
         { name: "genre", fields: ["id", "slug UNIQUE", "name"], note: "a controlled taxonomy; a book carries at most three" },
         { name: "library_item", fields: ["id", "user_id", "book_id", "status", "save_reason", "save_note", "current_page", "progress_percent", "started_at", "finished_at"], note: "UNIQUE (user_id, book_id)" },
@@ -316,7 +316,7 @@ export const PROJECTS: Project[] = [
       {
         id: "postgres-search",
         area: "Search",
-        problem: "The catalogue had to survive a typo. Of six common misspellings, four returned nothing at all from the source data — and adding a search cluster for 9,021 books would have been a second system to run, deploy and keep in sync.",
+        problem: "The catalogue had to survive a typo. Of six common misspellings, four returned nothing at all from the source data, and adding a search cluster for 9,021 books would have been a second system to run, deploy and keep in sync.",
         decision: "Hybrid search inside PostgreSQL: full text first, trigram similarity as a fallback, and a prefix path for very short queries. No Elasticsearch.",
         implementation: "An ISBN is detected and looked up exactly, because full text can never match it. Otherwise a tsvector index answers exact, partial, author, punctuation and accent queries. When that returns nothing the query is retried: under about five characters against a prefix index, and otherwise against a pg_trgm similarity index at an explicit low threshold. Normalisation (lowercase, accents, typographic apostrophes) happens in generated columns, so the database owns it and the query cannot forget it.",
         result: "Verified against PostgreSQL 17.11: full text 0.083 ms, trigram 3.689 ms at 10,488 rows, and all four typos the source data missed return the right book first. A recovered query comes back with the text it corrected from, so the interface says 'showing results for a close match to…' instead of silently changing what was asked.",
@@ -324,31 +324,31 @@ export const PROJECTS: Project[] = [
       {
         id: "offline-ingest",
         area: "External data",
-        problem: "The catalogue comes from Open Library, and the obvious build calls it per request. The spike measured a 2.17 s median for a single cover fetch, and the API asks callers to identify themselves and stay under a rate limit — neither belongs in a page load.",
+        problem: "The catalogue comes from Open Library, and the obvious build calls it per request. The spike measured a 2.17 s median for a single cover fetch, and the API asks callers to identify themselves and stay under a rate limit, neither belongs in a page load.",
         decision: "Ingest the catalogue offline into our own PostgreSQL, and serve nothing from anyone else's API at request time.",
-        implementation: "A resumable, idempotent pipeline: harvest, filter, select, hydrate, normalise, map genres, fetch covers, validate, upsert. Every raw response is written to disk before anything touches it, so a re-run replays instead of re-fetching. API calls are serialised through one lock at one request per 350 ms with the contact address in the User-Agent; cover downloads take a separate path, eight threads with a 40 ms floor, because they are latency-bound rather than rate-bound. Quality gates are absolute — a title, an author, English, a real cover that downloads, 40–2000 pages, a mapped genre — and every rejection is counted by reason.",
+        implementation: "A resumable, idempotent pipeline: harvest, filter, select, hydrate, normalise, map genres, fetch covers, validate, upsert. Every raw response is written to disk before anything touches it, so a re-run replays instead of re-fetching. API calls are serialised through one lock at one request per 350 ms with the contact address in the User-Agent; cover downloads take a separate path, eight threads with a 40 ms floor, because they are latency-bound rather than rate-bound. Quality gates are absolute, a title, an author, English, a real cover that downloads, 40–2000 pages, a mapped genre, and every rejection is counted by reason.",
         result: "9,021 books with their authors, genres and three cover derivatives each, held entirely by us. Serving a reader never leaves our own infrastructure, and a book with no cover is rejected rather than shown with a hole in it.",
       },
       {
         id: "no-edition",
         area: "Data model",
-        problem: "Book data is published per edition. Grouping them under a canonical work was the plan — an edition picker under each book — and the fallback for missing page counts was to recover them from an edition that had one.",
+        problem: "Book data is published per edition. Grouping them under a canonical work was the plan, an edition picker under each book, and the fallback for missing page counts was to recover them from an edition that had one.",
         decision: "One Open Library work is one book row, with the primary edition's fields denormalised onto it. No edition table, no picker.",
-        implementation: "The measurement killed the fallback before it was built: page-count recovery from editions was 0 of 35, because the work-level figure is derived from editions in the first place — when it is absent, no edition has one. Edition-level completeness is worse than work level, and physical_format is free text with 29 distinct values across 835 records.",
-        result: "The duplicate-results problem disappears rather than being solved: the source returns works, so nothing ever fans out. book.source_key remains the join point if editions are ever worth adding — and the catalogue's own numbers say what would have to change first.",
+        implementation: "The measurement killed the fallback before it was built: page-count recovery from editions was 0 of 35, because the work-level figure is derived from editions in the first place, when it is absent, no edition has one. Edition-level completeness is worse than work level, and physical_format is free text with 29 distinct values across 835 records.",
+        result: "The duplicate-results problem disappears rather than being solved: the source returns works, so nothing ever fans out. book.source_key remains the join point if editions are ever worth adding, and the catalogue's own numbers say what would have to change first.",
       },
       {
         id: "sessions-csrf",
         area: "Authentication",
         problem: "A reader's library is private, the deployment target scales to zero, and a self-contained token cannot be revoked before it expires.",
-        decision: "Server-side sessions in PostgreSQL behind an opaque HttpOnly cookie. No JWT, nothing in localStorage, and CSRF protection on everything — including login.",
-        implementation: "Spring Session JDBC keeps sessions in the database that is already running, so a cold start does not sign every reader out and no Redis joins the stack. Passwords are hashed with Argon2id under a length-only policy. The session id and the CSRF token are both rotated on login, against fixation. CSRF is cookie-to-header: a cross-origin attacker can cause the cookie to be sent but cannot read it, so cannot produce the header. Exempting login is common and wrong — login-CSRF signs a victim into the attacker's account — so nothing is exempt. A wrong password and an unknown account return byte-identical responses.",
+        decision: "Server-side sessions in PostgreSQL behind an opaque HttpOnly cookie. No JWT, nothing in localStorage, and CSRF protection on everything, including login.",
+        implementation: "Spring Session JDBC keeps sessions in the database that is already running, so a cold start does not sign every reader out and no Redis joins the stack. Passwords are hashed with Argon2id under a length-only policy. The session id and the CSRF token are both rotated on login, against fixation. CSRF is cookie-to-header: a cross-origin attacker can cause the cookie to be sent but cannot read it, so cannot produce the header. Exempting login is common and wrong, login-CSRF signs a victim into the attacker's account, so nothing is exempt. A wrong password and an unknown account return byte-identical responses.",
         result: "The whole authentication loop is covered end to end on desktop and mobile viewports, including hostile returnTo targets and keyboard-only completion. The demo reader signs in with no password at all: the server authenticates a known identity whose stored hash no submitted password can produce, so a shared credential never exists to leak.",
       },
       {
         id: "same-origin-proxy",
         area: "API design",
-        problem: "The frontend is on Vercel and the API is on another host. Left alone that makes every authenticated request cross-site — and a SameSite=Lax cookie is simply not sent on a cross-site XHR. Reaching for SameSite=None turns the session into a third-party cookie, which browsers increasingly refuse outright.",
+        problem: "The frontend is on Vercel and the API is on another host. Left alone that makes every authenticated request cross-site, and a SameSite=Lax cookie is simply not sent on a cross-site XHR. Reaching for SameSite=None turns the session into a third-party cookie, which browsers increasingly refuse outright.",
         decision: "The browser never addresses the API host. It calls /api/v1/… and /covers/… on the frontend's own origin, and Next.js rewrites those to the API.",
         implementation: "Two rewrite rules and one server-only environment variable. Nothing about the API is NEXT_PUBLIC_, deliberately: a NEXT_PUBLIC_ value is compiled into the browser bundle, and exposing the API host there is exactly what makes the cookie third-party. Server Components bypass the proxy and call the API origin directly, because a server calling its own public URL would loop back through the edge for nothing.",
         result: "The session cookie is first-party, the CSRF cookie is readable by our own JavaScript because it is our own origin, and there is no CORS preflight on credentialed requests at all. Local development uses the same path, so what is tested is what ships. It is routing, not a second backend: the rewrite forwards bytes and has no request handler behind it.",
@@ -397,7 +397,7 @@ export const PROJECTS: Project[] = [
       {
         filename: "frontend/next.config.ts",
         language: "ts",
-        note: "The whole same-origin proxy. Two rules, and a variable that is deliberately not NEXT_PUBLIC_ — that single detail is what keeps the session cookie first-party.",
+        note: "The whole same-origin proxy. Two rules, and a variable that is deliberately not NEXT_PUBLIC_, that single detail is what keeps the session cookie first-party.",
         highlight: [1, 6, 7],
         code: `const API_ORIGIN = process.env.API_ORIGIN ?? "http://localhost:8080";
 const COVERS_BASE_URL = process.env.COVERS_BASE_URL ?? \`\${API_ORIGIN}/covers\`;
@@ -441,8 +441,8 @@ const nextConfig: NextConfig = {
 
     product: {
       body: [
-        "Discovery and search are one surface. A reader arriving with nothing in mind browses a genre rail built from real covers; a reader who knows what they want types it into the same page. There is no separate search results page to be thrown into and no mode to switch between — the same view answers both, which is why the API has one endpoint that browses without a query and searches with one.",
-        "Book Detail is the hub the loop returns to: what the book is, and the one action that matters. Saving it is a single press, and the reason and the note can be added afterwards or never — nothing stands between a reader and saving a book.",
+        "Discovery and search are one surface. A reader arriving with nothing in mind browses a genre rail built from real covers; a reader who knows what they want types it into the same page. There is no separate search results page to be thrown into and no mode to switch between, the same view answers both, which is why the API has one endpoint that browses without a query and searches with one.",
+        "Book Detail is the hub the loop returns to: what the book is, and the one action that matters. Saving it is a single press, and the reason and the note can be added afterwards or never, nothing stands between a reader and saving a book.",
         "The library is filtered by reading state rather than by shelf, which is the interface consequence of the data model: the reader sees want to read, currently reading, read and did not finish, and moving between them keeps the dates and the notes that were already there.",
         "Unfinished destinations are not shown as dead links. The journal exists in the schema and in the API before it exists in the navigation, so the interface never offers a door that opens onto nothing.",
       ],
@@ -457,22 +457,22 @@ const nextConfig: NextConfig = {
         title: "The session cookie that looked configured and was not",
         problem: "Sessions worked, so the cookie was assumed to be right: HttpOnly, SameSite, the lot, set through the ordinary Spring Boot properties.",
         approach: "Configure server.servlet.session.cookie.* and move on.",
-        wrong: "Spring Session takes cookie handling over from the servlet container and ignores those properties entirely. What was actually being sent was a cookie named SESSION with no HttpOnly flag and no SameSite attribute — found by reading the real Set-Cookie header rather than the configuration that was supposed to produce it.",
+        wrong: "Spring Session takes cookie handling over from the servlet container and ignores those properties entirely. What was actually being sent was a cookie named SESSION with no HttpOnly flag and no SameSite attribute, found by reading the real Set-Cookie header rather than the configuration that was supposed to produce it.",
         solution: "A CookieSerializer bean that declares the name and the attributes explicitly, and a test that asserts them on the response so a silent downgrade cannot happen again.",
-        learned: "Configuration is a claim about behaviour. The only evidence is the behaviour — here, one header.",
+        learned: "Configuration is a claim about behaviour. The only evidence is the behaviour, here, one header.",
       },
       {
         title: "Making short queries work without ruining long ones",
         problem: "Trigram similarity rescues typos, but it is weak exactly where readers are casual: a four-character query like a shortened title scored 0.250, below the 0.3 threshold, so it returned nothing.",
         approach: "Lower the similarity threshold globally so short queries clear the bar.",
-        wrong: "Measured, that inflated long-query matches from 2 to 10 — five times the noise on precisely the queries that had been working. One knob, tuned for the worst case, degraded the common one.",
-        solution: "Route by query length instead of lowering the bar: under about five characters the query goes to a prefix index first, and only then to a fuzzy pass with an explicit low threshold. Along the way, unaccent turned out to be STABLE rather than IMMUTABLE — passing the dictionary explicitly makes it deterministic, which is what allows the normalisation to live in a generated column and be indexed.",
+        wrong: "Measured, that inflated long-query matches from 2 to 10, five times the noise on precisely the queries that had been working. One knob, tuned for the worst case, degraded the common one.",
+        solution: "Route by query length instead of lowering the bar: under about five characters the query goes to a prefix index first, and only then to a fuzzy pass with an explicit low threshold. Along the way, unaccent turned out to be STABLE rather than IMMUTABLE, passing the dictionary explicitly makes it deterministic, which is what allows the normalisation to live in a generated column and be indexed.",
         learned: "A global threshold is rarely the right answer to a problem that only exists in part of the range.",
       },
       {
         title: "A deployment that reported success and served nothing",
         problem: "The first production deployment built successfully, reported READY, and returned 404 on every path including the home page.",
-        approach: "Read the build logs for a failure. There was none — the build genuinely succeeded.",
+        approach: "Read the build logs for a failure. There was none, the build genuinely succeeded.",
         wrong: "The repository has the frontend in a subdirectory, and the platform's Root Directory setting lives in the dashboard, not in the repository. Left at the repository root it finds no framework, builds nothing, and deploys that nothing perfectly.",
         solution: "Set the root directory to the frontend, and write the signature down in the deployment documentation: a READY deployment 404ing on / is a wrong root, not a broken app.",
         learned: "A green deployment is not evidence that anything was deployed. The first request is.",
@@ -482,12 +482,12 @@ const nextConfig: NextConfig = {
     result: {
       body: [
         "Search the catalogue, open a book, save it with a reading state and see it in the library: that runs end to end on the deployed system, and a visitor can enter it as a demo reader in one press, with no account and no password.",
-      "Reading progress and the journal exist in the schema and in the API. The journal is deliberately absent from the navigation until its interface is built — an unfinished destination is not shown as a dead link.",
-        "It is honest about what it is not. Ratings, reviews, social features, recommendations and the reading challenge are later milestones and are not stubbed out — nothing in the interface pretends they exist.",
+      "Reading progress and the journal exist in the schema and in the API. The journal is deliberately absent from the navigation until its interface is built, an unfinished destination is not shown as a dead link.",
+        "It is honest about what it is not. Ratings, reviews, social features, recommendations and the reading challenge are later milestones and are not stubbed out, nothing in the interface pretends they exist.",
         "It is also honest about where it runs: the API is on a free tier that sleeps after fifteen idle minutes. Rather than hide that, pages that need it say the demo server is waking, poll in the background, and fill in by themselves.",
       ],
       metrics: [
-        { label: "Catalogue", value: "9,021 books", source: "live API /catalogue/stats, 2026-09-23 — with 7,984 authors and 25 genres" },
+        { label: "Catalogue", value: "9,021 books", source: "live API /catalogue/stats, 2026-09-23, with 7,984 authors and 25 genres" },
         { label: "Full-text search", value: "0.083 ms", source: "EXPLAIN ANALYZE, PostgreSQL 17.11, bitmap index scan" },
         { label: "Typo fallback", value: "3.689 ms", source: "pg_trgm GIN index chosen by the planner at 10,488 rows" },
         { label: "Covers served by us", value: "27,330 files", source: "three derivatives per book, about 709 MB in object storage" },
@@ -501,13 +501,13 @@ const nextConfig: NextConfig = {
     },
 
     seo: {
-      title: "Goodreads, rebuilt — Java, Spring Boot and PostgreSQL case study",
+      title: "Goodreads, rebuilt, Java, Spring Boot and PostgreSQL case study",
       description:
         "An independent Goodreads redesign built as a working product: a 9,021-book catalogue ingested from Open Library, hybrid search in PostgreSQL that recovers typos, server-side sessions with CSRF, and a Spring Boot API behind a same-origin Next.js frontend.",
       keywords: ["software engineering case study", "Spring Boot", "PostgreSQL full-text search", "pg_trgm", "Next.js", "Java 25"],
     },
     openGraph: {
-      title: "Goodreads, rebuilt — a full-stack case study",
+      title: "Goodreads, rebuilt, a full-stack case study",
       description:
         "A 9,021-book catalogue, hybrid PostgreSQL search that survives a typo, and a Spring Boot API that owns every domain decision.",
       // a JPEG for the platforms that still refuse WebP previews
@@ -555,7 +555,7 @@ const nextConfig: NextConfig = {
       problems: [
         {
           title: "A 3D scene without a 3D renderer",
-          body: "The sculpture is a real perspective projection — camera, depth sort, back-face culling — but it has to reach the screen as SVG paths and CSS transforms. Every frame therefore costs DOM writes rather than GPU draw calls, and the naive version of that is unusable.",
+          body: "The sculpture is a real perspective projection, camera, depth sort, back-face culling, but it has to reach the screen as SVG paths and CSS transforms. Every frame therefore costs DOM writes rather than GPU draw calls, and the naive version of that is unusable.",
         },
         {
           title: "The same environment on a phone",
@@ -570,7 +570,7 @@ const nextConfig: NextConfig = {
           "Sound is opt-in behind a gate, and the interface works in full without it.",
         ],
         nonFunctional: [
-          "No WebGL, no canvas, no three.js — SVG, CSS and HTML only.",
+          "No WebGL, no canvas, no three.js, SVG, CSS and HTML only.",
           "One requestAnimationFrame loop for the whole application.",
           "Zero React renders per animation frame.",
           "Respects prefers-reduced-motion by settling every state immediately.",
@@ -581,11 +581,11 @@ const nextConfig: NextConfig = {
           { id: "browser", label: "Browser", kind: "client" },
           { id: "next", label: "Next.js App Router", kind: "service", note: "static routes, one client experience" },
           { id: "machine", label: "Experience state machine", kind: "client", note: "lib/experience.tsx" },
-          { id: "ticker", label: "Frame clock", kind: "client", note: "lib/ticker.ts — one rAF" },
-          { id: "scene", label: "Sculpture projection", kind: "client", note: "camera, cull, depth sort — writes SVG paths" },
-          { id: "stages", label: "Work / About stages", kind: "client", note: "lib/stages.ts — loaded on demand" },
+          { id: "ticker", label: "Frame clock", kind: "client", note: "lib/ticker.ts, one rAF" },
+          { id: "scene", label: "Sculpture projection", kind: "client", note: "camera, cull, depth sort, writes SVG paths" },
+          { id: "stages", label: "Work / About stages", kind: "client", note: "lib/stages.ts, loaded on demand" },
           { id: "audio", label: "Web Audio engine", kind: "client", note: "opened after the consent gate" },
-          { id: "media", label: "Encoded media", kind: "data", note: "public/work — WebP at 960 / 1680" },
+          { id: "media", label: "Encoded media", kind: "data", note: "public/work, WebP at 960 / 1680" },
           { id: "vercel", label: "Vercel", kind: "external" },
         ],
         edges: [
@@ -601,9 +601,9 @@ const nextConfig: NextConfig = {
         note: "No server of its own: the whole environment is client state over static routes.",
       },
       database: {
-        note: "The site has no database. Its data model is the content layer — one typed source the Work index, the spotlight and the case studies all read.",
+        note: "The site has no database. Its data model is the content layer, one typed source the Work index, the spotlight and the case studies all read.",
         entities: [
-          { name: "Project", fields: ["slug", "number", "title", "type", "role[]", "year?", "technologies[]?"], note: "content/projects.ts — everything beyond identity optional" },
+          { name: "Project", fields: ["slug", "number", "title", "type", "role[]", "year?", "technologies[]?"], note: "content/projects.ts, everything beyond identity optional" },
           { name: "Media", fields: ["kind", "src", "alt", "width?", "height?", "isPlaceholder?"] },
           { name: "Decision", fields: ["id", "area", "problem", "decision", "implementation?", "result?"] },
           { name: "CodeExample", fields: ["filename", "language", "code", "highlight[]?"] },
@@ -624,7 +624,7 @@ const nextConfig: NextConfig = {
           area: "Rendering",
           problem: "A rotating sculpture with depth, occlusion and shading, without a 3D library, canvas or WebGL.",
           decision: "Project the geometry in JavaScript and write the result into one SVG element.",
-          implementation: "A camera transform per vertex, convex back-face culling, a per-object depth sort, and a fixed pool of <path> slots reused every frame — so the DOM never grows or shrinks while the scene turns.",
+          implementation: "A camera transform per vertex, convex back-face culling, a per-object depth sort, and a fixed pool of <path> slots reused every frame, so the DOM never grows or shrinks while the scene turns.",
           result: "The sculpture holds its frame budget at idle on a 1440 display (300 frames, 0 dropped, scripts/perf-suite.mjs).",
         },
         {
@@ -638,7 +638,7 @@ const nextConfig: NextConfig = {
         {
           id: "attribute-writes",
           area: "Style cost",
-          problem: "The sculpture writes thousands of SVG attributes per second, and in Chromium `d`, `fill` and `fill-opacity` are CSS properties — every write invalidates that element's style.",
+          problem: "The sculpture writes thousands of SVG attributes per second, and in Chromium `d`, `fill` and `fill-opacity` are CSS properties, every write invalidates that element's style.",
           decision: "Never write an attribute that has not changed.",
           implementation: "Each path slot caches its last d, fill and opacities; the draw loop compares before writing, and shading is quantised so small numeric drift does not count as a change.",
           result: "Only genuinely changed faces cost style recalculation.",
@@ -663,7 +663,7 @@ const nextConfig: NextConfig = {
           id: "audio-warm",
           area: "Audio",
           problem: "The first sound cue opened the AudioContext and imported the engine synchronously, freezing the first transition it landed in.",
-          decision: "Open the audio device while nothing is moving — after the consent gate, never before it.",
+          decision: "Open the audio device while nothing is moving, after the consent gate, never before it.",
           implementation: "The sound API exposes warm(); the experience calls it once the state machine reaches Home, so the device and the module are ready before any cue.",
           result: "A 232ms freeze on the first cue became none (Chrome long-task trace).",
         },
@@ -717,7 +717,7 @@ const nextConfig: NextConfig = {
           title: "The profiler was measuring the wrong thing",
           problem: "A tracer written to prove the sculpture's motion stayed continuous reported a regression of more than double after an optimisation that could not have caused one.",
           approach: "Trust the number, and start reverting.",
-          wrong: "The tracer selected 176 path nodes when the core has 128, so it was following link geometry as well — and it measured distance per frame, which meant a dropped frame read as a jump.",
+          wrong: "The tracer selected 176 path nodes when the core has 128, so it was following link geometry as well, and it measured distance per frame, which meant a dropped frame read as a jump.",
           solution: "Select exactly the core paths, and measure velocity per millisecond instead of per frame.",
           learned: "The regression was an artifact, and so was the improvement it had reported earlier. A measurement that cannot be wrong in both directions has not been checked.",
         },
@@ -726,14 +726,14 @@ const nextConfig: NextConfig = {
           problem: "The Work formation dropped a fifth of its frames on a phone, and the sculpture handing its cubes to the surface was the obvious suspect.",
           approach: "Two rounds of work on the sculpture: quantised coordinates and shading, then fewer faces per cube and half the ring dissolved early.",
           wrong: "Together they cut path writes by 40% and moved style recalculation by nothing at all.",
-          solution: "An isolation test — the same sequence with the sculpture removed, then with the surface's tiles removed — put 526ms of the 607ms on the tiles. The grid, not the geometry, was the cost.",
+          solution: "An isolation test, the same sequence with the sculpture removed, then with the surface's tiles removed, put 526ms of the 607ms on the tiles. The grid, not the geometry, was the cost.",
           learned: "Profile by removing things, not by guessing at them.",
         },
       ],
       result: {
         body: [
           "The environment runs as one scene: the sculpture, the media surface and the case studies share a camera, a frame clock and a state machine.",
-          "It is still in development — these numbers are the current measurements, not a finished claim.",
+          "It is still in development, these numbers are the current measurements, not a finished claim.",
         ],
         metrics: [
           { label: "Home, idle", value: "300 frames, 0 dropped", source: "scripts/perf-suite.mjs, 1440 at 2x" },

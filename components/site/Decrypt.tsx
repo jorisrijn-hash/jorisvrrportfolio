@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-const GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ/\\<>—+*·";
+const GLYPHS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ/\\<>=+*·";
 
 /**
  * Text that resolves out of noise.

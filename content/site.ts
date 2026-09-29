@@ -14,7 +14,7 @@ export const SITE = {
   study: "HBO-ICT Business & Data Management",
 } as const;
 
-/** ABOUT — the one place longer text is allowed, and only once opened. */
+/** ABOUT, the one place longer text is allowed, and only once opened. */
 export const ABOUT = {
   /** The line the About state opens on. */
   lead: "I'm interested in what happens between a business problem and a working solution.",
@@ -27,7 +27,7 @@ export const ABOUT = {
   body: [
     "I enjoy understanding how businesses and digital products work, identifying problems or inefficiencies, and developing practical solutions through interface design, software, data and process improvement.",
     "My background started in visual design and filmmaking, which taught me how to communicate ideas and think creatively. Today, through HBO-ICT Business & Data Management, I'm developing the technical and analytical side of that skill set.",
-    "I'm most interested in projects where I can understand how a business or product currently works, identify where it can improve, and turn that into something tangible — whether that means designing a better interface, improving a process, working with data or building a digital system.",
+    "I'm most interested in projects where I can understand how a business or product currently works, identify where it can improve, and turn that into something tangible, whether that means designing a better interface, improving a process, working with data or building a digital system.",
     "My goal is to develop strong technical and analytical expertise without losing sight of the complete process: from understanding the initial business problem and designing a solution to implementation, iteration and measuring its impact.",
     "Long term, I want to be able to connect business, design and technology rather than seeing them as separate disciplines.",
   ],
@@ -43,15 +43,15 @@ export const ABOUT = {
 } as const;
 
 /**
- * ABOUT, continued — the scrollable part below the opening composition.
+ * ABOUT, continued, the scrollable part below the opening composition.
  * Drawn from the same story as ABOUT.body, restructured rather than repeated.
  */
 export const PROFILE = {
   trajectory: {
     heading: "From making images to shaping systems.",
     rows: [
-      { label: "Before", text: "Visual design and filmmaking — learning to communicate ideas and think creatively." },
-      { label: "Now", text: "HBO-ICT Business & Data Management — building the technical and analytical side." },
+      { label: "Before", text: "Visual design and filmmaking: learning to communicate ideas and think creatively." },
+      { label: "Now", text: "HBO-ICT Business & Data Management: building the technical and analytical side." },
       { label: "Next", text: "Connecting business, design and technology instead of treating them as separate disciplines." },
     ],
   },
@@ -75,7 +75,7 @@ export const PROFILE = {
 /**
  * External channels, in the About LINKS panel and as nodes on the globe.
  * LinkedIn is confirmed. Instagram and YouTube are still UNVERIFIED: assumed
- * from the domain (jorisvrr) — confirm they point to the right profiles.
+ * from the domain (jorisvrr), confirm they point to the right profiles.
  */
 export const SOCIALS = [
   { id: "instagram", label: "Instagram", handle: "@jorisvrr", href: "https://www.instagram.com/jorisvrr" },

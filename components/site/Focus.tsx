@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { FOCUS } from "@/content/portfolio";
+import { Proximity } from "./Proximity";
 
 /**
  * WHAT I WORK WITH — a typographic landscape, not a list.
@@ -40,7 +41,7 @@ export function Focus() {
     <section className="focus" id="focus">
       <div className="focus__label" data-reveal>
         <span className="m">{FOCUS.label}</span>
-        <span className="m">{FOCUS.heading}</span>
+        <h2 className="m">{FOCUS.heading}</h2>
       </div>
 
       <div
@@ -74,7 +75,7 @@ export function Focus() {
             onBlur={() => setOpen(null)}
             onClick={() => setOpen(open === item.id ? null : item.id)}
           >
-            <span className="focus__w d">{item.title}</span>
+            <Proximity text={item.title} className="focus__w d" />
             {/* attached to its own word, and shown only while it is the live
                 one — there is no permanent place for descriptions here */}
             <span className="focus__said">
@@ -87,7 +88,7 @@ export function Focus() {
         ))}
 
         {/* the one hint on the site */}
-        <span className="focus__hint m" aria-hidden="true">← {FOCUS.hint}</span>
+        <span className="focus__hint m" aria-hidden="true">↓ {FOCUS.hint}</span>
       </div>
     </section>
   );

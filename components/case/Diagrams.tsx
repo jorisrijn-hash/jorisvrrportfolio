@@ -212,7 +212,7 @@ function ArchitectureMap({ model }: { model: Architecture }) {
    Entities as they are declared, and the relations between them drawn as
    relations — not a table of foreign keys. */
 
-const ARROW = { "1-1": "1 — 1", "1-n": "1 — n", "n-n": "n — n" } as const;
+const ARROW = { "1-1": "1 – 1", "1-n": "1 – n", "n-n": "n – n" } as const;
 
 export function DataDiagram({ model }: { model: DatabaseModel }) {
   return (

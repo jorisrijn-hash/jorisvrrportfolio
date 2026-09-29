@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (!p || !hasCaseStudy(p)) return { title: "Work", robots: { index: false, follow: true } };
 
   // Only what the project actually says about itself.
-  const title = p.seo?.title ?? `${p.title} — Case study`;
+  const title = p.seo?.title ?? `${p.title}, case study`;
   const description = p.seo?.description ?? p.context?.[0] ?? `${p.type}${p.role?.length ? ` · ${p.role.join(" / ")}` : ""}`;
   // A generated stand-in is never used as a social preview.
   const image = p.openGraph?.image ?? (p.heroMedia && !p.heroMedia.isPlaceholder ? p.heroMedia.src : undefined);

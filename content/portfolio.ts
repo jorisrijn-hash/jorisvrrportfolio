@@ -46,7 +46,7 @@ export const ABOUT = {
   heading: "About",
   lead: "I build digital products and software at the intersection of technology, business and design.",
   body: [
-    "I study HBO-ICT, on the software engineering track. What interests me is the system behind a product — the interfaces, the APIs, the data, the processes, and the way people actually end up using it.",
+    "I study HBO-ICT, on the software engineering track. What interests me is the system behind a product: the interfaces, the APIs, the data, the processes, and the way people actually end up using it.",
     "My background is in visual design and filmmaking, which is where I learned to communicate an idea. It gives me a different way into development: I care how something is built, but also why it exists, what it costs the business, and how the finished thing feels to use.",
   ],
   /** Metadata, not a skills résumé: no bars, no percentages, no years. */
@@ -81,7 +81,7 @@ export const FEATURED = [
     title: ["BEBO", "Betonboren"],
     slug: "bebo",
     summary:
-      "A digital platform for a concrete drilling and sawing company — taking a traditional service business and giving it a clearer, more professional presence and a way of handling the work that comes in.",
+      "A digital platform for a concrete drilling and sawing company, taking a traditional service business and giving it a clearer, more professional presence and a way of handling the work that comes in.",
     meta: [
       { label: "Role", value: "Development · Product · UX" },
       { label: "Client", value: "BEBO betonboren & zagen" },
@@ -91,7 +91,7 @@ export const FEATURED = [
     media: {
       src: "/work/bebo-home",
       alt: "bebobetonboren.nl as it stands today: the holding page, on raw concrete",
-      caption: "bebobetonboren.nl — the live holding page while the platform is built",
+      caption: "bebobetonboren.nl, the live holding page while the platform is built",
     },
     action: { label: "Visit the live site", href: "https://www.bebobetonboren.nl/", external: true },
     /** no case study yet, and none is implied */
@@ -109,12 +109,12 @@ export const FEATURED = [
       { label: "Role", value: "Full-stack · Backend · Data" },
       { label: "Stack", value: "Java · Spring Boot · PostgreSQL · Next.js" },
       { label: "Type", value: "Personal project" },
-      { label: "Status", value: "Phase 1 — core reading system" },
+      { label: "Status", value: "Phase 1, core reading system" },
     ],
     media: {
       src: "/work/goodreads-discover",
       alt: "Goodreads rebuilt: the catalogue as one surface, with a genre rail of real covers and search",
-      caption: "Discover — browse and search as one surface, served from our own PostgreSQL",
+      caption: "Discover: browse and search as one surface, served from our own PostgreSQL",
     },
     action: { label: "Read the case study", href: "/work/goodreads", external: false },
     caseStudy: "/work/goodreads",
@@ -142,7 +142,7 @@ export const FOCUS = {
 export const CONTACT = {
   label: "(03)",
   heading: ["Have a project", "or an opportunity?"],
-  body: "I'm looking for an internship where I can grow through real software development — building things that people actually use, in a team that builds them properly.",
+  body: "I'm looking for an internship where I can grow through real software development, building things that people actually use, in a team that builds them properly.",
   cta: { label: "Get in touch", href: `mailto:${SITE.email}` },
 } as const;
 

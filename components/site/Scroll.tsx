@@ -23,17 +23,28 @@ import { useEffect } from "react";
 export function Scroll() {
   useEffect(() => {
     /* ---- reveals: seen once, then released ------------------------------ */
+    // Nothing reveals in the last tenth of the screen, so an entrance always
+    // starts after the thing is properly on screen rather than at the edge.
+    const waiting = new Set<HTMLElement>();
+    const show = (el: HTMLElement) => {
+      el.dataset.reveal = "in";
+      waiting.delete(el);
+      revealed.unobserve(el);
+    };
     const revealed = new IntersectionObserver(
-      (entries, obs) => {
-        entries.forEach((e) => {
-          if (!e.isIntersecting) return;
-          (e.target as HTMLElement).dataset.reveal = "in";
-          obs.unobserve(e.target);
-        });
-      },
+      (entries) => entries.forEach((e) => e.isIntersecting && show(e.target as HTMLElement)),
       { rootMargin: "0px 0px -10% 0px", threshold: 0.06 },
     );
-    document.querySelectorAll("[data-reveal]").forEach((el) => revealed.observe(el));
+    document.querySelectorAll<HTMLElement>("[data-reveal]").forEach((el) => {
+      waiting.add(el);
+      revealed.observe(el);
+    });
+    /* The last line of the page sits on the bottom edge of the last screen,
+       which is exactly the strip the margin above excludes — and there is no
+       more page to scroll. At the end, whatever is still waiting has
+       arrived. */
+    const atEnd = () =>
+      window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
 
     /* ---- scroll-linked: only what is on screen is measured --------------- */
     const tracked = [...document.querySelectorAll<HTMLElement>("[data-track]")];
@@ -95,6 +106,7 @@ export function Scroll() {
         document.documentElement.dataset.nav =
           p < 0.3 ? "day" : p < 0.52 ? "on-light" : p < 0.72 ? "on-dark" : "night";
       }
+      if (waiting.size && atEnd()) [...waiting].forEach(show);
       live.forEach((el) => {
         const r = el.getBoundingClientRect();
         if (el === fall) return;      // measured above, every frame

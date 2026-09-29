@@ -9,32 +9,21 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://jorisvrr.com"),
 
   title: {
-    default: "Joris van Rijn — Software Engineering & Digital Systems",
-    template: "%s — Joris van Rijn",
+    default: "Joris van Rijn · Software Engineering & Digital Systems",
+    template: "%s · Joris van Rijn",
   },
 
   description:
-    "Portfolio of Joris van Rijn — an HBO-ICT software engineering student building digital products and systems: full-stack and backend development, APIs, data, and the business thinking around them.",
+    "Portfolio of Joris van Rijn, an HBO-ICT software engineering student building digital products and systems: full-stack and backend development, APIs, data, and the business thinking around them.",
 
   keywords: [
     "Joris van Rijn",
-    "Joris van Rijn portfolio",
-    "HBO ICT",
     "software engineering",
-    "full-stack developer",
+    "full-stack development",
     "backend development",
-    "ICT portfolio",
-    "digital product design",
-    "UI UX design",
-    "business optimization",
-    "business process optimization",
-    "data analytics",
-    "software development",
-    "Java",
-    "SQL",
-    "BPMN",
-    "web development",
-    "Netherlands",
+    "digital systems",
+    "HBO-ICT",
+    "portfolio",
   ],
 
   authors: [
@@ -56,22 +45,22 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "https://jorisvrr.com",
     siteName: "Joris van Rijn",
-    title: "Joris van Rijn — Software Engineering & Digital Systems",
+    title: "Joris van Rijn · Software Engineering & Digital Systems",
     description:
-      "HBO-ICT software engineering student building digital products and systems — full-stack and backend development, APIs, data, and the business thinking around them.",
+      "HBO-ICT software engineering student building digital products and systems: full-stack and backend development, APIs, data, and the business thinking around them.",
     images: [
       {
         url: "/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Joris van Rijn — Portfolio",
+        alt: "Joris van Rijn, portfolio",
       },
     ],
   },
 
   twitter: {
     card: "summary_large_image",
-    title: "Joris van Rijn — Software Engineering & Digital Systems",
+    title: "Joris van Rijn · Software Engineering & Digital Systems",
     description:
       "Full-stack and backend development, digital products, data and systems.",
     images: ["/og-image.jpg"],
@@ -91,7 +80,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#E8E8E8",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f2f1ed" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a09" },
+  ],
   colorScheme: "light",
   width: "device-width",
   initialScale: 1,
@@ -102,6 +94,33 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" className={`${sans.variable} ${display.variable} ${mono.variable}`}>
       <body>
+        {/* Nothing here that is not already on the page. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Person",
+              name: "Joris van Rijn",
+              url: "https://jorisvrr.com",
+              email: "mailto:jorisvrr@gmail.com",
+              jobTitle: "Software engineering student",
+              description: "HBO-ICT software engineering student building digital products and systems.",
+              address: { "@type": "PostalAddress", addressLocality: "Leiderdorp", addressCountry: "NL" },
+              knowsAbout: [
+                "Software engineering",
+                "Full-stack development",
+                "Backend development",
+                "Digital product development",
+                "Data and systems",
+              ],
+              sameAs: [
+                "https://www.linkedin.com/in/jorisvnrijn/",
+                "https://www.instagram.com/jorisvrr",
+              ],
+            }),
+          }}
+        />
         <a className="skip-link" href="#about">Skip to content</a>
         {children}
       </body>

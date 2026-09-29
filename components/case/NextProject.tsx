@@ -44,7 +44,7 @@ export function NextProject({ project: p, onOpen }: { project: Project; onOpen?:
       </div>
       <p className="next__type">{p.role?.length ? p.role.join(" / ") : p.type}</p>
       <p className="next__go">
-        {ready ? "Open" : "In preparation — back to the index"}
+        {ready ? "Open" : "In preparation, back to the index"}
         <ArrowRight size={13} strokeWidth={1.6} aria-hidden="true" />
       </p>
       {src ? (

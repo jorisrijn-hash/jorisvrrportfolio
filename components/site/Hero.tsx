@@ -1,4 +1,5 @@
-import { HERO_LINES, IDENTITY } from "@/content/portfolio";
+import { IDENTITY } from "@/content/portfolio";
+import { HeroLines } from "./HeroLines";
 import { HeroPortrait } from "./HeroPortrait";
 
 /**
@@ -15,27 +16,12 @@ import { HeroPortrait } from "./HeroPortrait";
  */
 export function Hero() {
   return (
-    <section className="hero" id="top">
-      <div className="hero__lines" aria-hidden="true">
-        {HERO_LINES.map((line, i) => (
-          <div
-            key={line.text}
-            className="mq"
-            data-dir={line.dir}
-            data-depth={i % 2}
-            style={{ ["--dur" as string]: `${38 + i * 9}s` }}
-          >
-            <div className="mq__track">
-              <span>{`${line.text} · `.repeat(5)}</span>
-              <span>{`${line.text} · `.repeat(5)}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+    <section className="hero" id="top" data-track>
+      <HeroLines />
 
       {/* what the moving type says, for anything that cannot see it */}
       <h1 className="sr-only">
-        {IDENTITY.name} — {IDENTITY.discipline}. Software engineer and full-stack developer.
+        {IDENTITY.name}. {IDENTITY.discipline}. Software engineer and full-stack developer.
       </h1>
 
       <HeroPortrait />

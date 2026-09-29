@@ -211,7 +211,7 @@ export function CaseStudy({
       {p.devOnly ? (
         <p className="case-dev" role="status">
           <span>{"// DEV PLACEHOLDER"}</span>
-          Development case study — built from this repository to exercise the sections. Not published.
+          Development case study, built from this repository to exercise the sections. Not published.
         </p>
       ) : null}
 
