@@ -532,7 +532,7 @@ const nextConfig: NextConfig = {
     year: "2026",
     // Read off this repository: package.json, and what the code actually uses.
     technologies: ["TypeScript", "React", "Next.js", "Tailwind CSS", "Motion", "d3-geo", "Web Audio API", "Vercel"],
-    liveUrl: "https://jorisvrr.com",
+    liveUrl: "https://www.jorisvrr.com",
     showcaseMedia: placeholder("03"),
     thumbMedia: placeholderThumb("03"),
 

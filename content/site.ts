@@ -8,6 +8,9 @@
 export const SITE = {
   name: "Joris van Rijn",
   domain: "jorisvrr.com",
+  /** The host that actually serves: the apex 308s to this one, so this is
+   *  what canonical URLs, the sitemap and outbound links point at. */
+  origin: "https://www.jorisvrr.com",
   location: "The Netherlands",
   email: "jorisvrr@gmail.com",
   version: "1.0.0",
@@ -38,7 +41,7 @@ export const ABOUT = {
     { label: "Email", value: "jorisvrr@gmail.com", href: "mailto:jorisvrr@gmail.com" },
     { label: "Phone", value: "0638032065", href: "tel:+31638032065" },
     { label: "Location", value: "The Netherlands" },
-    { label: "Website", value: "jorisvrr.com", href: "https://jorisvrr.com", external: true },
+    { label: "Website", value: "jorisvrr.com", href: "https://www.jorisvrr.com", external: true },
   ] as { label: string; value: string; href?: string; external?: boolean }[],
 } as const;
 

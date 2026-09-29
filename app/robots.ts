@@ -1,9 +1,10 @@
 import type { MetadataRoute } from "next";
+import { SITE } from "@/content/site";
 
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: { userAgent: "*", allow: "/" },
-    sitemap: "https://jorisvrr.com/sitemap.xml",
-    host: "https://jorisvrr.com",
+    sitemap: `${SITE.origin}/sitemap.xml`,
+    host: SITE.origin,
   };
 }

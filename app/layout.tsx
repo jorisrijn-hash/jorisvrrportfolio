@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { SITE } from "@/content/site";
 import { display, mono, sans } from "./fonts";
 import "./globals.css";
 
@@ -6,7 +7,7 @@ import "./globals.css";
 // apple-icon.png, all cut from the supplied logo. The social preview is
 // public/og-image.jpg, cut from the supplied design.
 export const metadata: Metadata = {
-  metadataBase: new URL("https://jorisvrr.com"),
+  metadataBase: new URL(SITE.origin),
 
   title: {
     default: "Joris van Rijn · Software Engineering & Digital Systems",
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
   authors: [
     {
       name: "Joris van Rijn",
-      url: "https://jorisvrr.com",
+      url: SITE.origin,
     },
   ],
 
@@ -37,13 +38,13 @@ export const metadata: Metadata = {
   publisher: "Joris van Rijn",
 
   alternates: {
-    canonical: "https://jorisvrr.com",
+    canonical: SITE.origin,
   },
 
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://jorisvrr.com",
+    url: SITE.origin,
     siteName: "Joris van Rijn",
     title: "Joris van Rijn · Software Engineering & Digital Systems",
     description:
@@ -102,7 +103,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               "@context": "https://schema.org",
               "@type": "Person",
               name: "Joris van Rijn",
-              url: "https://jorisvrr.com",
+              url: SITE.origin,
               email: "mailto:jorisvrr@gmail.com",
               jobTitle: "Software engineering student",
               description: "HBO-ICT software engineering student building digital products and systems.",

@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { PROJECTS, hasCaseStudy } from "@/content/projects";
+import { SITE } from "@/content/site";
 
 /**
  * Only pages that actually exist and actually have something on them: the
@@ -9,9 +10,9 @@ import { PROJECTS, hasCaseStudy } from "@/content/projects";
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
   return [
-    { url: "https://jorisvrr.com", lastModified: now, changeFrequency: "monthly", priority: 1 },
+    { url: SITE.origin, lastModified: now, changeFrequency: "monthly", priority: 1 },
     ...PROJECTS.filter((p) => hasCaseStudy(p)).map((p) => ({
-      url: `https://jorisvrr.com/work/${p.slug}`,
+      url: `${SITE.origin}/work/${p.slug}`,
       lastModified: now,
       changeFrequency: "monthly" as const,
       priority: 0.8,
