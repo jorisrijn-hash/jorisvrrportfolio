@@ -24,7 +24,7 @@ export function Statement() {
           </p>
         </div>
       ))}
-      <p className="statement__body wrap" data-reveal>{STATEMENT.body}</p>
+      <p className="statement__body" data-reveal>{STATEMENT.body}</p>
     </section>
   );
 }

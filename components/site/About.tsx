@@ -13,7 +13,7 @@ export function About() {
     <section id="about">
       <div className="screen about__mark">
         <p className="m about__label" data-reveal>{ABOUT.label}</p>
-        <h2 className="d about__word" data-reveal>
+        <h2 className="d about__word" data-reveal data-track>
           <LetterSwap text={ABOUT.heading} />
         </h2>
       </div>
@@ -23,7 +23,7 @@ export function About() {
       </div>
 
       <div className="screen about__detail">
-        <div className="about__body">
+        <div className="about__body" data-track>
           {ABOUT.body.map((p, i) => (
             <p key={i} data-reveal style={{ ["--delay" as string]: `${i * 110}ms` }}>{p}</p>
           ))}

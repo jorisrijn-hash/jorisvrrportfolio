@@ -47,6 +47,7 @@ export function Focus() {
       <div
         ref={root}
         className="focus__field"
+        data-track
         data-live={open || undefined}
         onPointerMove={track}
         onPointerLeave={() => setOpen(null)}

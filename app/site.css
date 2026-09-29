@@ -278,12 +278,36 @@ html[data-nav="on-dark"] .nav { color: var(--night-ink); text-shadow: 0 0 7px rg
   text-align: right;
 }
 
-/* then the section lets go: the detail, quiet, at the foot of a screen */
-.about__detail { align-content: end; gap: clamp(30px, 6vh, 70px); }
-.about__body { display: grid; gap: 20px; max-width: 54ch; margin-left: auto; }
-.about__body p { color: var(--ink-soft); }
-.stack { display: flex; flex-wrap: wrap; gap: 10px 26px; }
+/* Then the section lets go. The paragraphs are pushed into the bottom right
+   corner as a marginal note rather than set as body copy in a column, and
+   what he works with runs edge to edge along the very bottom of the screen —
+   metadata as environment, not as a list on a page. */
+.about__detail { align-content: end; justify-items: end; padding-bottom: 0; padding-inline: 0; }
+.about__body {
+  display: grid;
+  gap: 18px;
+  width: min(46ch, 46vw);
+  margin-right: var(--gutter);
+  margin-bottom: clamp(40px, 8vh, 96px);
+  transform: translateY(calc((0.5 - var(--p, 0.5)) * -52px));
+}
+.about__body p { color: var(--ink-soft); font-size: clamp(14px, 1.05vw, 16px); line-height: 1.7; }
+.stack {
+  width: 100vw;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px clamp(18px, 2.4vw, 40px);
+  padding: 18px var(--gutter) clamp(22px, 4vh, 40px);
+  border-top: 1px solid var(--rule);
+}
 .stack li { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-faint); }
+
+/* the word leaves the screen rather than vanishing from it */
+.about__word { transform: translateY(calc((0.5 - var(--p, 0.5)) * -110px)); }
+
+/* the claim runs to the edge of the screen, not to a column */
+.about__claim { padding-right: 0; }
+.about__lead { padding-right: var(--gutter); }
 
 /* ---- the word whose letters turn over (components/site/LetterSwap) ------ */
 .swap { display: inline-flex; }
@@ -301,12 +325,60 @@ html[data-nav="on-dark"] .nav { color: var(--night-ink); text-shadow: 0 0 7px rg
 /* =========================================================================
    CONTACT — the question, then the ways to answer it
    ========================================================================= */
+
+/* the one button shape on the site: a line that fills as it is approached */
+.action {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border: 1px solid currentColor;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  transition: color 420ms var(--ease);
+}
+.action::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  transition: transform 520ms var(--ease);
+  z-index: -1;
+}
+.action:hover, .action:focus-visible { color: var(--paper); }
+.action:hover::before, .action:focus-visible::before { transform: none; background: var(--ink); }
+.action svg { transition: transform 420ms var(--ease); }
+.action:hover svg { transform: translateX(4px); }
+
 .contact__ask { align-content: center; gap: clamp(24px, 4vh, 48px); }
 .contact__q { font-size: clamp(38px, 7.8vw, 128px); }
 .contact__q2 { color: var(--ink-faint); }
-.contact__reply { align-content: center; justify-items: start; gap: clamp(26px, 4vh, 44px); }
-.contact__body { max-width: 42ch; color: var(--ink-soft); font-size: clamp(16px, 1.3vw, 20px); }
-.contact__links { display: flex; flex-wrap: wrap; gap: clamp(18px, 3vw, 54px); }
+/* the reply is spread over the screen rather than stacked in a column:
+   the line high and left, the way in below it, the channels along the foot */
+.contact__reply { align-content: space-between; justify-items: start; padding-inline: 0; }
+.contact__body {
+  width: min(40ch, 62vw);
+  margin: clamp(20px, 6vh, 80px) 0 0 var(--gutter);
+  color: var(--ink-soft);
+  font-size: clamp(16px, 1.3vw, 20px);
+}
+.contact__reply > p:nth-of-type(2) { margin-left: var(--gutter); }
+.contact__links {
+  width: 100vw;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px clamp(18px, 3vw, 54px);
+  padding: 18px var(--gutter) 0;
+  border-top: 1px solid var(--rule);
+}
 .contact__links a { display: grid; gap: 4px; }
 .contact__links span:last-child { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; color: var(--ink); }
 .contact__links a:hover span:last-child { color: var(--burgundy); }
@@ -346,24 +418,27 @@ html[data-nav="on-dark"] .nav { color: var(--night-ink); text-shadow: 0 0 7px rg
   display: flex;
   min-height: 150svh;
   align-items: center;
-  padding-inline: var(--gutter);
 }
-.work__project[data-side="left"] { justify-content: flex-start; }
-.work__project[data-side="right"] { justify-content: flex-end; }
+/* the work runs off the edge of the screen it entered from: a composition,
+   not a picture placed inside a margin */
+.work__project[data-side="left"] { justify-content: flex-start; padding-right: var(--gutter); }
+.work__project[data-side="right"] { justify-content: flex-end; padding-left: var(--gutter); }
 
 .work__view {
   position: relative;
   display: block;
-  width: min(52vw, 860px);
+  width: min(62vw, 1080px);
   isolation: isolate;
+  /* and it drifts against the scroll, so it travels rather than scrolls */
+  transform: translateY(calc((0.5 - var(--p, 0.5)) * -60px));
 }
 .work__num {
   position: absolute;
-  top: -28px;
-  left: 0;
+  top: -30px;
+  left: var(--gutter);
   z-index: 2;
 }
-.work__project[data-side="right"] .work__num { left: auto; right: 0; }
+.work__project[data-side="right"] .work__num { left: auto; right: var(--gutter); }
 
 .work__figure {
   position: relative;
@@ -463,7 +538,14 @@ html[data-nav="on-dark"] .nav { color: var(--night-ink); text-shadow: 0 0 7px rg
   transition: transform 1200ms var(--ease) calc(var(--i, 0) * 90ms);
 }
 .statement__b { color: var(--ink-faint); }
-.statement__body { max-width: 46ch; margin-top: clamp(60px, 12vh, 140px); color: var(--ink-soft); }
+/* not a paragraph under a heading: a note in the corner of the screen */
+.statement__body {
+  width: min(38ch, 60vw);
+  margin: clamp(60px, 12vh, 140px) var(--gutter) 0 auto;
+  color: var(--ink-soft);
+  font-size: clamp(13px, 1vw, 15px);
+  line-height: 1.7;
+}
 
 /* =========================================================================
    WHAT I WORK WITH — a typographic landscape
@@ -507,6 +589,9 @@ html[data-nav="on-dark"] .nav { color: var(--night-ink); text-shadow: 0 0 7px rg
 .focus__word:nth-of-type(5) { --x: 2%;   --y: 68%; --s: 0.68; }
 .focus__word:nth-of-type(6) { --x: 34%;  --y: 79%; --s: 0.58; }
 
+/* each word travels at its own rate, so the landscape moves through the
+   screen rather than sitting still in it */
+.focus__word { transform: translateY(calc((0.5 - var(--p, 0.5)) * (var(--i) * -18px - 20px))); }
 .focus__w {
   display: block;
   font-size: calc(clamp(30px, 6.4vw, 104px) * var(--s, 1));
