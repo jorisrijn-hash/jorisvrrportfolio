@@ -249,6 +249,11 @@ html[data-nav="on-dark"] .nav { color: var(--night-ink); text-shadow: 0 0 7px rg
 /* Once it is being driven frame by frame the transition would only fight the
    easing that is already in the loop. */
 .hero__portrait[data-live] { transition: none; }
+/* handing back: it goes out where it stands, returns to the middle while it
+   cannot be seen, and is simply there again — so the face is never on screen
+   next to the crosshair that replaced it */
+.hero__portrait[data-away] { opacity: 0; transition: none; }
+.hero__portrait[data-home] { transition: opacity 420ms var(--ease) 60ms; }
 /* carrying the pointer: it lifts slightly off the words it is riding over */
 .hero__portrait[data-lead] { filter: drop-shadow(0 10px 26px rgb(10 10 9 / 0.16)); }
 
@@ -846,11 +851,16 @@ html[data-nav="on-dark"] .nav { color: var(--night-ink); text-shadow: 0 0 7px rg
   color: var(--ink);
   mix-blend-mode: difference;
   filter: invert(1);              /* difference + invert: legible on both worlds */
-  transition: opacity 420ms var(--ease);
 }
+/* A cursor does not fade. It is either the pointer or it is not, and in the
+   hero it hands that job to the portrait and takes it straight back: any
+   transition here is a window with a dot inside a photograph. */
 .cross[data-on] { opacity: 1; }
-/* There is one pointer on screen. In the hero the portrait is it, so the
-   crosshair stands down rather than sitting inside the face. */
+/* There is one pointer on screen, and in the hero the portrait is it.
+   The two swap without ever being on screen together: the crosshair goes the
+   moment the face takes over, and comes straight back the moment it does not.
+   A fade in either direction is a window in which a dot sits inside a
+   photograph, which is the one thing this must not do. */
 html[data-hero-cursor] .cross { opacity: 0; }
 .cross span { position: absolute; background: currentColor; }
 .cross__h { left: -7px; top: -0.5px; width: 14px; height: 1px; }

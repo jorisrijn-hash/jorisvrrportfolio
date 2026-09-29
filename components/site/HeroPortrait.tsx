@@ -26,6 +26,11 @@ import { IDENTITY } from "@/content/portfolio";
  *
  * There is one pointer on screen, and on the words it is a face.
  *
+ * The swap itself is a cut, both ways. A cursor is either the pointer or it
+ * is not, and anything in between is a window in which a crosshair sits
+ * inside a photograph. The face leaves in the instant the crosshair returns,
+ * comes back to the middle while it cannot be seen, and fades up there.
+ *
  * The signal breaks up as it arrives, two colour channels pulling apart in a
  * couple of thin bands, and then again now and then while it is carrying,
  * small enough to be noticed rather than watched. At rest it is completely
@@ -53,6 +58,7 @@ export function HeroPortrait() {
     const BAND = 14;
     let frame = 0;
     let running = false;    // inside step(), which schedules its own next frame
+    let home = 0;           // the timer that puts it back while it is invisible
     let lead = false;
     let released = 0;       // when the crosshair last took over
     /* where the pointer is, in the page's own coordinates, so that scrolling
@@ -66,32 +72,18 @@ export function HeroPortrait() {
     const step = () => {
       frame = 0;
       running = true;
-      let tx = 0;
-      let ty = 0;
-      if (lead) {
-        const r = hero.getBoundingClientRect();
-        tx = px - (r.left + r.width / 2);
-        ty = py - (r.top + r.height / 2);
-      }
-      // Coming is quicker than going: it answers a pointer, and it takes its
-      // time finding the middle again.
-      const k = lead ? 0.13 : 0.06;
-      x += (tx - x) * k;
-      y += (ty - y) * k;
+      const r = hero.getBoundingClientRect();
+      const tx = px - (r.left + r.width / 2);
+      const ty = py - (r.top + r.height / 2);
+      x += (tx - x) * 0.13;
+      y += (ty - y) * 0.13;
       el.style.setProperty("--px", `${x.toFixed(1)}px`);
       el.style.setProperty("--py", `${y.toFixed(1)}px`);
-      // While leading it keeps running even when the pointer is still, because
-      // the hero can scroll out from under it. On the way home it stops as
-      // soon as there is nothing left to travel.
-      if (lead) decide();
+      decide();
       running = false;
-      if (lead || Math.abs(x) > 0.4 || Math.abs(y) > 0.4) {
-        frame = requestAnimationFrame(step);
-      } else {
-        el.style.setProperty("--px", "0px");
-        el.style.setProperty("--py", "0px");
-        delete el.dataset.live;
-      }
+      // It keeps running even when the pointer is still, because the hero can
+      // scroll out from under it.
+      if (lead) frame = requestAnimationFrame(step);
     };
     const run = () => { if (!frame && !running) frame = requestAnimationFrame(step); };
 
@@ -117,6 +109,9 @@ export function HeroPortrait() {
     };
     const take = () => {
       lead = true;
+      window.clearTimeout(home);
+      el.removeAttribute("data-away");
+      el.removeAttribute("data-home");
       el.dataset.live = "";
       el.dataset.lead = "";
       root.dataset.heroCursor = "on";
@@ -125,12 +120,32 @@ export function HeroPortrait() {
       if (performance.now() - released > 1400) burst();
       run();
     };
+    /**
+     * Handing back. The crosshair is already on screen by the time this line
+     * runs — removing the attribute is not a transition any more — so the
+     * face must get out of the way rather than drift home underneath it.
+     * It goes out where it stands, returns to the middle unseen, and is
+     * simply there again.
+     */
     const release = () => {
       lead = false;
       released = performance.now();
       delete el.dataset.lead;
       delete root.dataset.heroCursor;
-      run();
+      el.dataset.away = "";
+      window.clearTimeout(home);
+      // long enough for the frame that hides it to have been painted, short
+      // enough that it is never seen anywhere but where it belongs
+      home = window.setTimeout(() => {
+        x = 0;
+        y = 0;
+        el.style.setProperty("--px", "0px");
+        el.style.setProperty("--py", "0px");
+        delete el.dataset.live;
+        delete el.dataset.away;
+        el.dataset.home = "";
+        window.setTimeout(() => el?.removeAttribute("data-home"), 520);
+      }, 40);
     };
 
     const move = (e: PointerEvent) => {
@@ -151,6 +166,7 @@ export function HeroPortrait() {
       document.removeEventListener("pointerleave", gone);
       window.removeEventListener("blur", gone);
       delete root.dataset.heroCursor;
+      window.clearTimeout(home);
       if (frame) cancelAnimationFrame(frame);
     };
   }, []);
