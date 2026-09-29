@@ -1,10 +1,10 @@
 import { Scroll } from "@/components/site/Scroll";
 import { Crosshair } from "@/components/site/Crosshair";
+import { Weight } from "@/components/site/Weight";
 import { Nav } from "@/components/site/Nav";
 import { Hero } from "@/components/site/Hero";
 import { About } from "@/components/site/About";
 import { Work } from "@/components/site/Work";
-import { Statement } from "@/components/site/Statement";
 import { Focus } from "@/components/site/Focus";
 import { Contact } from "@/components/site/Contact";
 import { Footer } from "@/components/site/Footer";
@@ -28,7 +28,6 @@ export default function IndexPage() {
         <About />
         <Work />
         <div className="descent">
-          <Statement />
           {/* The page turns here. It is deliberately empty: the change from
               the light world to the dark one happens while there is nothing
               to read, so it is watched rather than read through. */}
@@ -40,6 +39,7 @@ export default function IndexPage() {
       </main>
       <Scroll />
       <Crosshair />
+      <Weight />
     </>
   );
 }

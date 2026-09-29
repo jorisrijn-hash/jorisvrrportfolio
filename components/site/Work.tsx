@@ -21,6 +21,44 @@ export function Work() {
   const [at, setAt] = useState(0);
   const root = useRef<HTMLElement>(null);
 
+  /**
+   * The lens follows the pointer with weight rather than snapping to it: the
+   * target is written on a pointermove, and one frame eases the lens toward
+   * it — the same easing the rest of the site moves with.
+   */
+  const lensRef = useRef<{ el: HTMLElement; x: number; y: number; tx: number; ty: number }[]>([]);
+  const frame = useRef(0);
+  const ease = () => {
+    frame.current = 0;
+    let moving = false;
+    lensRef.current.forEach((l) => {
+      if (!l) return;
+      l.x += (l.tx - l.x) * 0.16;
+      l.y += (l.ty - l.y) * 0.16;
+      if (Math.abs(l.tx - l.x) > 0.3 || Math.abs(l.ty - l.y) > 0.3) moving = true;
+      l.el.style.setProperty("--lx", `${l.x.toFixed(1)}px`);
+      l.el.style.setProperty("--ly", `${l.y.toFixed(1)}px`);
+    });
+    if (moving) frame.current = requestAnimationFrame(ease);
+  };
+  const lens = (e: React.PointerEvent, i: number) => {
+    if (e.pointerType !== "mouse") return;
+    const fig = (e.currentTarget as HTMLElement).querySelector<HTMLElement>(".work__lens");
+    if (!fig) return;
+    const r = (fig.parentElement as HTMLElement).getBoundingClientRect();
+    const x = e.clientX - r.left;
+    const y = e.clientY - r.top;
+    const cur = lensRef.current[i] ?? { el: fig, x, y, tx: x, ty: y };
+    cur.el = fig;
+    cur.tx = x;
+    cur.ty = y;
+    lensRef.current[i] = cur;
+    // the inverted copy is laid out against the figure's own width
+    fig.style.setProperty("--fw", `${Math.round(r.width)}px`);
+    if (!frame.current) frame.current = requestAnimationFrame(ease);
+  };
+  useEffect(() => () => { if (frame.current) cancelAnimationFrame(frame.current); }, []);
+
   // which project the marker is counting — one observer, no scroll handler
   useEffect(() => {
     const el = root.current;
@@ -65,6 +103,7 @@ export function Work() {
             href={p.action.href}
             {...(p.action.external ? { target: "_blank", rel: "noreferrer noopener" } : {})}
             aria-label={`${p.title.join(" ")} — ${p.action.label}`}
+            onPointerMove={(e) => lens(e, i)}
           >
             <span className="work__num m" aria-hidden="true">{p.number}</span>
 
@@ -72,35 +111,50 @@ export function Work() {
               <img
                 src={`${p.media.src}-1680.webp`}
                 srcSet={`${p.media.src}-960.webp 960w, ${p.media.src}-1680.webp 1680w`}
-                sizes="(max-width: 900px) 86vw, 52vw"
+                sizes="(max-width: 900px) 100vw, 48vw"
                 alt={p.media.alt}
                 width={1680}
                 height={1074}
                 loading="lazy"
                 decoding="async"
               />
-
-              {/* already there, masked: the pointer uncovers it */}
-              <figcaption className="work__reveal">
-                <span className="work__kind m">{p.kind} · {p.year}</span>
-                <span className="work__title d">
-                  {p.title.map((line) => <span key={line}>{line}</span>)}
-                </span>
-                <span className="work__meta">
-                  {p.meta.map((m) => (
-                    <span key={m.label} className="work__row">
-                      <span className="m">{m.label}</span>
-                      <span>{m.value}</span>
-                    </span>
-                  ))}
-                </span>
-                <span className="work__show">
-                  <span className="work__showbox">Show work</span>
-                  <span className="m">{p.action.label}</span>
-                </span>
-              </figcaption>
+              {/* The lens. It holds a second copy of the same photograph,
+                  inverted, aligned to the pixel with the one behind it and
+                  clipped to this rectangle — so the image really does turn
+                  into its own negative inside the box, rather than being
+                  covered by one. */}
+              <span className="work__lens" aria-hidden="true">
+                <img
+                  src={`${p.media.src}-1680.webp`}
+                  srcSet={`${p.media.src}-960.webp 960w, ${p.media.src}-1680.webp 1680w`}
+                  sizes="(max-width: 900px) 100vw, 48vw"
+                  alt=""
+                  width={1680}
+                  height={1074}
+                  loading="lazy"
+                  decoding="async"
+                />
+                <span className="work__lens-label">Read more</span>
+              </span>
             </figure>
           </a>
+
+          {/* beside the image, not under it and not on it */}
+          <div className="work__beside">
+            <span className="work__kind m">{p.kind} · {p.year}</span>
+            <h3 className="work__title d">
+              {p.title.map((line) => <span key={line}>{line}</span>)}
+            </h3>
+            <p className="work__summary">{p.summary}</p>
+            <dl className="work__meta">
+              {p.meta.map((m) => (
+                <div key={m.label}>
+                  <dt className="m">{m.label}</dt>
+                  <dd>{m.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
         </article>
       ))}
     </section>

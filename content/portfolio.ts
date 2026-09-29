@@ -121,15 +121,6 @@ export const FEATURED = [
   },
 ] as const;
 
-export const STATEMENT = {
-  lines: [
-    ["I don't just want to build", "what's on the screen."],
-    ["I want to understand", "what's behind it."],
-  ],
-  body:
-    "Good digital products aren't only interfaces. They're the systems, the data, the processes and the decisions that make those interfaces work — and they are usually where the real problem is.",
-} as const;
-
 /**
  * WHAT I WORK WITH — categories, each with the things inside it. The keywords
  * are what I actually work with as a student, not a claim of expertise.

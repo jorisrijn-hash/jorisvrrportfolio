@@ -7,10 +7,10 @@ import { FOCUS } from "@/content/portfolio";
  * WHAT I WORK WITH — a typographic landscape, not a list.
  *
  * The six words are placed across the width of the screen rather than down
- * it: different lanes, different sizes, two of them running past the edges.
- * The one under the pointer comes forward and the rest recede, and what it
- * means is read out along the bottom of the screen — so the landscape itself
- * never reflows while it is being explored.
+ * it: different lanes, different sizes, composed tightly enough to read as
+ * one system. The one under the pointer comes forward, the rest recede, and
+ * what it means appears attached to that word — nowhere else, and never
+ * until it is asked for. Absolutely positioned, so nothing reflows.
  *
  * Hover, focus and click all make a word active, so a pointer, a keyboard
  * and a thumb all get the same thing.
@@ -18,7 +18,6 @@ import { FOCUS } from "@/content/portfolio";
 export function Focus() {
   const [open, setOpen] = useState<string | null>(null);
   const root = useRef<HTMLDivElement>(null);
-  const live = FOCUS.items.find((i) => i.id === open) ?? null;
 
   // the mark that trails the pointer — two properties, one frame
   const frame = useRef(0);
@@ -72,24 +71,23 @@ export function Focus() {
             aria-expanded={open === item.id}
             onPointerEnter={() => setOpen(item.id)}
             onFocus={() => setOpen(item.id)}
+            onBlur={() => setOpen(null)}
             onClick={() => setOpen(open === item.id ? null : item.id)}
           >
             <span className="focus__w d">{item.title}</span>
-            {/* the meaning is read out below; this is the same thing, said */}
-            <span className="sr-only">{item.line} — {item.keywords.join(", ")}</span>
+            {/* attached to its own word, and shown only while it is the live
+                one — there is no permanent place for descriptions here */}
+            <span className="focus__said">
+              <span className="focus__line">{item.line}</span>
+              <span className="focus__keys">
+                {item.keywords.map((k) => <span key={k} className="m">{k}</span>)}
+              </span>
+            </span>
           </button>
         ))}
 
         {/* the one hint on the site */}
         <span className="focus__hint m" aria-hidden="true">← {FOCUS.hint}</span>
-
-        {/* the readout: it changes, the landscape does not move */}
-        <div className="focus__read" aria-hidden="true" data-on={live ? "" : undefined}>
-          <span className="focus__line">{live?.line}</span>
-          <span className="focus__keys">
-            {live?.keywords.map((k) => <span key={k} className="m">{k}</span>)}
-          </span>
-        </div>
       </div>
     </section>
   );

@@ -261,53 +261,53 @@ html[data-nav="on-dark"] .nav { color: var(--night-ink); text-shadow: 0 0 7px rg
 .head h2 { font-size: clamp(48px, 9vw, 150px); }
 
 /* =========================================================================
-   ABOUT — the word, the claim, then the detail. One per screen.
+   ABOUT — one scene, not three pages
+
+   The word holds the left, the claim answers it from the right, the detail
+   sits under the claim as a quieter voice, and what he works with runs edge
+   to edge along the floor. All of it inside one screen.
    ========================================================================= */
-.about__mark { align-content: center; }
-.about__label { position: absolute; top: clamp(80px, 12vh, 140px); left: var(--gutter); }
-.about__word { font-size: min(26vw, 30vh); line-height: 0.82; }
-
-/* the claim sits off-centre, with nothing else on the screen to argue with */
-.about__claim { align-content: center; justify-content: end; }
+.about {
+  align-content: center;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  grid-template-rows: auto auto;
+  column-gap: clamp(30px, 5vw, 90px);
+  row-gap: clamp(20px, 4vh, 50px);
+  padding-bottom: 0;
+  padding-inline: 0;
+}
+.about__label { grid-column: 1 / -1; padding-left: var(--gutter); }
+.about__word {
+  grid-column: 1;
+  align-self: center;
+  padding-left: var(--gutter);
+  font-size: min(17vw, 21vh);
+  line-height: 0.82;
+  transform: translateY(calc((0.5 - var(--p, 0.5)) * -80px));
+}
+.about__say { grid-column: 2; align-self: center; display: grid; gap: clamp(22px, 4vh, 46px); padding-right: var(--gutter); }
 .about__lead {
-  max-width: 17ch;
-  font-size: clamp(30px, 4.6vw, 76px);
+  max-width: 19ch;
+  font-size: clamp(24px, 2.9vw, 46px);
   font-weight: 300;
-  line-height: 1.04;
-  letter-spacing: -0.025em;
-  text-align: right;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
 }
+.about__body { display: grid; gap: 14px; max-width: 52ch; transform: translateY(calc((0.5 - var(--p, 0.5)) * -34px)); }
+.about__body p { color: var(--ink-soft); font-size: clamp(13px, 0.92vw, 15px); line-height: 1.68; }
 
-/* Then the section lets go. The paragraphs are pushed into the bottom right
-   corner as a marginal note rather than set as body copy in a column, and
-   what he works with runs edge to edge along the very bottom of the screen —
-   metadata as environment, not as a list on a page. */
-.about__detail { align-content: end; justify-items: end; padding-bottom: 0; padding-inline: 0; }
-.about__body {
-  display: grid;
-  gap: 18px;
-  width: min(46ch, 46vw);
-  margin-right: var(--gutter);
-  margin-bottom: clamp(40px, 8vh, 96px);
-  transform: translateY(calc((0.5 - var(--p, 0.5)) * -52px));
-}
-.about__body p { color: var(--ink-soft); font-size: clamp(14px, 1.05vw, 16px); line-height: 1.7; }
+/* the floor of the composition */
 .stack {
+  grid-column: 1 / -1;
+  align-self: end;
   width: 100vw;
   display: flex;
   flex-wrap: wrap;
   gap: 10px clamp(18px, 2.4vw, 40px);
-  padding: 18px var(--gutter) clamp(22px, 4vh, 40px);
+  padding: 16px var(--gutter) clamp(20px, 3.5vh, 36px);
   border-top: 1px solid var(--rule);
 }
 .stack li { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-faint); }
-
-/* the word leaves the screen rather than vanishing from it */
-.about__word { transform: translateY(calc((0.5 - var(--p, 0.5)) * -110px)); }
-
-/* the claim runs to the edge of the screen, not to a column */
-.about__claim { padding-right: 0; }
-.about__lead { padding-right: var(--gutter); }
 
 /* ---- the word whose letters turn over (components/site/LetterSwap) ------ */
 .swap { display: inline-flex; }
@@ -421,13 +421,14 @@ html[data-nav="on-dark"] .nav { color: var(--night-ink); text-shadow: 0 0 7px rg
 }
 /* the work runs off the edge of the screen it entered from: a composition,
    not a picture placed inside a margin */
-.work__project[data-side="left"] { justify-content: flex-start; padding-right: var(--gutter); }
-.work__project[data-side="right"] { justify-content: flex-end; padding-left: var(--gutter); }
+.work__project[data-side="left"] { flex-direction: row; padding-right: var(--gutter); }
+.work__project[data-side="right"] { flex-direction: row-reverse; padding-left: var(--gutter); }
 
 .work__view {
   position: relative;
   display: block;
-  width: min(62vw, 1080px);
+  flex: 0 0 auto;
+  width: min(48vw, 860px);
   isolation: isolate;
   /* and it drifts against the scroll, so it travels rather than scrolls */
   transform: translateY(calc((0.5 - var(--p, 0.5)) * -60px));
@@ -446,114 +447,96 @@ html[data-nav="on-dark"] .nav { color: var(--night-ink); text-shadow: 0 0 7px rg
   overflow: hidden;
   background: var(--paper-deep);
 }
-.work__figure img {
-  width: 100%;
-  height: auto;
-  display: block;
-  transform: scale(1.03);
-  transition: transform 1400ms var(--ease), filter 700ms var(--ease);
-}
-.work__view:hover .work__figure img,
-.work__view:focus-visible .work__figure img { transform: scale(1.06); filter: brightness(0.62) contrast(1.05); }
+/* the photograph itself. It does not scale on hover any more: the negative
+   inside the lens has to line up with it exactly. */
+.work__figure > img { width: 100%; height: auto; display: block; }
 
-/* ---- what the pointer uncovers ---------------------------------------- */
-.work__reveal {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
+/* ---- the information, beside the image ---------------------------------
+   Not under it, not on it, and not in a card: the image holds one side of
+   the screen and what it is holds the other. It is hidden until the project
+   is reached by a pointer or by the keyboard, and it wipes in from the edge
+   it belongs to. */
+.work__beside {
+  flex: 1 1 0;
+  min-width: 0;
   display: grid;
-  align-content: end;
-  gap: clamp(10px, 1.6vh, 20px);
-  padding: clamp(20px, 3vw, 46px);
-  color: #f2f1ed;
-  /* the photograph stays visible underneath; this only gives the type
-     something to sit on */
-  background: linear-gradient(to top, rgb(10 10 9 / 0.82), rgb(10 10 9 / 0.4) 58%, rgb(10 10 9 / 0.06));
-  /* already laid out, simply not shown yet: a wipe, not a fade-in card */
-  clip-path: inset(100% 0 0 0);
-  transition: clip-path 760ms var(--ease);
-}
-.work__view:hover .work__reveal,
-.work__view:focus-visible .work__reveal { clip-path: inset(0 0 0 0); }
-.work__reveal > * {
+  gap: clamp(12px, 1.8vh, 22px);
+  align-content: center;
+  padding-inline: clamp(24px, 3.4vw, 64px);
   opacity: 0;
-  transform: translateY(14px);
-  transition: opacity 520ms var(--ease) var(--d, 0ms), transform 640ms var(--ease) var(--d, 0ms);
+  transform: translateX(var(--from, -26px));
+  transition: opacity 620ms var(--ease), transform 760ms var(--ease);
 }
-.work__view:hover .work__reveal > *,
-.work__view:focus-visible .work__reveal > * { opacity: 1; transform: none; }
-.work__reveal > *:nth-child(2) { --d: 70ms; }
-.work__reveal > *:nth-child(3) { --d: 130ms; }
-.work__reveal > *:nth-child(4) { --d: 190ms; }
+.work__project[data-side="right"] .work__beside { --from: 26px; text-align: right; justify-items: end; }
+.work__project:hover .work__beside,
+.work__project:focus-within .work__beside { opacity: 1; transform: none; }
 
-.work__kind { color: rgb(242 241 237 / 0.7); }
-.work__title { display: grid; font-size: clamp(30px, 4.4vw, 78px); }
-.work__meta { display: grid; gap: 6px; max-width: 46ch; }
-.work__row { display: grid; grid-template-columns: 76px 1fr; gap: 14px; align-items: baseline; }
-.work__row .m { color: rgb(242 241 237 / 0.55); }
-.work__row > span:last-child { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; }
+.work__kind { color: var(--ink-faint); }
+.work__title { display: grid; font-size: clamp(26px, 3.4vw, 58px); }
+.work__summary { max-width: 38ch; color: var(--ink-soft); font-size: clamp(13px, 0.95vw, 15px); line-height: 1.65; }
+.work__meta { display: grid; gap: 7px; max-width: 38ch; width: 100%; }
+.work__meta > div { display: grid; grid-template-columns: 74px 1fr; gap: 12px; align-items: baseline; }
+.work__project[data-side="right"] .work__meta > div { grid-template-columns: 1fr 74px; direction: rtl; }
+.work__project[data-side="right"] .work__meta > div > * { direction: ltr; }
+.work__meta dd { margin: 0; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.06em; color: var(--ink); }
 
-/* the way in: a box that inverts whatever is behind it */
-.work__show { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: clamp(4px, 1vh, 12px); }
-.work__showbox {
-  display: inline-block;
-  padding: 14px 22px;
+/* ---- the lens ----------------------------------------------------------
+   A small rectangle that inverts the photograph underneath it and says what
+   it is for. The inversion is real — the pixels of the image are inverted by
+   the backdrop, not covered by a plate — and the label inverts against that
+   in turn, so it reads whatever the photograph is doing. */
+.work__lens {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: clamp(108px, 9vw, 148px);
+  height: clamp(40px, 3.4vw, 54px);
+  overflow: hidden;
+  /* the box is carried to the pointer; its centre is the pointer */
+  transform: translate3d(var(--lx, 0px), var(--ly, 0px), 0) translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 320ms var(--ease);
+  pointer-events: none;
+}
+/* the negative: the same photograph, inverted, pinned so that its pixels sit
+   exactly over the ones it is replacing */
+.work__lens img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--fw, 100%);
+  height: auto;
+  max-width: none;
+  transform: translate3d(calc(var(--lx, 0px) * -1), calc(var(--ly, 0px) * -1), 0);
+  filter: invert(1);
+}
+.work__lens-label {
+  position: relative;
+  z-index: 1;
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 9.5px;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  /* the box IS the inversion: it turns whatever is behind it inside out,
-     then flattens it enough that the label is readable whatever that was */
-  color: #131311;
-  backdrop-filter: invert(1) grayscale(1) contrast(0.22) brightness(1.55);
-  -webkit-backdrop-filter: invert(1) grayscale(1) contrast(0.22) brightness(1.55);
-  transition: padding 420ms var(--ease);
+  color: #fff;
+  mix-blend-mode: difference;    /* legible over whatever the negative made */
 }
-/* where backdrop-filter is not available, it is a plain reversed box */
-@supports not (backdrop-filter: invert(1)) {
-  .work__showbox { color: var(--ink); background: var(--night-ink); }
+@media (pointer: fine) and (hover: hover) {
+  .work__view:hover .work__lens { opacity: 1; }
 }
-.work__view:hover .work__showbox { padding-inline: 30px; }
-.work__show .m { color: rgb(242 241 237 / 0.65); }
-
+/* the keyboard gets the same affordance, parked in a corner of the image */
+/* the keyboard gets the same affordance, parked inside the image */
+.work__view:focus-visible .work__lens { opacity: 1; --lx: 22%; --ly: 82%; }
 /* =========================================================================
-   STATEMENT — read by scrolling, not shown
+   WHAT I WORK WITH — one typographic landscape
 
-   The two halves are a screen apart. Each line drifts sideways at its own
-   rate as the section travels (`--p` from the scroll driver), so the
-   sentence is still moving while it is being read, and settles as it goes.
-   ========================================================================= */
-.statement { --p: 0; padding-block: clamp(120px, 26vh, 300px); }
-.statement__half { width: var(--col); margin-inline: auto; }
-.statement__half[data-half="1"] { margin-top: clamp(150px, 32vh, 360px); }
-.statement p.d { font-size: clamp(38px, 7.6vw, 132px); }
-/* the drift: the first line leads, the second follows a beat behind */
-.statement .mask > span {
-  transform: translate3d(calc((1 - var(--p)) * (34px + var(--i, 0) * 46px)), 102%, 0);
-}
-.statement .mask[data-reveal="in"] > span {
-  /* still moving while it is read: each line drifts at its own rate with the
-     scroll, and settles as the section passes */
-  transform: translate3d(calc((0.5 - var(--p)) * (30px + var(--i, 0) * 44px)), 0, 0);
-  transition: transform 1200ms var(--ease) calc(var(--i, 0) * 90ms);
-}
-.statement__b { color: var(--ink-faint); }
-/* not a paragraph under a heading: a note in the corner of the screen */
-.statement__body {
-  width: min(38ch, 60vw);
-  margin: clamp(60px, 12vh, 140px) var(--gutter) 0 auto;
-  color: var(--ink-soft);
-  font-size: clamp(13px, 1vw, 15px);
-  line-height: 1.7;
-}
-
-/* =========================================================================
-   WHAT I WORK WITH — a typographic landscape
-
-   The six words are placed across the width of the screen, in their own
-   lanes and at their own sizes, two of them running past the edges. Nothing
-   is on a grid and nothing is centred. What the live word means is read out
-   along the bottom, so exploring the landscape never moves it.
+   Six words across the width, in their own lanes and sizes but composed
+   tightly enough to read as a single system rather than six objects thrown
+   at a canvas: the whole thing occupies about three quarters of the screen,
+   with controlled air around it. What a word means is attached to that word
+   and shown only while it is live.
    ========================================================================= */
 .focus { position: relative; }
 .focus__label {
@@ -570,7 +553,7 @@ html[data-nav="on-dark"] .nav { color: var(--night-ink); text-shadow: 0 0 7px rg
   position: relative;
   height: 100svh;
   width: 100%;
-  overflow: clip;                   /* the words may leave; the page may not */
+  overflow: clip;
 }
 
 .focus__word {
@@ -578,54 +561,57 @@ html[data-nav="on-dark"] .nav { color: var(--night-ink); text-shadow: 0 0 7px rg
   left: var(--x);
   top: var(--y);
   width: max-content;
+  max-width: 92vw;
   text-align: left;
   padding: 0;
+  transform: translateY(calc((0.5 - var(--p, 0.5)) * (var(--i) * -9px - 12px)));
 }
-/* the landscape: lanes, sizes and bleeds, none of them regular */
-.focus__word:nth-of-type(1) { --x: -3%;  --y: 20%; --s: 1.00; }
-.focus__word:nth-of-type(2) { --x: 46%;  --y: 32%; --s: 0.74; }
-.focus__word:nth-of-type(3) { --x: 12%;  --y: 45%; --s: 0.92; }
-.focus__word:nth-of-type(4) { --x: 68%;  --y: 56%; --s: 1.18; }
-.focus__word:nth-of-type(5) { --x: 2%;   --y: 68%; --s: 0.68; }
-.focus__word:nth-of-type(6) { --x: 34%;  --y: 79%; --s: 0.58; }
+/* the landscape: tight lanes inside the middle three quarters of the screen */
+.focus__word:nth-of-type(1) { --x: 4%;  --y: 29%; --s: 1.04; }
+.focus__word:nth-of-type(2) { --x: 42%; --y: 29%; --s: 0.82; }
+.focus__word:nth-of-type(3) { --x: 19%; --y: 43%; --s: 0.94; }
+.focus__word:nth-of-type(4) { --x: 66%; --y: 43%; --s: 1.10; }
+.focus__word:nth-of-type(5) { --x: 6%;  --y: 57%; --s: 0.76; }
+.focus__word:nth-of-type(6) { --x: 33%; --y: 67%; --s: 0.70; }
 
-/* each word travels at its own rate, so the landscape moves through the
-   screen rather than sitting still in it */
-.focus__word { transform: translateY(calc((0.5 - var(--p, 0.5)) * (var(--i) * -18px - 20px))); }
 .focus__w {
   display: block;
-  font-size: calc(clamp(30px, 6.4vw, 104px) * var(--s, 1));
+  font-size: calc(clamp(24px, 3.9vw, 66px) * var(--s, 1));
   line-height: 0.9;
   white-space: nowrap;
   color: var(--ink);
   transition: transform 720ms var(--ease), color 480ms var(--ease), opacity 480ms var(--ease);
 }
-/* the field recedes around whichever word is live */
 .focus__field[data-live] .focus__word:not([data-open]) .focus__w { opacity: 0.16; }
-.focus__word[data-open] .focus__w { transform: translateX(clamp(8px, 1.2vw, 22px)); color: var(--burgundy); }
+.focus__word[data-open] .focus__w { transform: translateX(clamp(6px, 0.9vw, 16px)); color: var(--burgundy); }
 
-/* the readout along the bottom: it changes, the landscape does not move */
-.focus__read {
+/* the meaning, attached to its own word: nothing until it is asked for */
+.focus__said {
   position: absolute;
-  left: var(--gutter);
-  right: var(--gutter);
-  bottom: clamp(30px, 6vh, 64px);
+  left: 0;
+  top: calc(100% + 12px);
+  width: max(34ch, 22vw);
+  max-width: 62vw;
   display: grid;
-  gap: 8px;
-  max-width: 62ch;
+  gap: 7px;
+  text-align: left;
   opacity: 0;
-  transform: translateY(8px);
-  transition: opacity 460ms var(--ease), transform 560ms var(--ease);
+  transform: translateY(-6px);
+  pointer-events: none;
+  transition: opacity 420ms var(--ease), transform 520ms var(--ease);
 }
-.focus__read[data-on] { opacity: 1; transform: none; }
-.focus__line { font-size: clamp(14px, 1.2vw, 19px); color: var(--ink-soft); }
-.focus__keys { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.focus__word[data-open] .focus__said { opacity: 1; transform: none; }
+/* the last lanes read upward, so a description never leaves the screen */
+.focus__word:nth-of-type(5) .focus__said,
+.focus__word:nth-of-type(6) .focus__said { top: auto; bottom: calc(100% + 12px); }
+.focus__line { font-size: clamp(13px, 1vw, 16px); line-height: 1.55; color: var(--ink-soft); }
+.focus__keys { display: flex; flex-wrap: wrap; gap: 5px 16px; }
 
 /* the one interaction hint on the page */
 .focus__hint {
   position: absolute;
-  left: calc(-3% + 1ch);
-  top: calc(20% - 34px);
+  left: 6%;
+  top: calc(30% - 26px);
   color: var(--ink-faint);
   opacity: 0;
   animation: hint 5s var(--ease) 1.4s 3 both;
@@ -638,9 +624,9 @@ html[data-nav="on-dark"] .nav { color: var(--night-ink); text-shadow: 0 0 7px rg
   position: absolute;
   left: 0;
   top: 0;
-  width: 44px;
-  height: 44px;
-  margin: -22px 0 0 -22px;
+  width: 40px;
+  height: 40px;
+  margin: -20px 0 0 -20px;
   color: var(--burgundy);
   opacity: 0;
   transform: translate3d(var(--mx, 0px), var(--my, 0px), 0) scale(0.6);
@@ -717,26 +703,44 @@ html[data-nav="on-dark"] .nav { color: var(--night-ink); text-shadow: 0 0 7px rg
 .descent[data-ink="night"] .action:hover::before { background: var(--night-ink); }
 
 /* =========================================================================
-   THE CLOSING SCENE — the end of the journey, not a different colour block
+   THE CLOSING SCENE — one frame, everything in it
+
+   The last screen of the site, composed rather than stacked: the closing
+   line holds the upper left at the size of the room, the channels run along
+   the floor, and the credit and the status sit at the two bottom corners.
+   All of it belongs to one composition.
    ========================================================================= */
-.footer { padding-block: clamp(90px, 16vh, 200px) clamp(40px, 7vh, 80px); }
-.footer > .wrap { width: var(--col); margin-inline: auto; }
-.footer__lines h2 { font-size: clamp(58px, 16vw, 280px); }
-.footer__lines h2:nth-child(2) { padding-left: 8%; }
-.footer__lines h2:nth-child(3) { padding-left: 18%; }
+.footer {
+  min-height: 100svh;
+  display: grid;
+  grid-template-rows: 1fr auto auto;
+  padding: clamp(80px, 12vh, 140px) 0 clamp(26px, 4vh, 44px);
+}
+.footer__lines { align-self: center; padding-inline: var(--gutter); }
+.footer__lines h2 { font-size: min(14vw, 19vh); line-height: 0.84; }
+.footer__lines h2:nth-child(2) { padding-left: 7%; }
+.footer__lines h2:nth-child(3) { padding-left: 16%; }
+
 .footer__grid {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  gap: 40px;
-  margin-top: clamp(70px, 12vh, 150px);
-  padding-top: 26px;
+  gap: 24px clamp(20px, 3vw, 60px);
+  margin-top: clamp(40px, 7vh, 90px);
+  padding: 18px var(--gutter) 0;
   border-top: 1px solid var(--rule);
 }
-.footer__col { display: grid; gap: 10px; align-content: start; }
+.footer__col { display: grid; gap: 8px; align-content: start; }
 .footer__col a { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }
 .footer__col a:hover { color: #fff; }
-.footer__bottom { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; margin-top: clamp(44px, 7vh, 80px); }
+.footer__bottom {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: clamp(24px, 4vh, 44px);
+  padding-inline: var(--gutter);
+}
 
 /* =========================================================================
    THE CROSSHAIR — a precision instrument
@@ -805,45 +809,44 @@ html[data-nav="on-dark"] .nav { color: var(--night-ink); text-shadow: 0 0 7px rg
   .about__word { font-size: min(30vw, 22vh); }
   .about__lead { max-width: none; text-align: left; font-size: clamp(26px, 7.4vw, 44px); }
   .about__claim { justify-content: start; }
-  .about__body, .statement__body { margin-left: 0; }
+  .about__body { margin-left: 0; }
 
   /* the landscape keeps its shape on a phone — lanes and bleeds, at a
      phone's scale — rather than collapsing into a list */
-  .focus__w { font-size: calc(clamp(22px, 9.4vw, 46px) * var(--s, 1)); }
-  .focus__word:nth-of-type(1) { --x: -2%; --y: 20%; }
-  .focus__word:nth-of-type(2) { --x: 30%; --y: 31%; }
-  .focus__word:nth-of-type(3) { --x: 8%;  --y: 42%; }
-  .focus__word:nth-of-type(4) { --x: 58%; --y: 52%; }
-  .focus__word:nth-of-type(5) { --x: 4%;  --y: 62%; }
-  .focus__word:nth-of-type(6) { --x: 20%; --y: 72%; }
+  .focus__w { font-size: calc(clamp(19px, 7.2vw, 38px) * var(--s, 1)); }
+  .focus__word:nth-of-type(1) { --x: 5%;  --y: 26%; }
+  .focus__word:nth-of-type(2) { --x: 34%; --y: 34%; }
+  .focus__word:nth-of-type(3) { --x: 10%; --y: 44%; }
+  .focus__word:nth-of-type(4) { --x: 55%; --y: 52%; }
+  .focus__word:nth-of-type(5) { --x: 6%;  --y: 62%; }
+  .focus__word:nth-of-type(6) { --x: 24%; --y: 72%; }
   .focus__field[data-live] .focus__word:not([data-open]) .focus__w { opacity: 0.3; }
-  .focus__read { bottom: clamp(20px, 4vh, 40px); }
+  .focus__said { width: min(70vw, 40ch); }
   .focus__hint { display: none; }
 
-  /* the same composition, at a phone's scale: the first project still comes
-     up the left, the second up the right, and with no pointer to uncover
-     anything the information is simply shown */
-  .work__project { min-height: 118svh; }
-  .work__view { width: 86vw; }
-  /* static under the image on a phone, so it needs no scrim and no dark */
-  .work__reveal { clip-path: inset(0 0 0 0); position: static; padding: 18px 0 0; color: var(--ink); background: none; }
-  .work__reveal > * { opacity: 1; transform: none; }
-  .work__figure img { filter: none !important; transform: none !important; }
-  .work__kind, .work__row .m, .work__show .m { color: var(--ink-faint); }
-  .work__showbox { color: var(--paper); background: var(--ink); backdrop-filter: none; }
-  .work__row { grid-template-columns: 66px 1fr; gap: 12px; }
+  /* the same composition at a phone's scale: the first project still comes
+     up the left, the second up the right — but the information sits under
+     its image, because there is no pointer to bring it out beside it */
+  .work__project { min-height: auto; flex-direction: column !important; padding-block: clamp(50px, 9vh, 90px); }
+  .work__view { width: 100%; }
+  .work__beside {
+    opacity: 1;
+    transform: none;
+    padding: 18px var(--gutter) 0;
+    text-align: left !important;
+    justify-items: start !important;
+  }
+  .work__project[data-side="right"] .work__meta > div { grid-template-columns: 66px 1fr; direction: ltr; }
+  .work__meta > div { grid-template-columns: 66px 1fr; }
+  .work__lens { display: none; }
+  .work__num { top: -22px; left: var(--gutter) !important; right: auto !important; }
 
-  /* the chapter marker moves out of the type's way and reads as a status
-     line along the bottom of the screen — still pinned, still a marker */
+  /* the chapter marker reads as a status line along the foot of the screen */
   .work__marker { top: calc(100svh - 30px); justify-content: flex-start; padding-left: var(--gutter); }
 
-  /* no hover on a phone, so every word is open and the keywords sit under
-     their own title */
-  .focus__word { grid-template-columns: 1fr; padding-block: 16px; }
-  .focus__said { opacity: 1; transform: none; }
-  .focus__field[data-live] .focus__word:not([data-open]) .focus__w { opacity: 1; }
-  .focus__word:nth-child(n) { padding-left: 0; }
-  .focus__hint, .focus__mark { display: none; }
+  /* the landscape keeps its lanes; a tap makes a word live, exactly as a
+     pointer does, and nothing is described until one is */
+  .focus__said { width: min(72vw, 38ch); }
 
   .footer__lines h2:nth-child(2), .footer__lines h2:nth-child(3) { padding-left: 0; }
 }

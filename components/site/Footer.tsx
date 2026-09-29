@@ -8,7 +8,6 @@ import { FOOTER, IDENTITY, LINKS } from "@/content/portfolio";
 export function Footer() {
   return (
     <footer className="footer">
-      <div className="wrap">
         <div className="footer__lines">
           {FOOTER.lines.map((line, i) => (
             <h2 key={line} className="d mask" data-reveal style={{ ["--delay" as string]: `${i * 90}ms` }}>
@@ -32,13 +31,12 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="footer__bottom">
-          <span className="m">© {FOOTER.year} {IDENTITY.name}</span>
-          <span className="m hero__status">
-            <span className="dot" aria-hidden="true" />
-            {IDENTITY.status}
-          </span>
-        </div>
+      <div className="footer__bottom">
+        <span className="m">© {FOOTER.year} {IDENTITY.name}</span>
+        <span className="m hero__status">
+          <span className="dot" aria-hidden="true" />
+          {IDENTITY.status}
+        </span>
       </div>
     </footer>
   );
