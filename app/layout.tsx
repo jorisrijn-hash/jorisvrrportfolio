@@ -10,19 +10,19 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE.origin),
 
   title: {
-    default: "Joris van Rijn · Software Engineering & Digital Systems",
+    default: "Joris van Rijn · Software Engineering & Automations",
     template: "%s · Joris van Rijn",
   },
 
   description:
-    "Portfolio of Joris van Rijn, an HBO-ICT software engineering student building digital products and systems: full-stack and backend development, APIs, data, and the business thinking around them.",
+    "Portfolio of Joris van Rijn, an HBO-ICT software engineering student building software, automations and digital products: full-stack and backend development, APIs, data, and the business thinking around them. Open for work.",
 
   keywords: [
     "Joris van Rijn",
     "software engineering",
     "full-stack development",
     "backend development",
-    "digital systems",
+    "automation",
     "HBO-ICT",
     "portfolio",
   ],
@@ -46,9 +46,9 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: SITE.origin,
     siteName: "Joris van Rijn",
-    title: "Joris van Rijn · Software Engineering & Digital Systems",
+    title: "Joris van Rijn · Software Engineering & Automations",
     description:
-      "HBO-ICT software engineering student building digital products and systems: full-stack and backend development, APIs, data, and the business thinking around them.",
+      "Software, automations and digital products: full-stack and backend development, APIs, data, and the business thinking around them. Open for work.",
     images: [
       {
         url: "/og-image.jpg",
@@ -61,9 +61,9 @@ export const metadata: Metadata = {
 
   twitter: {
     card: "summary_large_image",
-    title: "Joris van Rijn · Software Engineering & Digital Systems",
+    title: "Joris van Rijn · Software Engineering & Automations",
     description:
-      "Full-stack and backend development, digital products, data and systems.",
+      "Software, automations and digital products. Full-stack and backend development, APIs and data. Open for work.",
     images: ["/og-image.jpg"],
   },
 
@@ -106,14 +106,15 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               url: SITE.origin,
               email: "mailto:jorisvrr@gmail.com",
               jobTitle: "Software engineering student",
-              description: "HBO-ICT software engineering student building digital products and systems.",
+              description: "HBO-ICT software engineering student building software, automations and digital products. Open for work.",
               address: { "@type": "PostalAddress", addressLocality: "Leiderdorp", addressCountry: "NL" },
               knowsAbout: [
                 "Software engineering",
                 "Full-stack development",
                 "Backend development",
+                "Automation",
                 "Digital product development",
-                "Data and systems",
+                "Data",
               ],
               sameAs: [
                 "https://www.linkedin.com/in/jorisvnrijn/",

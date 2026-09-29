@@ -6,6 +6,7 @@ import { Weight } from "@/components/site/Weight";
 import { Footer } from "@/components/site/Footer";
 import { ContactForm } from "@/components/contact/ContactForm";
 import { Fields } from "@/components/contact/Fields";
+import { ScrollCue } from "@/components/contact/ScrollCue";
 import { REACH } from "@/content/contact";
 import { SITE } from "@/content/site";
 import "@/components/contact/contact.css";
@@ -13,13 +14,13 @@ import "@/components/contact/contact.css";
 export const metadata: Metadata = {
   title: "Get in touch",
   description:
-    "Write to Joris van Rijn about an internship, a software project, a digital product or a collaboration. Direct email, phone, LinkedIn and Instagram.",
+    "Write to Joris van Rijn about a software project, an automation, a digital product, a collaboration or a role. Direct email, phone, LinkedIn and Instagram.",
   alternates: { canonical: "/contact" },
   openGraph: {
     type: "website",
     title: "Get in touch · Joris van Rijn",
     description:
-      "An internship, something you want built, or a conversation that might go somewhere.",
+      "Something you want built, an automation that would save time, or a conversation that might go somewhere.",
     url: "/contact",
     siteName: "Joris van Rijn",
     locale: "en_US",
@@ -28,7 +29,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Get in touch · Joris van Rijn",
-    description: "An internship, something you want built, or a conversation that might go somewhere.",
+    description: "Something you want built, an automation that would save time, or a conversation that might go somewhere.",
     images: ["/og-image.jpg"],
   },
 };
@@ -120,6 +121,7 @@ export default function ContactPage() {
           <Footer />
         </div>
       </main>
+      <ScrollCue />
       <Scroll />
       <Crosshair />
       <Weight />

@@ -257,3 +257,55 @@
   .reach__field-l { opacity: 1; transform: none; }
   .reach__fields[data-live] .reach__field:not([data-on]) .reach__field-t { opacity: 1; }
 }
+
+/* =========================================================================
+   SCROLL DOWN — the one nudge on the page
+
+   The form is what /contact is for, and it is two compositions below the
+   introduction. This says so, in the corner the first composition leaves
+   empty, and stops saying it the moment the form is on screen.
+   ========================================================================= */
+.cue {
+  position: fixed;
+  left: var(--gutter);
+  bottom: max(clamp(20px, 3.4vh, 34px), env(safe-area-inset-bottom, 0px));
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--ink-faint);
+  /* it points at something; it is never in the way of it */
+  pointer-events: none;
+  animation: cue-blink 1600ms var(--ease-inout) infinite;
+  transition: opacity 520ms var(--ease), transform 620ms var(--ease);
+}
+@keyframes cue-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.cue__a { display: block; animation: cue-fall 1600ms var(--ease-inout) infinite; }
+@keyframes cue-fall {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(3px); }
+}
+/* arrived: it has nothing left to say */
+.cue[data-done] {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: none;
+}
+.cue[data-done] .cue__a { animation: none; }
+
+/* The ground moves from paper to night underneath it, and a mid grey has
+   nothing to borrow contrast from. These are the same four stages the
+   navigation reads, written by the one scroll driver. */
+html[data-nav="on-light"] .cue { color: var(--ink); }
+html[data-nav="on-dark"] .cue,
+html[data-nav="night"] .cue { color: #8f8f88; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* the cue stays; only the blinking goes */
+  .cue, .cue__a { animation: none !important; opacity: 1; }
+  .cue { transition: none; }
+  .cue[data-done] { opacity: 0; transform: none; }
+}

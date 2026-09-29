@@ -30,7 +30,7 @@ export const ABOUT = {
   body: [
     "I enjoy understanding how businesses and digital products work, identifying problems or inefficiencies, and developing practical solutions through interface design, software, data and process improvement.",
     "My background started in visual design and filmmaking, which taught me how to communicate ideas and think creatively. Today, through HBO-ICT Business & Data Management, I'm developing the technical and analytical side of that skill set.",
-    "I'm most interested in projects where I can understand how a business or product currently works, identify where it can improve, and turn that into something tangible, whether that means designing a better interface, improving a process, working with data or building a digital system.",
+    "I'm most interested in projects where I can understand how a business or product currently works, identify where it can improve, and turn that into something tangible, whether that means designing a better interface, improving a process, working with data or automating the parts nobody should still be doing by hand.",
     "My goal is to develop strong technical and analytical expertise without losing sight of the complete process: from understanding the initial business problem and designing a solution to implementation, iteration and measuring its impact.",
     "Long term, I want to be able to connect business, design and technology rather than seeing them as separate disciplines.",
   ],
@@ -51,7 +51,7 @@ export const ABOUT = {
  */
 export const PROFILE = {
   trajectory: {
-    heading: "From making images to shaping systems.",
+    heading: "From making images to building software.",
     rows: [
       { label: "Before", text: "Visual design and filmmaking: learning to communicate ideas and think creatively." },
       { label: "Now", text: "HBO-ICT Business & Data Management: building the technical and analytical side." },
@@ -60,7 +60,7 @@ export const PROFILE = {
   },
   disciplines: {
     heading: "Where I work.",
-    items: ["Interface & UX design", "Visual design", "Film & motion", "Data & analysis", "Process improvement", "Digital systems"],
+    items: ["Interface & UX design", "Visual design", "Film & motion", "Data & analysis", "Process improvement", "Automations"],
   },
   method: {
     heading: "How I think.",

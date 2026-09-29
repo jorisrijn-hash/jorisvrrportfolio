@@ -23,7 +23,7 @@ export const REACH = {
   heading: ["Get in", "touch"],
 
   /** Said plainly, in the first person, claiming nothing. */
-  lead: "An internship, something you want built, a product you are trying to get off the ground, or a conversation that might go somewhere. Write it here and it comes straight to me.",
+  lead: "Something you want built, a product you are trying to get off the ground, an automation that would save somebody an afternoon a week, or a conversation that might go somewhere. Write it here and it comes straight to me.",
 
   /** What someone can reasonably write to me about. The site's own words for
    *  the work, with the line each one already has elsewhere. */
@@ -31,8 +31,8 @@ export const REACH = {
     label: "What I can help with",
     items: [
       { id: "software", title: "Software", line: line("software") },
+      { id: "automations", title: "Automations", line: line("automations") },
       { id: "fullstack", title: "Full-stack development", line: "The whole of a thing: the interface, the API behind it, and the database under that." },
-      { id: "systems", title: "Digital systems", line: line("systems") },
       { id: "product", title: "Product development", line: line("products") },
       { id: "business", title: "Business × technology", line: line("business") },
     ],
@@ -57,11 +57,12 @@ export const REACH = {
     },
     /** The reason for writing, which becomes the subject line. */
     options: [
-      "Internship",
       "Software / development",
+      "Automation",
       "Digital product",
-      "Website or digital system",
+      "Website",
       "Collaboration",
+      "Work opportunity",
       "Something else",
     ],
     send: "Send message",
@@ -90,6 +91,10 @@ export const REACH = {
       { label: "Instagram", value: "@jorisvrr", href: SOCIALS.find((s) => s.id === "instagram")!.href },
     ],
   },
+
+  /** The one nudge on the page: the form is below the introduction, and
+   *  nothing else on screen says so. */
+  cue: "Scroll down",
 
   /** The way back, since this page is off the one page everything else is on. */
   back: "Index",

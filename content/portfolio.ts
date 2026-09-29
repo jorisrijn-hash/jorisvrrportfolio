@@ -20,10 +20,10 @@ export const IDENTITY = {
   first: "Joris",
   last: "van Rijn",
   /** what the site is about, in five words */
-  discipline: "Software Engineering × Digital Systems",
+  discipline: "Software Engineering × Automations",
   location: "Leiderdorp / NL",
   /** the hero's bottom-right system status */
-  status: "Available for internship",
+  status: "Open for work",
   email: SITE.email,
   domain: SITE.domain,
 } as const;
@@ -36,7 +36,7 @@ export const IDENTITY = {
 export const HERO_LINES = [
   { text: "SOFTWARE ENGINEER", dir: 1 },
   { text: "FULL-STACK DEVELOPER", dir: -1 },
-  { text: "DIGITAL SYSTEMS", dir: 1 },
+  { text: "AUTOMATIONS", dir: 1 },
   { text: "PRODUCT DEVELOPMENT", dir: -1 },
   { text: "BUSINESS × TECHNOLOGY", dir: 1 },
 ] as const;
@@ -117,8 +117,8 @@ export const FOCUS = {
   hint: "click me",
   items: [
     { id: "software", title: "Software", line: "Where most of my time goes: writing it, breaking it, reading other people's.", keywords: ["Java", "React", "Next.js", "APIs", "Full-stack"] },
+    { id: "automations", title: "Automations", line: "The repetitive parts of a process handled by something that does not get bored.", keywords: ["Workflows", "Integrations", "APIs", "Process optimization"] },
     { id: "products", title: "Digital products", line: "Something a person opens and gets somewhere with. The rest is scaffolding.", keywords: ["Web applications", "Interfaces", "Prototypes", "Product thinking"] },
-    { id: "systems", title: "Systems", line: "How the parts are allowed to talk to each other, decided on purpose.", keywords: ["Architecture", "APIs", "State", "Deployment"] },
     { id: "data", title: "Data", line: "The shape of the thing underneath. Get it wrong and everything above it bends.", keywords: ["SQL", "PostgreSQL", "Supabase", "Data modelling"] },
     { id: "interfaces", title: "Interfaces", line: "Where the system meets somebody who did not build it.", keywords: ["User flows", "Interaction", "Design systems", "Prototyping"] },
     { id: "business", title: "Business × technology", line: "What it is for, what it costs, and whether it was worth building.", keywords: ["Business analysis", "Process optimization", "Stakeholders"] },
@@ -128,7 +128,7 @@ export const FOCUS = {
 export const CONTACT = {
   label: "(03)",
   heading: ["Have a project", "or an opportunity?"],
-  body: "I'm looking for an internship where I can grow through real software development, building things that people actually use, in a team that builds them properly.",
+  body: "I'm open for work: software, automations, digital products. The things people actually end up using, built by people who care how they are built.",
   cta: { label: "Get in touch", href: "/contact" },
 } as const;
 
