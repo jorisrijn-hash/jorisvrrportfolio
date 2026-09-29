@@ -242,7 +242,16 @@ html[data-nav="on-dark"] .nav { color: var(--night-ink); text-shadow: 0 0 7px rg
   transition: transform 900ms var(--ease);
   z-index: 2;
   isolation: isolate;          /* the channels screen against the portrait only */
+  /* it is the pointer, so it must never be a target: the lines underneath
+     need their own enter and leave to slow down against */
+  pointer-events: none;
 }
+/* Once it is being driven frame by frame the transition would only fight the
+   easing that is already in the loop. */
+.hero__portrait[data-live] { transition: none; }
+/* carrying the pointer: it lifts slightly off the words it is riding over */
+.hero__portrait[data-lead] { filter: drop-shadow(0 10px 26px rgb(10 10 9 / 0.16)); }
+
 .hero__portrait img { width: 100%; height: auto; filter: grayscale(1) contrast(1.02); }
 
 /* ---- the portrait's signal ---------------------------------------------
@@ -287,8 +296,8 @@ html[data-nav="on-dark"] .nav { color: var(--night-ink); text-shadow: 0 0 7px rg
 
 /* and while the pointer stays: the same thing, far smaller, now and then */
 @media (hover: hover) {
-  .hero__portrait:hover .hero__ch { animation: drift 7s steps(1, end) infinite; }
-  .hero__portrait:hover .hero__ch[data-ch="c"] { animation-name: drift-c; }
+  .hero__portrait[data-lead] .hero__ch { animation: drift 7s steps(1, end) infinite; }
+  .hero__portrait[data-lead] .hero__ch[data-ch="c"] { animation-name: drift-c; }
 }
 @keyframes drift {
   0%, 22%, 30%, 61%, 66%, 100% { opacity: 0; transform: none; clip-path: inset(0 0 0 0); }
@@ -840,6 +849,9 @@ html[data-nav="on-dark"] .nav { color: var(--night-ink); text-shadow: 0 0 7px rg
   transition: opacity 260ms var(--ease);
 }
 .cross[data-on] { opacity: 1; }
+/* There is one pointer on screen. In the hero the portrait is it, so the
+   crosshair stands down rather than sitting inside the face. */
+html[data-hero-cursor] .cross { opacity: 0; }
 .cross span { position: absolute; background: currentColor; }
 .cross__h { left: -7px; top: -0.5px; width: 14px; height: 1px; }
 .cross__v { left: -0.5px; top: -7px; width: 1px; height: 14px; }
