@@ -6,13 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint .",
-    "verify": "node scripts/verify-a11y.mjs",
-    "verify:cursor": "node scripts/cursor-test.mjs",
-    "perf": "node scripts/perf.mjs",
-    "verify:gate": "node scripts/gate-test.mjs",
-    "perf:home": "node scripts/perf-home.mjs",
-    "shots:transition": "node scripts/transition-shots.mjs"
+    "lint": "eslint ."
   },
   "dependencies": {
     "cuelume": "^0.2.2",

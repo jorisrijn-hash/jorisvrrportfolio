@@ -1,137 +1,122 @@
 # jorisvrr.com
 
-Personal site for Joris van Rijn. Next.js 16 (App Router) · React 19 · TypeScript ·
-Tailwind v4 · Motion · Cuelume.
+Personal site for Joris van Rijn. Next.js 16 (App Router, Turbopack) · React 19 ·
+TypeScript · Tailwind v4.
 
 ```bash
 npm run dev      # local development
 npm run build    # production build
-npm run verify   # accessibility + behaviour checks (needs the server running)
-npm run shots    # screenshot every route, desktop + mobile
+npm run start    # serve the production build
+npm run lint
 ```
 
-## The site is one fullscreen experience
+Deployed on Vercel. **The site serves on `www.jorisvrr.com`**; the apex 308s to
+it, which is why `SITE.origin` in `content/site.ts` names the www host. Every
+canonical URL, the sitemap and robots read from that one value.
 
-`/` is a state machine, not a scrolling page. Every surface is 100vw x 100dvh
-with `overflow: hidden`.
+## It is one page
 
-    BOOT -> HOME <-> WORK_IN / WORK / WORK_OUT
-                 <-> ABOUT_IN / ABOUT / ABOUT_OUT
+`/` is the whole site: a single document read from a light state into a dark
+one. The only other route is `/work/[slug]`, and only for a project that has a
+real case study.
 
-`lib/experience.tsx` owns it. A transition is a STATE, not a flag, which is
-what lets input be locked while one runs — no double navigation, no
-overlapping timelines. `/work` and `/about` are deep links into their states.
+    Hero -> About -> Work ----------- .descent ------------
+                              fall -> Focus -> Contact -> Footer
 
-## Reference assets
+Everything is server-rendered. `.descent` is the wrapper that carries the page
+from paper to near-black, driven by `.fall` — an empty stretch, on purpose, so
+the low-contrast middle of that change lands where there is nothing to read.
 
-`public/reference/` holds Joris's original design files, untouched:
-`loadingempty.png`, `loadinganimation.mp4/.mp3`, `mainbackground.mp4`,
-`maintofeaturedwork.mp4`, `maintoabout.mp4` — all 1920x950 @ 59.94fps.
+## The client layer is four components
 
-`public/media/` holds the web-encoded derivatives. **Never edit those by hand**
-— re-encode from `public/reference/`.
-
-Important: the originals are SCREEN RECORDINGS. Each carries a browser
-scrollbar (right 15px), a mouse cursor and OS corner icons. The encode crops
-16px from each side; the About globe is cropped further to its own 760x760
-bounding box so the recording's baked top bar and URL bar are excluded.
-
-## Measured values (do not "tidy" these)
-
-Everything in `app/tokens.css` was measured from the reference, not chosen:
+There is no framework doing the motion. `components/site/`:
 
 | | |
 |---|---|
-| ground | `#E8E8E8` |
-| grid | 24px cells, verticals at x=0, horizontals at **y=14** (mod 24) |
-| grid line | `#DEDEDE`, contrast ~10/255 |
-| radial wash | contrast falls 10.7 -> 6.6 at centre; ~0.38 alpha over ~500px |
-| centre construction | circle r=119, dashed arc r=153, outer r=179, diamond vertices on the circle |
-| work panel | quad NW(224,124) SW(224,657) SE(1002,629) NE(1002,172) |
-| about panels | A 554-1351 x 197-413 · B 554-931 x 472-657 · C 974-1351 x 472-739 |
+| `Scroll.tsx` | The page's ONE scroll listener and ONE rAF. Writes `--p` (an element's own progress through the viewport) and `--n` (the page's day-to-night state), and marks `[data-reveal]` once. Everything else reads those custom properties in CSS. |
+| `Weight.tsx` | The heavy scroll. Lerps toward a target and drives the real `window.scrollY`, so `position: sticky` and `fixed` keep working. Bows out for reduced motion, coarse pointers and pinch-zoom. |
+| `Crosshair.tsx` | The pointer. Hides the native cursor only while it is actually mounted, so a failure can never leave the page with no cursor. |
+| `Nav.tsx` | Turns an anchor click into a `site:goto` event that `Weight` animates. |
 
-Project titles are set in a **serif**, not 1955 — that is what the reference
-does.
+The rest (`HeroLines`, `HeroPortrait`, `Proximity`, `Decrypt`, `LetterSwap`)
+are single effects owned by the one element that needs them.
 
-## Dev flags
+## Content is not code
 
-`lib/dev.ts`, compiled out of production. Toggle live in the console:
+Changing what the site says is an edit to `content/`, never to a component.
 
-    __jvr.set("FORCE_INTRO", true)
+- `content/portfolio.ts` — everything on the home page: `IDENTITY`,
+  `HERO_LINES`, `ABOUT`, `FEATURED` (exactly two projects), `FOCUS`,
+  `CONTACT`, `LINKS`, `FOOTER`, `NAV`.
+- `content/projects.ts` — the case studies behind `/work/[slug]`.
+- `content/site.ts` — name, contact, socials, and `origin`.
+- `content/work.ts` — maps a source image to the WebP variants that ship.
 
-`FORCE_INTRO` · `SHOW_GRID_DEBUG` · `REDUCE_MEDIA` · `MUTE_SOUND` ·
-`SHOW_STATE` · `SKIP_TRANSITIONS`
+**Nothing on this site is invented.** A project with no shipped product says
+so; a fact that could not be verified is absent rather than guessed. Keep it
+that way.
 
-## Adding content
+## Adding a project image
 
-Publishing work or a Lab entry is a content change, not a code change.
+Drop the source (JPG/PNG, at least 1680px wide) in `media/work/`, then:
 
-- **A project** — add an entry to `WORK` in `content/work.ts`. `/work`,
-  `/work/[slug]`, and the homepage feature slot pick it up automatically. Set
-  `featured: true` on at most one.
-- **A Lab entry** — add to `LAB` in `content/lab.ts`.
-- **Copy** — `content/site.ts`.
+    python3 scripts/encode-media.py
 
-Both registries ship empty on purpose. Every surface that lists them already
-renders a considered empty state, so the site reads as finished while the
-portfolio fills up.
+It writes `-1680.webp` and `-960.webp` into `public/work/`. Content points at
+the source name; `content/work.ts` maps it to the right file.
 
 ## Things worth knowing before you change them
 
-**1955 has four weights: 100, 300, 500, 900.** No Regular, no Bold. Setting
-`font-weight: 400` or `700` makes the browser synthesise a face that is not in
-the family. Use the roles in `lib/type.ts`. `font-synthesis-weight: none` is set
-globally as a backstop.
+**Archivo carries a width axis, and that is the whole type system.** Set
+narrow and heavy it is the display type the page is built on; at normal width
+and a light weight it is the body copy. A width axis is what makes type this
+large readable. 1955 loads for the wordmark only; Geist Mono is anything the
+system says.
 
-**There is no variable axis**, so weight cannot be interpolated. `WeightText`
-works around this with two real modes — `cross` (two faces crossfaded) and
-`step` (a hard swap). If a variable cut is ever licensed, add a `vf` mode; the
-component's props would not change.
+**`backdrop-filter: invert(1)` does not survive the build.** Lightning CSS
+compiles it to `-webkit-backdrop-filter: invert()` with the argument stripped
+and drops the unprefixed rule, and the browser rejects it. The READ MORE lens
+is a real second `<img>`, inverted and clipped, pinned to the pixel against
+the one behind it.
 
-**Fonts are not preloaded.** Eight faces is ~350KB to use two. They load on
-demand, and the intro sequence covers that first round-trip.
+**`data-reveal` must sit on the element that is actually visible.** Put it on
+a span that starts translated outside its own `overflow: hidden` parent and
+the IntersectionObserver measures zero area, so the reveal never fires. Put it
+on the mask.
 
-**There is no centred page wrapper.** Layout is full-bleed: a scene owns
-100vw and content is placed by COLUMN on a viewport-wide grid (`.vgrid` plus
-`.col-*`). Readability comes from column placement, never from `max-width` +
-`margin: auto`. Adding a centred container is the one change that would undo
-the whole design.
+**Nothing reveals in the bottom tenth of the screen** — that is what makes an
+entrance start after a thing is properly on screen. The last line of the page
+lives exactly there and cannot be scrolled past, so `Scroll.tsx` flushes
+whatever is still waiting once the document end is reached.
 
-**Scenes are not uniformly spaced.** `<Scene measure>` is chosen per scene on
-purpose — identical padding everywhere is what makes a page read as a template.
+**The navigation reads by difference blending**, which has nothing to invert
+against while the ground passes through the middle greys. `html[data-nav]`
+gives it an explicit colour for those two stretches. On narrow screens it
+stops blending entirely and takes a short fade of its own, because the page
+runs under it rather than past it in the margins.
 
-**`MaskReveal` triggers on its outer element, not the clipped child.** The child
-starts translated outside its own `overflow:hidden` parent, so an
-IntersectionObserver on it measures zero visible area and the reveal never
-fires. Keep the trigger outside the clip.
+**Featured Work's hover boundary is the image and only the image.** The state
+is held in React, not in CSS `:hover`, so nested elements cannot fight over it
+and nothing can be left switched on. The name sits above the image but is not
+part of the boundary.
 
-**Section colour comes from `<Section tone>`**, which flips the semantic token
-layer (`--surface`, `--on-surface`, `--rule`, `--accent`). Components should
-never name a brand colour directly — that is what makes tone switching and the
-inverting cursor work.
-
-**Scroll-driven `useTransform` needs a strictly increasing input range inside
-[0, 1].** Motion converts these to WAAPI keyframe offsets; an out-of-range or
-duplicated stop throws "Offsets must be monotonically non-decreasing" and takes
-down the whole page on hydration, not just the component. Where the range has
-pinned or constant edges (the sticky Currently sequence), use the FUNCTION form
-of `useTransform` instead — see `components/scenes/Currently.tsx`.
-
-**Never `useSpring` a value with units.** Spring a number, then format it
-(`useTransform(v => \`${v}%\`)`). Springing a percentage string produces
-invalid keyframes.
-
-**Stone is not a text colour on light grounds.** `#949087` is 2.72:1 on ivory,
-below AA. `--on-surface-dim` resolves to `--color-stone-deep` there instead.
+**A `button` with `display: contents` drops out of the tab order.** If a row
+needs to be clickable, make the row the button.
 
 ## Legacy URLs
 
-`next.config.ts` redirects the previous site's Dutch and English routes
-(`/werk`, `/prijzen`, `/werkwijze`, `/ai`, `/en/*`) to their nearest equivalent.
-The old `/work/:path*` catch-all was deliberately dropped — `/work/[slug]` is a
-real route now.
+`next.config.ts` maps the previous site's Dutch and English routes to sections
+of the one page (`/werk` -> `/#work`, and so on). They pointed at `/work` and
+`/about` until those stopped being routes, which made every one of them a 308
+into a 404.
 
 ## Fonts
 
-Web-ready `.woff2` files live in `app/fonts/`. The licensed `.otf` originals are
-kept in `_fonts-source/`, which is gitignored.
+Web-ready `.woff2` files live in `app/fonts/`. The licensed `.otf` originals
+are kept in `_fonts-source/`, which is gitignored.
+
+## `_backup-current-site/`
+
+The complete previous implementation — the "neural node" experience — kept
+whole so nothing written for it is lost. Nothing in it is imported. Its README
+maps where each piece of the old content went.

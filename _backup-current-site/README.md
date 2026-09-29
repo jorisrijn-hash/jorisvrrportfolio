@@ -24,8 +24,9 @@ want none of it back.
 The boot sequence and its audio gate, the [REBUILD] crash, the sculpture and
 its projection (`lib/sculpture`), the globe (`components/about`), the Work
 environment (`components/work`), the Featured Work notification, the VHS
-layer, the atmosphere layers, and the sound system. Their assets are still in
-`public/` (`audio/boot.*`, `data/land-*.json`, `blocknoise.png`).
+layer, the atmosphere layers, and the sound system. Their assets (`audio/boot.*`,
+`data/land-*.json`, `blocknoise.png`) have since been deleted from `public/`
+along with the rest of the unused tree; they are in git history if wanted.
 
 ## Content that was true then and is still true
 
