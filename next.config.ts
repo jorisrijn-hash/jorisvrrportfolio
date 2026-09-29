@@ -13,7 +13,6 @@ import type { NextConfig } from "next";
 const legacy = [
   { source: "/lab", destination: "/#work", permanent: true },
   { source: "/profile", destination: "/#about", permanent: true },
-  { source: "/contact", destination: "/#contact", permanent: true },
   { source: "/work", destination: "/#work", permanent: true },
   { source: "/about", destination: "/#about", permanent: true },
 
@@ -29,7 +28,7 @@ const legacy = [
   { source: "/en/werkwijze", destination: "/#about", permanent: true },
   { source: "/en/prijzen", destination: "/#about", permanent: true },
   { source: "/en/ai", destination: "/#work", permanent: true },
-  { source: "/en/contact", destination: "/#contact", permanent: true },
+  { source: "/en/contact", destination: "/contact", permanent: true },
 
   // Long-dead routes the old vercel.json was already absorbing
   { source: "/movies", destination: "/", permanent: true },

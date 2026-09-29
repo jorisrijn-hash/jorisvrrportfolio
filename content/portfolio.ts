@@ -129,7 +129,7 @@ export const CONTACT = {
   label: "(03)",
   heading: ["Have a project", "or an opportunity?"],
   body: "I'm looking for an internship where I can grow through real software development, building things that people actually use, in a team that builds them properly.",
-  cta: { label: "Get in touch", href: `mailto:${SITE.email}` },
+  cta: { label: "Get in touch", href: "/contact" },
 } as const;
 
 /** Channels. LinkedIn is the one that matters here; Instagram carries over

@@ -1,0 +1,259 @@
+/* =========================================================================
+   /contact — the same site, one room further in.
+
+   Nothing here introduces a system. It uses the page's own tokens, so the
+   third composition, which lives inside `.descent`, turns dark for free:
+   `--ink`, `--paper` and `--rule` are redefined there, and everything below
+   simply follows them. There are no cards, no panels and no boxes except the
+   one the send button already is everywhere else on the site.
+   ========================================================================= */
+
+.reach__label { color: var(--ink-faint); }
+
+/* ---- 01 · the question, and why anyone would ask it --------------------- */
+.reach__open {
+  grid-template-rows: auto 1fr auto;
+  align-content: space-between;
+}
+.reach__h {
+  align-self: center;
+  font-size: min(19vw, 27vh);
+  line-height: 0.84;
+}
+.reach__h .mask:nth-child(2) { padding-left: 11%; }
+/* The lead is set against the far side of the heading, so the composition is
+   read across the screen rather than down a column. */
+.reach__lead {
+  justify-self: end;
+  max-width: 46ch;
+  font-size: clamp(16px, 1.45vw, 23px);
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+/* ---- 02 · what to write about, and what happens to it ------------------- */
+.reach__work {
+  grid-template-rows: auto 1fr auto;
+  gap: clamp(30px, 6vh, 70px);
+}
+
+/* the five words, at the size the site says them */
+.reach__fields { align-self: center; display: grid; }
+.reach__field { border-top: 1px solid var(--rule); }
+.reach__field:last-child { border-bottom: 1px solid var(--rule); }
+.reach__field-hit {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 40ch);
+  align-items: baseline;
+  gap: clamp(20px, 4vw, 80px);
+  padding: clamp(10px, 1.5vh, 20px) 0;
+  text-align: left;
+  color: inherit;
+}
+.reach__field-t {
+  display: block;
+  font-size: clamp(26px, 4.6vw, 78px);
+  line-height: 1.02;
+  transition: opacity 420ms var(--ease), transform 720ms var(--ease), color 420ms var(--ease);
+}
+/* one at a time: the others stand back rather than disappear */
+.reach__fields[data-live] .reach__field:not([data-on]) .reach__field-t { opacity: 0.2; }
+.reach__field[data-on] .reach__field-t {
+  transform: translateX(clamp(6px, 0.8vw, 16px));
+  color: var(--burgundy);
+}
+/* the sentence is supporting detail: the five words are the answer */
+.reach__field-l {
+  display: block;
+  font-size: clamp(13px, 1.02vw, 16px);
+  line-height: 1.55;
+  color: var(--ink-soft);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 420ms var(--ease) 90ms, transform 620ms var(--ease) 90ms;
+}
+.reach__field[data-on] .reach__field-l { opacity: 1; transform: none; }
+
+/* three lines, not a process diagram */
+.reach__expect {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 34ch);
+  justify-content: space-between;
+  align-items: end;
+  gap: clamp(20px, 3vw, 60px) clamp(30px, 6vw, 120px);
+}
+.reach__expect .reach__label { grid-column: 1 / -1; }
+.reach__steps { display: flex; flex-wrap: wrap; gap: clamp(18px, 3vw, 54px); align-items: baseline; }
+.reach__steps li { display: flex; align-items: baseline; gap: 10px; }
+.reach__step-n { color: var(--ink-faint); }
+.reach__step-t {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: clamp(18px, 2.1vw, 34px);
+  letter-spacing: -0.01em;
+}
+.reach__note {
+  max-width: 34ch;
+  font-size: clamp(13px, 1vw, 16px);
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+/* ---- 03 · the message, and every other way to reach me ------------------ */
+.reach__say { align-content: center; }
+.reach__sheet { display: grid; gap: clamp(16px, 2.4vh, 28px); align-content: start; }
+/* Asymmetric on purpose: the form has the larger half, the channels the
+   quieter one, and neither is centred. */
+.reach__body {
+  display: grid;
+  grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr);
+  gap: clamp(40px, 7vw, 150px);
+  align-items: start;
+}
+.reach__direct { display: grid; gap: clamp(18px, 2.4vh, 30px); align-content: start; }
+.reach__channels { display: grid; gap: clamp(14px, 2vh, 26px); }
+.reach__channels a { display: grid; gap: 5px; width: fit-content; }
+.reach__channel-v {
+  font-size: clamp(15px, 1.3vw, 21px);
+  line-height: 1.2;
+  position: relative;
+}
+.reach__channel-v::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -3px;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  transition: transform 420ms var(--ease);
+}
+.reach__channels a:hover .reach__channel-v::after,
+.reach__channels a:focus-visible .reach__channel-v::after { transform: none; }
+.reach__from { color: var(--ink-faint); }
+
+/* ---- the form ----------------------------------------------------------
+   A label, a rule, and what is written on it. No boxes: the rule under a
+   field is the same hairline the rest of the site divides things with. */
+.reach__form { display: grid; }
+.field {
+  display: grid;
+  gap: 7px;
+  padding: clamp(14px, 2vh, 22px) 0 clamp(10px, 1.4vh, 14px);
+  border-bottom: 1px solid var(--rule);
+  border-radius: 0;
+  min-width: 0;
+}
+.field__label { color: var(--ink-faint); transition: color 320ms var(--ease); }
+.field:focus-within .field__label { color: var(--ink); }
+/* The focus indicator is the rule itself, doubled and taken to full ink: a
+   change of weight as well as of colour, so it does not depend on seeing a
+   hue. It is never removed. */
+.field:focus-within { border-bottom-color: currentColor; box-shadow: 0 1px 0 0 currentColor; }
+
+.field input,
+.field textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: none;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: clamp(15px, 1.25vw, 20px);
+  line-height: 1.45;
+  border-radius: 0;
+  appearance: none;
+}
+.field textarea { resize: vertical; min-height: clamp(130px, 22vh, 230px); }
+.field ::placeholder { color: var(--ink-faint); opacity: 1; }
+/* the field carries the focus state, so the control inside it does not draw
+   a second one on top */
+.field input:focus-visible,
+.field textarea:focus-visible { outline: none; }
+.field--message textarea { padding-block: 4px; }
+
+.field__error {
+  color: var(--burgundy);
+  letter-spacing: 0.12em;
+  text-transform: none;
+  font-size: 11px;
+}
+
+/* why you are writing: one answer, six words, arrow keys */
+.field--pick {
+  border-width: 0 0 1px;
+  margin: 0;
+  padding-top: clamp(20px, 2.8vh, 32px);
+  padding-bottom: clamp(18px, 2.4vh, 28px);
+}
+.field--pick legend { padding: 0; margin-bottom: 4px; }
+.reach__pick { display: flex; flex-wrap: wrap; gap: 8px; }
+.reach__opt {
+  padding: 9px 14px;
+  border: 1px solid var(--rule);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  transition: color 320ms var(--ease), border-color 320ms var(--ease), background-color 320ms var(--ease);
+}
+.reach__opt:hover { border-color: currentColor; color: var(--ink); }
+.reach__opt[data-on] { background: var(--ink); border-color: var(--ink); color: var(--paper); }
+.reach__opt:has(:focus-visible) { outline: 1px solid var(--ink); outline-offset: 3px; }
+
+.reach__send { padding-top: clamp(22px, 3.5vh, 40px); }
+
+/* what actually happened, said plainly */
+.reach__done { display: grid; gap: clamp(16px, 2.4vh, 26px); justify-items: start; align-content: start; }
+.reach__done-h { font-size: clamp(26px, 3.4vw, 54px); line-height: 1.02; }
+.reach__done-b { max-width: 42ch; font-size: clamp(14px, 1.15vw, 18px); line-height: 1.55; color: var(--ink-soft); }
+
+/* =========================================================================
+   RESPONSIVE — the same editorial order, at a phone's scale
+   ========================================================================= */
+@media (max-width: 900px) {
+  .reach__h { font-size: min(24vw, 19vh); }
+  .reach__h .mask:nth-child(2) { padding-left: 0; }
+  .reach__lead { justify-self: start; max-width: none; font-size: clamp(16px, 4.3vw, 20px); }
+
+  .reach__field-hit {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    padding: clamp(14px, 2.4vh, 22px) 0;
+  }
+  .reach__field-t { font-size: clamp(24px, 7.6vw, 40px); }
+  /* there is no pointer to hold a word with, so every line is simply there */
+  .reach__fields[data-live] .reach__field:not([data-on]) .reach__field-t { opacity: 1; }
+  .reach__field[data-on] .reach__field-t { transform: none; color: inherit; }
+  .reach__field-l { opacity: 1; transform: none; transition: none; font-size: clamp(13px, 3.6vw, 16px); }
+
+  .reach__expect { grid-template-columns: minmax(0, 1fr); align-items: start; }
+  .reach__steps { gap: 14px 28px; }
+  .reach__note { max-width: none; }
+
+  .reach__body { grid-template-columns: minmax(0, 1fr); gap: clamp(40px, 7vh, 70px); }
+  /* the form first: it is what the page is for */
+  .reach__sheet { order: -1; }
+
+  /* comfortable to hit, and never small enough to zoom the page on focus */
+  .field { padding: clamp(16px, 2.4vh, 22px) 0 12px; }
+  .field input, .field textarea { font-size: 16px; }
+  .field textarea { min-height: 180px; }
+  .reach__opt { padding: 12px 15px; }
+}
+
+/* =========================================================================
+   REDUCED MOTION — everything is simply here
+   ========================================================================= */
+@media (prefers-reduced-motion: reduce) {
+  .reach__field-t, .reach__field-l, .field__label, .reach__channel-v::after { transition: none !important; }
+  .reach__field-l { opacity: 1; transform: none; }
+  .reach__fields[data-live] .reach__field:not([data-on]) .reach__field-t { opacity: 1; }
+}

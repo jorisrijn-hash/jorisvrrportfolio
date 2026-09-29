@@ -11,6 +11,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
   return [
     { url: SITE.origin, lastModified: now, changeFrequency: "monthly", priority: 1 },
+    { url: `${SITE.origin}/contact`, lastModified: now, changeFrequency: "yearly", priority: 0.7 },
     ...PROJECTS.filter((p) => hasCaseStudy(p)).map((p) => ({
       url: `${SITE.origin}/work/${p.slug}`,
       lastModified: now,
