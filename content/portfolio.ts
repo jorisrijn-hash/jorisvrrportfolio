@@ -75,19 +75,13 @@ export const WORK_INTRO = {
  */
 export const FEATURED = [
   {
-    number: "(01)",
+    /** `kind` is not shown: it is what the link is called for a screen
+     *  reader, which needs more than a name and an image. */
     kind: "Client / Development",
-    year: "2026",
     title: ["BEBO", "Betonboren"],
     slug: "bebo",
     summary:
       "A digital platform for a concrete drilling and sawing company, taking a traditional service business and giving it a clearer, more professional presence and a way of handling the work that comes in.",
-    meta: [
-      { label: "Role", value: "Development · Product · UX" },
-      { label: "Client", value: "BEBO betonboren & zagen" },
-      { label: "Type", value: "Client project" },
-      { label: "Status", value: "In development" },
-    ],
     media: {
       src: "/work/bebo-home",
       alt: "bebobetonboren.nl as it stands today: the holding page, on raw concrete",
@@ -98,19 +92,11 @@ export const FEATURED = [
     caseStudy: null as string | null,
   },
   {
-    number: "(02)",
     kind: "Software / Development",
-    year: "2026",
     title: ["Goodreads", "Rebuilt"],
     slug: "goodreads",
     summary:
       "An independent Goodreads redesign built as a working system: a 9,021-book catalogue ingested from Open Library, hybrid search in PostgreSQL that survives a typo, server-side sessions, and a Spring Boot API that owns every domain decision.",
-    meta: [
-      { label: "Role", value: "Full-stack · Backend · Data" },
-      { label: "Stack", value: "Java · Spring Boot · PostgreSQL · Next.js" },
-      { label: "Type", value: "Personal project" },
-      { label: "Status", value: "Phase 1, core reading system" },
-    ],
     media: {
       src: "/work/goodreads-discover",
       alt: "Goodreads rebuilt: the catalogue as one surface, with a genre rail of real covers and search",

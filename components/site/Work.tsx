@@ -8,13 +8,17 @@ import { FEATURED, WORK_INTRO } from "@/content/portfolio";
  *
  * The marker stays pinned at the centre of the screen; the work travels past
  * it, the first project up the left of the composition and the second up the
- * right. Each one is a label, an image, and a line about it on the side the
- * image is not.
+ * right.
  *
- * THE IMAGE IS THE INTERACTIVE SURFACE, and it is the only one. Entering it
- * activates the project: the detail comes up and the lens appears. Leaving
- * it puts both back. The state is held here rather than in CSS :hover, so
- * nested elements cannot fight over it and nothing can be left switched on.
+ * At rest a project is a photograph and nothing else. No name, no line, no
+ * metadata: the image is what makes somebody curious, so it is allowed to do
+ * that on its own. Entering the image is what names the project, says one
+ * thing about it and offers the way in; leaving takes all three back.
+ *
+ * THE IMAGE IS THE INTERACTIVE SURFACE, and it is the only one. Nothing
+ * around it, including the name it reveals, is part of the boundary. The
+ * state is held here rather than in CSS :hover, so nested elements cannot
+ * fight over it and nothing can be left switched on.
  */
 export function Work() {
   const [at, setAt] = useState(0);
@@ -114,9 +118,8 @@ export function Work() {
           data-on={on === i || undefined}
         >
           <div className="work__zone">
-            {/* the label, above the image, where a project is named */}
-            <h3 className="work__label" data-reveal>
-              <span className="work__num m">{p.number}</span>
+            {/* the name, above the image, and only once the image is held */}
+            <h3 className="work__label">
               <span className="d">{p.title.join(" ")}</span>
             </h3>
 
@@ -161,19 +164,8 @@ export function Work() {
             </a>
           </div>
 
-          {/* the line about it, on the side the image is not */}
-          <div className="work__said">
-            <p className="work__kind m" data-reveal>{p.kind} · {p.year}</p>
-            <p className="work__summary" data-reveal>{p.summary}</p>
-            <dl className="work__meta">
-              {p.meta.map((m) => (
-                <div key={m.label}>
-                  <dt className="m">{m.label}</dt>
-                  <dd>{m.value}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
+          {/* the one line about it, across the side the image is not */}
+          <p className="work__summary">{p.summary}</p>
         </article>
       ))}
     </section>

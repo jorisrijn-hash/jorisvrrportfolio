@@ -495,24 +495,51 @@ html[data-nav="on-dark"] .nav { color: var(--night-ink); text-shadow: 0 0 7px rg
 .work__project {
   display: flex;
   align-items: center;
-  gap: clamp(24px, 4vw, 80px);
+  gap: clamp(30px, 5vw, 96px);
   min-height: 150svh;
-  padding-inline: clamp(36px, 7vw, 150px);
+  padding-inline: clamp(48px, 8vw, 180px);
 }
 .work__project[data-side="left"] { flex-direction: row; }
 .work__project[data-side="right"] { flex-direction: row-reverse; }
 
-.work__zone { flex: 0 0 auto; width: min(46vw, 760px); }
+.work__zone { position: relative; flex: 0 0 auto; width: min(46vw, 760px); }
 
-/* the label, above the image */
+/* ---- the name, above the image -----------------------------------------
+   Editorial type, not a label, and not there at all until the image is held.
+   It is taken out of the flow so that arriving and leaving never move the
+   photograph, and it reveals out of its own line rather than appearing in
+   place: the mask is exactly the height of the type. */
 .work__label {
-  display: flex;
-  align-items: baseline;
-  gap: 14px;
-  margin-bottom: clamp(12px, 1.6vh, 20px);
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + clamp(10px, 1.4vh, 20px));
+  overflow: hidden;
+  pointer-events: none;
 }
-.work__label .d { font-size: clamp(20px, 2vw, 34px); }
-.work__num { color: var(--ink-faint); }
+.work__project[data-side="right"] .work__label { text-align: right; }
+.work__label .d {
+  display: block;
+  font-size: clamp(30px, 4.3vw, 78px);
+  line-height: 1.04;
+  letter-spacing: 0.05em;
+  opacity: 0;
+  transform: translateY(104%);
+  /* leaving: no waiting, and quicker than it arrived */
+  transition:
+    transform 440ms var(--ease),
+    opacity 260ms var(--ease),
+    letter-spacing 440ms var(--ease);
+}
+.work__project[data-on] .work__label .d {
+  opacity: 1;
+  transform: none;
+  letter-spacing: -0.004em;      /* the tracking closes as it settles */
+  transition:
+    transform 800ms var(--ease),
+    opacity 460ms var(--ease),
+    letter-spacing 940ms var(--ease);
+}
 
 .work__view {
   display: block;
@@ -523,33 +550,31 @@ html[data-nav="on-dark"] .nav { color: var(--night-ink); text-shadow: 0 0 7px rg
 .work__figure { position: relative; margin: 0; overflow: hidden; background: var(--paper-deep); }
 .work__figure > img { width: 100%; height: auto; display: block; }
 
-/* ---- the line about it, opposite the image ----------------------------- */
-.work__said {
+/* ---- the one line about it, across the side the image is not -----------
+   It has the whole of the other half to lie across, so it is set at reading
+   size rather than as a caption, and it follows the name in rather than
+   arriving with it. */
+.work__summary {
   flex: 1 1 0;
   min-width: 0;
-  display: grid;
-  gap: clamp(12px, 1.8vh, 22px);
-  align-content: center;
-}
-.work__project[data-side="right"] .work__said { text-align: right; justify-items: end; }
-.work__summary { max-width: 34ch; color: var(--ink-soft); font-size: clamp(13px, 0.98vw, 16px); line-height: 1.62; }
-
-/* the detail belongs to the image being active, and only to that */
-.work__meta {
-  display: grid;
-  gap: 7px;
-  max-width: 34ch;
-  width: 100%;
+  max-width: 56ch;
+  margin-right: auto;
+  color: var(--ink-soft);
+  font-size: clamp(15px, 1.34vw, 22px);
+  line-height: 1.52;
   opacity: 0;
-  transform: translateY(8px);
-  transition: opacity 520ms var(--ease), transform 620ms var(--ease);
+  transform: translateY(14px);
+  transition: opacity 300ms var(--ease), transform 440ms var(--ease);
 }
-.work__project[data-on] .work__meta { opacity: 1; transform: none; }
-.work__project[data-on] .work__summary { color: var(--ink); }
-.work__meta > div { display: grid; grid-template-columns: 74px 1fr; gap: 12px; align-items: baseline; }
-.work__project[data-side="right"] .work__meta > div { grid-template-columns: 1fr 74px; direction: rtl; }
-.work__project[data-side="right"] .work__meta > div > * { direction: ltr; }
-.work__meta dd { margin: 0; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.06em; color: var(--ink); }
+.work__project[data-side="right"] .work__summary {
+  text-align: right;
+  margin: 0 0 0 auto;
+}
+.work__project[data-on] .work__summary {
+  opacity: 1;
+  transform: none;
+  transition: opacity 640ms var(--ease) 230ms, transform 900ms var(--ease) 230ms;
+}
 
 /* ---- the lens ----------------------------------------------------------
    It holds a second copy of the photograph, inverted and pinned to the pixel
@@ -875,31 +900,48 @@ html[data-nav="on-dark"] .nav { color: var(--night-ink); text-shadow: 0 0 7px rg
   .focus__hint { display: none; }
 
   /* the same composition at a phone's scale: the first project still comes
-     up the left, the second up the right — but the information sits under
-     its image, because there is no pointer to bring it out beside it */
+     up the left, the second up the right — but there is no pointer to hold
+     the image with, so the name and the line are simply present */
   .work__project {
     min-height: auto;
     flex-direction: column !important;
     align-items: stretch;
-    gap: clamp(16px, 3vh, 26px);
+    gap: clamp(14px, 2.4vh, 22px);
     padding-inline: var(--gutter);
     padding-block: clamp(50px, 9vh, 90px);
   }
-  /* one column, the full width it has: title, image, then what it is */
-  .work__zone { width: 100%; }
-  .work__view { transform: none; }
-  .work__label .d { font-size: clamp(22px, 6.4vw, 34px); }
-  /* there is no pointer to hold, so the detail is simply present */
-  .work__said, .work__project[data-side="right"] .work__said {
-    text-align: left;
-    justify-items: start;
+  /* one column, the full width it has: name, image, then the line */
+  .work__zone {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(10px, 1.8vh, 18px);
   }
-  .work__meta { opacity: 1; transform: none; }
-  .work__summary { max-width: none; font-size: clamp(14px, 3.7vw, 16px); }
-  .work__meta > div,
-  .work__project[data-side="right"] .work__meta > div {
-    grid-template-columns: 66px 1fr;
-    direction: ltr;
+  .work__view { transform: none; }
+  .work__label,
+  .work__project[data-side="right"] .work__label {
+    position: static;
+    text-align: left;
+    overflow: visible;
+  }
+  .work__label .d,
+  .work__project[data-on] .work__label .d {
+    font-size: clamp(26px, 7.6vw, 42px);
+    letter-spacing: -0.004em;
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .work__summary,
+  .work__project[data-side="right"] .work__summary,
+  .work__project[data-on] .work__summary {
+    max-width: none;
+    margin: 0;
+    text-align: left;
+    font-size: clamp(15px, 4vw, 18px);
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
   .work__lens { display: none; }
 
