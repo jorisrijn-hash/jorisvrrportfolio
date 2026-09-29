@@ -75,6 +75,17 @@ html.site, .site body { height: auto; overflow: visible auto; overflow-x: clip; 
 .wrap { width: var(--col); margin-inline: auto; }
 .section { padding-block: var(--rhythm); position: relative; }
 
+/* A SCREEN — the unit this site is built from.
+   One idea, the height of the viewport, placed in a composition rather than
+   stacked in a container. Nothing is centred by default: each screen says
+   where its own content sits. */
+.screen {
+  position: relative;
+  min-height: 100svh;
+  display: grid;
+  padding: clamp(80px, 12vh, 140px) var(--gutter) clamp(60px, 9vh, 110px);
+}
+
 /* A hairline with a label on it — the site's one recurring divider. */
 .rule { height: 1px; background: var(--rule); transform-origin: 0 50%; }
 
@@ -109,6 +120,16 @@ html.site, .site body { height: auto; overflow: visible auto; overflow-x: clip; 
   color: #f2f1ed;
 }
 .nav a, .nav button { pointer-events: auto; }
+
+/* Through the middle of the change of state there is no contrast to borrow:
+   the ground is a flat mid grey and difference blending turns the navigation
+   into the same grey. For those two stretches it stops blending and takes a
+   colour of its own — the same inversion, stated rather than derived. */
+html[data-nav="on-light"] .nav,
+html[data-nav="on-dark"] .nav { mix-blend-mode: normal; }
+html[data-nav="on-light"] .nav { color: var(--ink); text-shadow: 0 0 7px rgb(242 241 237 / 0.6); }
+html[data-nav="on-dark"] .nav { color: var(--night-ink); text-shadow: 0 0 7px rgb(10 10 9 / 0.6); }
+.nav { transition: color 220ms var(--ease); }
 .nav__mark {
   font-family: var(--font-display);   /* the identity face, for the name only */
   font-weight: 500;
@@ -240,36 +261,72 @@ html.site, .site body { height: auto; overflow: visible auto; overflow-x: clip; 
 .head h2 { font-size: clamp(48px, 9vw, 150px); }
 
 /* =========================================================================
-   ABOUT
+   ABOUT — the word, the claim, then the detail. One per screen.
    ========================================================================= */
+.about__mark { align-content: center; }
+.about__label { position: absolute; top: clamp(80px, 12vh, 140px); left: var(--gutter); }
+.about__word { font-size: min(26vw, 30vh); line-height: 0.82; }
+
+/* the claim sits off-centre, with nothing else on the screen to argue with */
+.about__claim { align-content: center; justify-content: end; }
 .about__lead {
-  max-width: 24ch;
-  font-size: clamp(26px, 3.4vw, 54px);
+  max-width: 17ch;
+  font-size: clamp(30px, 4.6vw, 76px);
   font-weight: 300;
-  line-height: 1.08;
-  letter-spacing: -0.02em;
+  line-height: 1.04;
+  letter-spacing: -0.025em;
+  text-align: right;
 }
-.about__body { display: grid; gap: 22px; max-width: 58ch; margin-left: auto; }
+
+/* then the section lets go: the detail, quiet, at the foot of a screen */
+.about__detail { align-content: end; gap: clamp(30px, 6vh, 70px); }
+.about__body { display: grid; gap: 20px; max-width: 54ch; margin-left: auto; }
 .about__body p { color: var(--ink-soft); }
-.about__grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: clamp(32px, 6vw, 120px); align-items: start; }
 .stack { display: flex; flex-wrap: wrap; gap: 10px 26px; }
-.stack li { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-soft); }
+.stack li { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-faint); }
+
+/* ---- the word whose letters turn over (components/site/LetterSwap) ------ */
+.swap { display: inline-flex; }
+.swap__l { display: inline-block; }
+.swap__box {
+  display: block;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 620ms var(--ease) calc(var(--i) * 34ms);
+}
+.swap[data-turn] .swap__box { transform: rotateX(-90deg); }
+.swap__face { display: block; backface-visibility: hidden; }
+.swap__face--under { position: absolute; inset: 0; transform: rotateX(90deg); transform-origin: center top; }
 
 /* =========================================================================
-   SELECTED WORK — a pinned chapter marker, and work that moves past it
-
-   The marker is sticky at the middle of the screen for the whole section and
-   blends against whatever is behind it, so it survives crossing a
-   photograph. The projects are given room: a screen for the name, a screen
-   for the image, a screen for what is true about it.
+   CONTACT — the question, then the ways to answer it
    ========================================================================= */
-.work { position: relative; padding-block: clamp(80px, 12vh, 160px); }
+.contact__ask { align-content: center; gap: clamp(24px, 4vh, 48px); }
+.contact__q { font-size: clamp(38px, 7.8vw, 128px); }
+.contact__q2 { color: var(--ink-faint); }
+.contact__reply { align-content: center; justify-items: start; gap: clamp(26px, 4vh, 44px); }
+.contact__body { max-width: 42ch; color: var(--ink-soft); font-size: clamp(16px, 1.3vw, 20px); }
+.contact__links { display: flex; flex-wrap: wrap; gap: clamp(18px, 3vw, 54px); }
+.contact__links a { display: grid; gap: 4px; }
+.contact__links span:last-child { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; color: var(--ink); }
+.contact__links a:hover span:last-child { color: var(--burgundy); }
+
+/* =========================================================================
+   SELECTED WORK — a fixed marker, and work that travels past it
+
+   The marker is sticky at the centre of the screen for the whole section and
+   blends against whatever passes under it. The projects are what move: the
+   first rises up the left of the composition, the second up the right. Each
+   is an image first; its name and facts are already in the page, masked, and
+   the pointer uncovers them.
+   ========================================================================= */
+.work { position: relative; padding-block: clamp(70px, 12vh, 150px); }
 
 .work__marker {
   position: sticky;
   top: 50svh;
   z-index: 3;
-  height: 0;                         /* takes no space in the flow */
+  height: 0;                          /* it takes no space in the flow */
   display: flex;
   justify-content: center;
   gap: 14px;
@@ -283,15 +340,34 @@ html.site, .site body { height: auto; overflow: visible auto; overflow-x: clip; 
 .work__count span[data-at] { opacity: 1; }
 .work__slash { opacity: 0.35 !important; }
 
-.work__project { padding-block: clamp(90px, 16vh, 220px); }
-.work__num { margin-bottom: clamp(18px, 3vh, 34px); }
-.work__title { font-size: clamp(52px, 12.5vw, 220px); }
-.work__kind { margin-top: clamp(20px, 3.4vh, 42px); }
+/* Each project has a screen and a half to travel through, so the image is
+   the whole composition for a while before anything else is. */
+.work__project {
+  display: flex;
+  min-height: 150svh;
+  align-items: center;
+  padding-inline: var(--gutter);
+}
+.work__project[data-side="left"] { justify-content: flex-start; }
+.work__project[data-side="right"] { justify-content: flex-end; }
 
-/* the image arrives by uncovering itself, and settles out of a slow scale */
+.work__view {
+  position: relative;
+  display: block;
+  width: min(52vw, 860px);
+  isolation: isolate;
+}
+.work__num {
+  position: absolute;
+  top: -28px;
+  left: 0;
+  z-index: 2;
+}
+.work__project[data-side="right"] .work__num { left: auto; right: 0; }
+
 .work__figure {
-  width: min(1680px, 100vw - var(--gutter) * 2);
-  margin: clamp(56px, 10vh, 130px) auto 0;
+  position: relative;
+  margin: 0;
   overflow: hidden;
   background: var(--paper-deep);
 }
@@ -299,55 +375,71 @@ html.site, .site body { height: auto; overflow: visible auto; overflow-x: clip; 
   width: 100%;
   height: auto;
   display: block;
-  transform: scale(1.06);
-  transition: transform 1600ms var(--ease);
+  transform: scale(1.03);
+  transition: transform 1400ms var(--ease), filter 700ms var(--ease);
 }
-.work__figure[data-reveal="in"] img { transform: scale(1); }
-.work__caption { margin-top: 12px; }
+.work__view:hover .work__figure img,
+.work__view:focus-visible .work__figure img { transform: scale(1.06); filter: brightness(0.62) contrast(1.05); }
 
-.work__read {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: clamp(28px, 5vw, 90px);
-  align-items: start;
-  margin-top: clamp(56px, 10vh, 130px);
-}
-.work__summary { color: var(--ink-soft); max-width: 44ch; font-size: clamp(16px, 1.3vw, 20px); line-height: 1.55; }
-.work__meta { display: grid; gap: 12px; }
-.work__meta > div { display: grid; grid-template-columns: 78px 1fr; gap: 16px; align-items: baseline; padding-bottom: 12px; border-bottom: 1px solid var(--rule); }
-.work__meta dd { margin: 0; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em; color: var(--ink); }
-.work__read > p:last-child { grid-column: 2; }
-
-/* the one button shape the site uses */
-.action {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 20px;
-  border: 1px solid currentColor;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
-  transition: color 420ms var(--ease);
-}
-.action::before {
-  content: "";
+/* ---- what the pointer uncovers ---------------------------------------- */
+.work__reveal {
   position: absolute;
   inset: 0;
-  background: currentColor;
-  transform: scaleX(0);
-  transform-origin: 0 50%;
-  transition: transform 520ms var(--ease);
-  z-index: -1;
+  z-index: 1;
+  display: grid;
+  align-content: end;
+  gap: clamp(10px, 1.6vh, 20px);
+  padding: clamp(20px, 3vw, 46px);
+  color: #f2f1ed;
+  /* the photograph stays visible underneath; this only gives the type
+     something to sit on */
+  background: linear-gradient(to top, rgb(10 10 9 / 0.82), rgb(10 10 9 / 0.4) 58%, rgb(10 10 9 / 0.06));
+  /* already laid out, simply not shown yet: a wipe, not a fade-in card */
+  clip-path: inset(100% 0 0 0);
+  transition: clip-path 760ms var(--ease);
 }
-.action:hover, .action:focus-visible { color: var(--paper); }
-.action:hover::before, .action:focus-visible::before { transform: none; background: var(--ink); }
-.action svg { transition: transform 420ms var(--ease); }
-.action:hover svg { transform: translateX(4px); }
+.work__view:hover .work__reveal,
+.work__view:focus-visible .work__reveal { clip-path: inset(0 0 0 0); }
+.work__reveal > * {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 520ms var(--ease) var(--d, 0ms), transform 640ms var(--ease) var(--d, 0ms);
+}
+.work__view:hover .work__reveal > *,
+.work__view:focus-visible .work__reveal > * { opacity: 1; transform: none; }
+.work__reveal > *:nth-child(2) { --d: 70ms; }
+.work__reveal > *:nth-child(3) { --d: 130ms; }
+.work__reveal > *:nth-child(4) { --d: 190ms; }
+
+.work__kind { color: rgb(242 241 237 / 0.7); }
+.work__title { display: grid; font-size: clamp(30px, 4.4vw, 78px); }
+.work__meta { display: grid; gap: 6px; max-width: 46ch; }
+.work__row { display: grid; grid-template-columns: 76px 1fr; gap: 14px; align-items: baseline; }
+.work__row .m { color: rgb(242 241 237 / 0.55); }
+.work__row > span:last-child { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; }
+
+/* the way in: a box that inverts whatever is behind it */
+.work__show { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-top: clamp(4px, 1vh, 12px); }
+.work__showbox {
+  display: inline-block;
+  padding: 14px 22px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  /* the box IS the inversion: it turns whatever is behind it inside out,
+     then flattens it enough that the label is readable whatever that was */
+  color: #131311;
+  backdrop-filter: invert(1) grayscale(1) contrast(0.22) brightness(1.55);
+  -webkit-backdrop-filter: invert(1) grayscale(1) contrast(0.22) brightness(1.55);
+  transition: padding 420ms var(--ease);
+}
+/* where backdrop-filter is not available, it is a plain reversed box */
+@supports not (backdrop-filter: invert(1)) {
+  .work__showbox { color: var(--ink); background: var(--night-ink); }
+}
+.work__view:hover .work__showbox { padding-inline: 30px; }
+.work__show .m { color: rgb(242 241 237 / 0.65); }
 
 /* =========================================================================
    STATEMENT — read by scrolling, not shown
@@ -374,71 +466,84 @@ html.site, .site body { height: auto; overflow: visible auto; overflow-x: clip; 
 .statement__body { max-width: 46ch; margin-top: clamp(60px, 12vh, 140px); color: var(--ink-soft); }
 
 /* =========================================================================
-   WHAT I WORK WITH — typography that reacts
+   WHAT I WORK WITH — a typographic landscape
 
-   Six words stepped across the page. The one under the pointer comes
-   forward and says what it means; the rest step back. A small mark trails
-   the pointer while one is open.
+   The six words are placed across the width of the screen, in their own
+   lanes and at their own sizes, two of them running past the edges. Nothing
+   is on a grid and nothing is centred. What the live word means is read out
+   along the bottom, so exploring the landscape never moves it.
    ========================================================================= */
+.focus { position: relative; }
+.focus__label {
+  position: absolute;
+  top: clamp(56px, 9vh, 96px);
+  left: var(--gutter);
+  right: var(--gutter);
+  display: flex;
+  justify-content: space-between;
+  z-index: 2;
+}
+
 .focus__field {
   position: relative;
-  width: var(--col);
-  margin: clamp(40px, 8vh, 110px) auto 0;
-  display: grid;
-  gap: clamp(2px, 1.2vh, 18px);
-}
-.focus__word {
-  position: relative;
-  display: grid;
-  grid-template-columns: max-content auto;
-  align-items: center;
-  column-gap: clamp(14px, 2vw, 30px);
-  gap: 10px;
-  padding-block: clamp(4px, 0.8vh, 12px);
-  text-align: left;
+  height: 100svh;
   width: 100%;
+  overflow: clip;                   /* the words may leave; the page may not */
 }
-/* the composition: each word starts further in than the last, then steps back */
-.focus__word:nth-child(2) { padding-left: 0; }
-.focus__word:nth-child(3) { padding-left: 9%; }
-.focus__word:nth-child(4) { padding-left: 3%; }
-.focus__word:nth-child(5) { padding-left: 15%; }
-.focus__word:nth-child(6) { padding-left: 7%; }
-.focus__word:nth-child(7) { padding-left: 19%; }
+
+.focus__word {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: max-content;
+  text-align: left;
+  padding: 0;
+}
+/* the landscape: lanes, sizes and bleeds, none of them regular */
+.focus__word:nth-of-type(1) { --x: -3%;  --y: 20%; --s: 1.00; }
+.focus__word:nth-of-type(2) { --x: 46%;  --y: 32%; --s: 0.74; }
+.focus__word:nth-of-type(3) { --x: 12%;  --y: 45%; --s: 0.92; }
+.focus__word:nth-of-type(4) { --x: 68%;  --y: 56%; --s: 1.18; }
+.focus__word:nth-of-type(5) { --x: 2%;   --y: 68%; --s: 0.68; }
+.focus__word:nth-of-type(6) { --x: 34%;  --y: 79%; --s: 0.58; }
 
 .focus__w {
   display: block;
-  font-size: clamp(34px, 7vw, 116px);
+  font-size: calc(clamp(30px, 6.4vw, 104px) * var(--s, 1));
+  line-height: 0.9;
+  white-space: nowrap;
   color: var(--ink);
   transition: transform 720ms var(--ease), color 480ms var(--ease), opacity 480ms var(--ease);
-  transform-origin: 0 50%;
 }
-/* the field dims around whichever word is live */
-.focus__field[data-live] .focus__word:not([data-open]) .focus__w { opacity: 0.34; }
-.focus__word[data-open] .focus__w { transform: translateX(clamp(8px, 1.4vw, 26px)); color: var(--burgundy); }
+/* the field recedes around whichever word is live */
+.focus__field[data-live] .focus__word:not([data-open]) .focus__w { opacity: 0.16; }
+.focus__word[data-open] .focus__w { transform: translateX(clamp(8px, 1.2vw, 22px)); color: var(--burgundy); }
 
-.focus__said {
-  grid-column: 1 / -1;
+/* the readout along the bottom: it changes, the landscape does not move */
+.focus__read {
+  position: absolute;
+  left: var(--gutter);
+  right: var(--gutter);
+  bottom: clamp(30px, 6vh, 64px);
   display: grid;
   gap: 8px;
-  max-width: 54ch;
+  max-width: 62ch;
   opacity: 0;
-  transform: translateY(-6px);
-  transition: opacity 520ms var(--ease), transform 620ms var(--ease);
+  transform: translateY(8px);
+  transition: opacity 460ms var(--ease), transform 560ms var(--ease);
 }
-.focus__word[data-open] .focus__said { opacity: 1; transform: none; }
-.focus__line { font-size: clamp(14px, 1.15vw, 18px); color: var(--ink-soft); max-width: 46ch; }
+.focus__read[data-on] { opacity: 1; transform: none; }
+.focus__line { font-size: clamp(14px, 1.2vw, 19px); color: var(--ink-soft); }
 .focus__keys { display: flex; flex-wrap: wrap; gap: 6px 18px; }
 
 /* the one interaction hint on the page */
 .focus__hint {
-  grid-column: 2;
-  grid-row: 1;
-  justify-self: start;
-  white-space: nowrap;
+  position: absolute;
+  left: calc(-3% + 1ch);
+  top: calc(20% - 34px);
   color: var(--ink-faint);
   opacity: 0;
-  animation: hint 5s var(--ease) 1.2s 3 both;
+  animation: hint 5s var(--ease) 1.4s 3 both;
 }
 @keyframes hint { 0%, 100% { opacity: 0; } 25%, 70% { opacity: 1; } }
 .focus__field[data-live] .focus__hint { opacity: 0 !important; animation: none; }
@@ -462,16 +567,6 @@ html.site, .site body { height: auto; overflow: visible auto; overflow-x: clip; 
   opacity: 0.85;
   transform: translate3d(var(--mx, 0px), var(--my, 0px), 0) scale(1);
 }
-
-/* =========================================================================
-   CONTACT
-   ========================================================================= */
-.contact h2 { font-size: clamp(40px, 8.4vw, 140px); }
-.contact__body { max-width: 46ch; color: var(--ink-soft); margin-top: clamp(28px, 4vh, 48px); }
-.contact__links { display: flex; flex-wrap: wrap; gap: clamp(18px, 3vw, 54px); margin-top: clamp(40px, 6vh, 72px); }
-.contact__links a { display: grid; gap: 4px; }
-.contact__links span:last-child { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em; color: var(--ink); position: relative; padding-bottom: 3px; }
-.contact__links a:hover span:last-child { color: var(--burgundy); }
 
 /* =========================================================================
    THE DESCENT — the page changes state rather than fading out
@@ -559,6 +654,56 @@ html.site, .site body { height: auto; overflow: visible auto; overflow-x: clip; 
 .footer__bottom { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; margin-top: clamp(44px, 7vh, 80px); }
 
 /* =========================================================================
+   THE CROSSHAIR — a precision instrument
+
+   Two hairlines and a dot. It follows the pointer on the compositor and
+   changes only over something that does something. The native cursor is
+   hidden only while this is actually mounted (html[data-cursor="on"]), so a
+   failure can never leave the page with no cursor at all.
+   ========================================================================= */
+.cross {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 90;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  opacity: 0;
+  color: var(--ink);
+  mix-blend-mode: difference;
+  filter: invert(1);              /* difference + invert: legible on both worlds */
+  transition: opacity 260ms var(--ease);
+}
+.cross[data-on] { opacity: 1; }
+.cross span { position: absolute; background: currentColor; }
+.cross__h { left: -7px; top: -0.5px; width: 14px; height: 1px; }
+.cross__v { left: -0.5px; top: -7px; width: 1px; height: 14px; }
+.cross__dot { left: -1px; top: -1px; width: 2px; height: 2px; opacity: 0; }
+.cross__ring {
+  left: -13px;
+  top: -13px;
+  width: 26px;
+  height: 26px;
+  background: none;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 320ms var(--ease), transform 420ms var(--ease);
+}
+/* over something that does something */
+.cross[data-state] .cross__ring { opacity: 0.55; transform: scale(1); }
+.cross[data-state="text"] .cross__ring { opacity: 0; }
+.cross[data-state="text"] .cross__h { width: 22px; left: -11px; }
+.cross[data-state="text"] .cross__dot { opacity: 1; }
+@media (pointer: fine) and (hover: hover) {
+  html[data-cursor="on"], html[data-cursor="on"] * { cursor: none; }
+  /* a caret still belongs where text is entered or selected */
+  html[data-cursor="on"] input, html[data-cursor="on"] textarea { cursor: auto; }
+}
+
+/* =========================================================================
    RESPONSIVE — the desktop composition is experimental; this is not.
    ========================================================================= */
 @media (max-width: 900px) {
@@ -571,10 +716,37 @@ html.site, .site body { height: auto; overflow: visible auto; overflow-x: clip; 
   .hero__portrait { width: clamp(96px, 26vw, 150px); }
   .m { letter-spacing: 0.16em; }
 
-  .about__grid, .work__read { grid-template-columns: 1fr; }
+  .screen { padding: clamp(70px, 11vh, 110px) var(--gutter) clamp(48px, 8vh, 80px); }
+  .about__word { font-size: min(30vw, 22vh); }
+  .about__lead { max-width: none; text-align: left; font-size: clamp(26px, 7.4vw, 44px); }
+  .about__claim { justify-content: start; }
   .about__body, .statement__body { margin-left: 0; }
-  .work__read > p:last-child { grid-column: 1; }
-  .work__meta > div { grid-template-columns: 66px 1fr; gap: 12px; }
+
+  /* the landscape keeps its shape on a phone — lanes and bleeds, at a
+     phone's scale — rather than collapsing into a list */
+  .focus__w { font-size: calc(clamp(22px, 9.4vw, 46px) * var(--s, 1)); }
+  .focus__word:nth-of-type(1) { --x: -2%; --y: 20%; }
+  .focus__word:nth-of-type(2) { --x: 30%; --y: 31%; }
+  .focus__word:nth-of-type(3) { --x: 8%;  --y: 42%; }
+  .focus__word:nth-of-type(4) { --x: 58%; --y: 52%; }
+  .focus__word:nth-of-type(5) { --x: 4%;  --y: 62%; }
+  .focus__word:nth-of-type(6) { --x: 20%; --y: 72%; }
+  .focus__field[data-live] .focus__word:not([data-open]) .focus__w { opacity: 0.3; }
+  .focus__read { bottom: clamp(20px, 4vh, 40px); }
+  .focus__hint { display: none; }
+
+  /* the same composition, at a phone's scale: the first project still comes
+     up the left, the second up the right, and with no pointer to uncover
+     anything the information is simply shown */
+  .work__project { min-height: 118svh; }
+  .work__view { width: 86vw; }
+  /* static under the image on a phone, so it needs no scrim and no dark */
+  .work__reveal { clip-path: inset(0 0 0 0); position: static; padding: 18px 0 0; color: var(--ink); background: none; }
+  .work__reveal > * { opacity: 1; transform: none; }
+  .work__figure img { filter: none !important; transform: none !important; }
+  .work__kind, .work__row .m, .work__show .m { color: var(--ink-faint); }
+  .work__showbox { color: var(--paper); background: var(--ink); backdrop-filter: none; }
+  .work__row { grid-template-columns: 66px 1fr; gap: 12px; }
 
   /* the chapter marker moves out of the type's way and reads as a status
      line along the bottom of the screen — still pinned, still a marker */
@@ -601,9 +773,10 @@ html.site, .site body { height: auto; overflow: visible auto; overflow-x: clip; 
    ========================================================================= */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
+  /* the lines stop; they do NOT become scrollable — a scroll container is
+     keyboard-focusable, and these are decorative (the heading carries the
+     words for anything that reads rather than looks) */
   .mq__track { animation: none; }
-  .mq { overflow-x: auto; scrollbar-width: none; }
-  .mq::-webkit-scrollbar { display: none; }
   [data-reveal] { opacity: 1 !important; transform: none !important; transition: none !important; }
   .mask > span { transform: none !important; transition: none !important; }
   .dot { animation: none; }

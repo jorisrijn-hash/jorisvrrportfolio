@@ -1,4 +1,5 @@
 import { Scroll } from "@/components/site/Scroll";
+import { Crosshair } from "@/components/site/Crosshair";
 import { Nav } from "@/components/site/Nav";
 import { Hero } from "@/components/site/Hero";
 import { About } from "@/components/site/About";
@@ -38,6 +39,7 @@ export default function IndexPage() {
         </div>
       </main>
       <Scroll />
+      <Crosshair />
     </>
   );
 }

@@ -87,6 +87,13 @@ export function Scroll() {
         set(descent, "--n", p);
         descent.dataset.rules = p > 0.32 ? "night" : "day";
         descent.dataset.ink = p > 0.5 ? "night" : "day";
+        // The navigation reads by inverting against what is behind it, which
+        // works over paper and over black but has nothing to invert against
+        // while the ground is passing through the middle greys. For that
+        // stretch only, it is given an explicit colour instead — dark while
+        // the ground is still light, light once it is not.
+        document.documentElement.dataset.nav =
+          p < 0.3 ? "day" : p < 0.52 ? "on-light" : p < 0.72 ? "on-dark" : "night";
       }
       live.forEach((el) => {
         const r = el.getBoundingClientRect();
